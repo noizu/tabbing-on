@@ -3,11 +3,12 @@
 A pure-shell terminal tab title, status & task manager.
 Works with iTerm2, Ghostty, Kitty, WezTerm, Alacritty, and more.
 
-
-![A361378B-DDB6-4D03-A60B-A97B052D8E81_4_5005_c](https://github.com/user-attachments/assets/b1203ebf-f731-4688-92a1-bc9f3c892bc4)
-
-
 > **[`demo-runner`](#demo-runner)** — a typewriter-style demo player is included. Run `bin/demo-runner` for a guided walkthrough.
+
+
+
+https://github.com/user-attachments/assets/dcefea35-beaa-43c8-afe6-9717a478e7cf
+
 
 ## Install
 
