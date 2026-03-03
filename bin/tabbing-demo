@@ -1,0 +1,197 @@
+#!/usr/bin/env zsh
+# tabbing-demo — Typewriter-style demo runner for tabbing-on
+#
+# Reads a .demo script and plays it back:
+#   # lines  → bold colored headings (appear instantly)
+#   ## lines → dim descriptions (appear instantly)
+#   $ lines  → typed out char-by-char, then executed
+#   @ sleep N → pause N seconds
+#   @input TEXT → simulate typing input to the previous command's stdin
+#   blank lines → printed as-is
+#
+# Usage:
+#   bin/tabbing-demo [script.demo]   # default: demo/showcase.demo
+#   bin/tabbing-demo --speed fast    # fast/medium/slow
+#   bin/tabbing-demo --no-pause      # skip inter-command pauses
+
+set -e
+
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+_DEMO_SPEED="${TABBING_DEMO_SPEED:-medium}"
+_DEMO_PAUSE=1        # pause between commands
+_DEMO_HEADING_PAUSE=1 # pause after headings
+_DEMO_SCRIPT=""
+_DEMO_NO_PAUSE=0
+
+# Parse args
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --speed)    _DEMO_SPEED="$2"; shift 2 ;;
+    --speed=*)  _DEMO_SPEED="${1#--speed=}"; shift ;;
+    --fast)     _DEMO_SPEED="fast"; shift ;;
+    --slow)     _DEMO_SPEED="slow"; shift ;;
+    --no-pause) _DEMO_NO_PAUSE=1; shift ;;
+    --help|-h)
+      printf 'tabbing-demo — Typewriter-style demo runner\n\n'
+      printf 'Usage: bin/tabbing-demo [options] [script.demo]\n\n'
+      printf 'Options:\n'
+      printf '  --speed fast|medium|slow   Typing speed (default: medium)\n'
+      printf '  --fast                     Shorthand for --speed fast\n'
+      printf '  --slow                     Shorthand for --speed slow\n'
+      printf '  --no-pause                 Skip inter-command pauses\n'
+      exit 0
+      ;;
+    *)
+      _DEMO_SCRIPT="$1"; shift ;;
+  esac
+done
+
+# Speed → character delay (seconds)
+case "$_DEMO_SPEED" in
+  fast)   _CHAR_DELAY=0.01; _DEMO_PAUSE=0.5; _DEMO_HEADING_PAUSE=0.5 ;;
+  medium) _CHAR_DELAY=0.03; _DEMO_PAUSE=1.0; _DEMO_HEADING_PAUSE=1.0 ;;
+  slow)   _CHAR_DELAY=0.06; _DEMO_PAUSE=1.5; _DEMO_HEADING_PAUSE=1.5 ;;
+  *)      _CHAR_DELAY=0.03; _DEMO_PAUSE=1.0; _DEMO_HEADING_PAUSE=1.0 ;;
+esac
+
+if [[ $_DEMO_NO_PAUSE -eq 1 ]]; then
+  _DEMO_PAUSE=0.2
+  _DEMO_HEADING_PAUSE=0.3
+fi
+
+# Find the demo script
+_DEMO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+if [[ -z "$_DEMO_SCRIPT" ]]; then
+  _DEMO_SCRIPT="${_DEMO_ROOT}/demo/showcase.demo"
+fi
+if [[ ! -f "$_DEMO_SCRIPT" ]]; then
+  printf 'tabbing-demo: script not found: %s\n' "$_DEMO_SCRIPT" >&2
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# ANSI helpers
+# ---------------------------------------------------------------------------
+_RST=$'\033[0m'
+_BOLD=$'\033[1m'
+_DIM=$'\033[2m'
+_GREEN=$'\033[32m'
+_CYAN=$'\033[36m'
+_YELLOW=$'\033[33m'
+_GRAY=$'\033[90m'
+
+# ---------------------------------------------------------------------------
+# Typewriter: print string char-by-char with delay
+# ---------------------------------------------------------------------------
+_typewrite() {
+  local text="$1"
+  local i=0
+  while [[ $i -lt ${#text} ]]; do
+    printf '%s' "${text:$i:1}"
+    # Vary delay slightly for natural feel
+    if (( RANDOM % 3 == 0 )); then
+      sleep "$(printf '%.3f' "$(echo "$_CHAR_DELAY * 2" | bc)")"
+    else
+      sleep "$_CHAR_DELAY"
+    fi
+    i=$((i + 1))
+  done
+}
+
+# ---------------------------------------------------------------------------
+# Display a prompt, type the command, then execute it
+# ---------------------------------------------------------------------------
+_run_command() {
+  local cmd="$1"
+
+  # Show the prompt
+  printf '%s%s$%s ' "$_BOLD" "$_GREEN" "$_RST"
+
+  # Type out the command
+  _typewrite "$cmd"
+
+  # Hit "enter"
+  printf '\n'
+
+  # Brief pause before output (like a real terminal)
+  sleep 0.1
+
+  # Execute the command in the current shell context
+  eval "$cmd"
+
+  # Pause after command
+  sleep "$_DEMO_PAUSE"
+}
+
+# ---------------------------------------------------------------------------
+# Display a heading
+# ---------------------------------------------------------------------------
+_show_heading() {
+  local text="$1"
+  printf '\n%s%s%s%s\n' "$_BOLD" "$_CYAN" "$text" "$_RST"
+  printf '%s%s%s\n' "$_CYAN" "$(printf '%.0s─' {1..${#text}})" "$_RST"
+  sleep "$_DEMO_HEADING_PAUSE"
+}
+
+# ---------------------------------------------------------------------------
+# Display a description
+# ---------------------------------------------------------------------------
+_show_desc() {
+  local text="$1"
+  printf '%s%s%s\n' "$_DIM" "$text" "$_RST"
+}
+
+# ---------------------------------------------------------------------------
+# Source tabbing-on so commands work in this shell
+# ---------------------------------------------------------------------------
+source "${_DEMO_ROOT}/shell/tabbing.zsh"
+
+# Clear any prior state
+unset TAB_TITLE TAB_STATUS TAB_URGENCY TAB_EMOJI TAB_HIGHLIGHT TAB_ID TAB_RECORDING
+
+# ---------------------------------------------------------------------------
+# Play the script
+# ---------------------------------------------------------------------------
+while IFS= read -r line || [[ -n "$line" ]]; do
+  case "$line" in
+    '## '*)
+      # Description line
+      _show_desc "${line#\#\# }"
+      ;;
+    '# '*)
+      # Heading line
+      _show_heading "${line#\# }"
+      ;;
+    '$ '*)
+      # Command to type and execute
+      _run_command "${line#\$ }"
+      ;;
+    '@sleep '*)
+      # Explicit pause
+      local secs="${line#@sleep }"
+      sleep "$secs"
+      ;;
+    '@input '*)
+      # This is handled by piping into the previous command
+      # For now, just display it as typed input
+      local input_text="${line#@input }"
+      _typewrite "$input_text"
+      printf '\n'
+      ;;
+    '@clear')
+      clear
+      ;;
+    '')
+      printf '\n'
+      ;;
+    *)
+      # Anything else, just print it
+      printf '%s\n' "$line"
+      ;;
+  esac
+done < "$_DEMO_SCRIPT"
+
+# Final
+printf '\n%s%sDone!%s\n' "$_BOLD" "$_GREEN" "$_RST"
