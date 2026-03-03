@@ -9,6 +9,9 @@ Works with iTerm2, Ghostty, Kitty, WezTerm, Alacritty, and more.
 
 https://github.com/user-attachments/assets/dcefea35-beaa-43c8-afe6-9717a478e7cf
 
+![tabbing-on showcase](demo/showcase.gif)
+
+> [View the full asciinema recording](demo/showcase.cast)
 
 ## Install
 
