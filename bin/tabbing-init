@@ -1,0 +1,51 @@
+#!/bin/sh
+# tabbing-init — Outputs shell-specific init code for tabbing-on
+#
+# Usage:
+#   eval "$(tabbing-init bash)"   # add to .bashrc
+#   eval "$(tabbing-init zsh)"    # add to .zshrc
+#
+# This outputs a source command pointing to the correct shell-specific file.
+
+set -e
+
+# Resolve the tabbing-on root directory (parent of bin/)
+TABBING_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+case "${1:-}" in
+  bash)
+    printf 'source "%s/shell/tabbing.bash"\n' "$TABBING_ROOT"
+    ;;
+  zsh)
+    printf 'source "%s/shell/tabbing.zsh"\n' "$TABBING_ROOT"
+    ;;
+  bat|cmd|windows)
+    printf '@echo off\n'
+    printf 'REM tabbing-on Windows support is experimental\n'
+    printf 'doskey tabbing-on="%s\\shell\\tabbing.bat" $*\n' "$TABBING_ROOT"
+    ;;
+  --help|-h|help)
+    printf 'tabbing-init — Initialize tabbing-on for your shell\n\n'
+    printf 'Usage:\n'
+    printf '  eval "$(tabbing-init bash)"   # add to .bashrc\n'
+    printf '  eval "$(tabbing-init zsh)"    # add to .zshrc\n'
+    printf '\nAlternatively, add the source line directly:\n'
+    printf '  source "%s/shell/tabbing.bash"   # .bashrc\n' "$TABBING_ROOT"
+    printf '  source "%s/shell/tabbing.zsh"    # .zshrc\n' "$TABBING_ROOT"
+    printf '\nAvailable commands after init:\n'
+    printf '  tabbing-on         Set/display tab title, status, highlight, urgency, emoji\n'
+    printf '  tabbing-status     Update status text and urgency/emoji\n'
+    printf '  tabbing-todo       Manage per-tab todo items\n'
+    printf '  tabbing-report     View time-in-state reports and charts\n'
+    printf '  tabbing-history    Search/browse tab history\n'
+    printf '  tabbing-recordings List/manage terminal recordings\n'
+    ;;
+  *)
+    printf 'tabbing-init: specify your shell: bash or zsh\n\n' >&2
+    printf 'Usage:\n' >&2
+    printf '  eval "$(tabbing-init bash)"   # add to .bashrc\n' >&2
+    printf '  eval "$(tabbing-init zsh)"    # add to .zshrc\n' >&2
+    printf '\nRun "tabbing-init --help" for more info.\n' >&2
+    exit 1
+    ;;
+esac
