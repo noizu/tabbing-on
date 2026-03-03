@@ -69,7 +69,7 @@ $ tabbing-todo "Choose Framework" -e search -p 2
 
 $ tabbing-todo
 
-## Pick one to work on. Type a number at the prompt.
+## Pick one to work on.
 
 $ echo "1" | tabbing-todo --pick
 
@@ -93,13 +93,25 @@ $ tabbing-on
 
 $ tabbing-on --terminal-info
 
+# Recording
+
+## Recordings are tied to tasks. Use --record to start asciinema,
+## --continue to keep recording across status changes.
+## Here we create a sample recording to show the workflow.
+
+$ _tabbing_demo_create_sample_cast
+
+## List recordings for this tab.
+
+$ tabbing-recordings
+
 # History & Reporting
 
 ## Every title/status change is logged with timestamps.
 
 $ tabbing-history
 
-## Time-in-state report as an ASCII bar chart.
+## Time-in-state report — with recordings shown inline.
 
 $ tabbing-report
 
@@ -116,6 +128,36 @@ $ tabbing-history "Novel"
 ## Everything about this tab: state, file paths, recordings, todos.
 
 $ tabbing-info
+
+# Playback
+
+## Play back a .cast recording with asciinema play.
+
+$ _tabbing_demo_play_recording
+
+@prompt The next section clears demo data. Press Enter to continue...
+
+# Clearing Data
+
+## Clear todos for this tab.
+
+$ tabbing-clear
+
+$ tabbing-clear todos
+
+$ tabbing-todo
+
+## Clear recordings.
+
+$ tabbing-clear recordings
+
+## Clear history.
+
+$ tabbing-clear history
+
+$ tabbing-history
+
+## Or nuke everything across all tabs with 'tabbing-clear everything'.
 
 # Multi-Shell Support
 

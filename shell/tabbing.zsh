@@ -513,6 +513,80 @@ tabbing-recordings() {
 }
 
 # ---------------------------------------------------------------------------
+# tabbing-clear — clear history, todos, recordings
+#
+# Usage:
+#   tabbing-clear history                 Clear history for current tab
+#   tabbing-clear history --all           Clear history for ALL tabs
+#   tabbing-clear history --before DATE   Clear entries before DATE (ISO)
+#   tabbing-clear history --after DATE    Clear entries after DATE (ISO)
+#   tabbing-clear todos                   Clear todos for current tab
+#   tabbing-clear recordings              Clear recordings for current tab
+#   tabbing-clear all                     Clear everything for current tab
+#   tabbing-clear everything              Clear everything for ALL tabs
+# ---------------------------------------------------------------------------
+tabbing-clear() {
+  local target="${1:-}"
+  shift 2>/dev/null || true
+
+  local tab_id="${TAB_ID:-}"
+  local before="" after="" clear_all_tabs=0
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --tab)      tab_id="$2"; shift 2 ;;
+      --tab=*)    tab_id="${1#--tab=}"; shift ;;
+      --before)   before="$2"; shift 2 ;;
+      --before=*) before="${1#--before=}"; shift ;;
+      --after)    after="$2"; shift 2 ;;
+      --after=*)  after="${1#--after=}"; shift ;;
+      --all)      clear_all_tabs=1; shift ;;
+      *)          shift ;;
+    esac
+  done
+
+  _tabbing_ensure_tab_id
+
+  case "$target" in
+    history)
+      if [[ $clear_all_tabs -eq 1 ]]; then
+        local dir
+        dir="$(_tabbing_history_dir)"
+        rm -rf "$dir"
+        printf 'tabbing: cleared history for all tabs\n'
+      else
+        _tabbing_clear_history "${tab_id:-$TAB_ID}" "$before" "$after"
+      fi
+      ;;
+    todos)
+      _tabbing_clear_todos "${tab_id:-$TAB_ID}"
+      ;;
+    recordings)
+      _tabbing_clear_recordings "${tab_id:-$TAB_ID}"
+      ;;
+    all)
+      _tabbing_clear_all "${tab_id:-$TAB_ID}"
+      ;;
+    everything)
+      _tabbing_clear_everything
+      ;;
+    *)
+      printf 'Usage: tabbing-clear history|todos|recordings|all|everything\n' >&2
+      printf '\n' >&2
+      printf '  history                 Clear history (current tab)\n' >&2
+      printf '  history --all           Clear history (all tabs)\n' >&2
+      printf '  history --before DATE   Clear entries before ISO date\n' >&2
+      printf '  history --after DATE    Clear entries after ISO date\n' >&2
+      printf '  todos                   Clear todos (current tab)\n' >&2
+      printf '  recordings              Clear recordings (current tab)\n' >&2
+      printf '  all                     Clear everything (current tab)\n' >&2
+      printf '  everything              Clear everything (all tabs)\n' >&2
+      return 1
+      ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
 # tabbing-info — full info dump (state, paths, recordings, todos)
 # ---------------------------------------------------------------------------
 tabbing-info() {

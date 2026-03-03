@@ -357,6 +357,7 @@ _tabbing_help() {
   printf '  tabbing-history [query]                 Search/browse history\n'
   printf '  tabbing-info                             Full tab info (state, paths, recordings)\n'
   printf '  tabbing-recordings                      List recordings\n'
+  printf '  tabbing-clear history|todos|recordings   Clear data\n'
   printf '\n'
   printf 'Examples:\n'
   printf '  tabbing-on -rocket -blue "MyApp" "deploying" -p 2\n'

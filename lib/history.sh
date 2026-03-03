@@ -432,3 +432,120 @@ _tabbing_info() {
   fi
   printf '\n'
 }
+
+# ---------------------------------------------------------------------------
+# Clear history for a tab
+# Args: [tab_id] [--before DATE] [--after DATE]
+#   No date args: delete the entire history file
+#   With date args: filter entries, keeping only those outside the range
+# ---------------------------------------------------------------------------
+_tabbing_clear_history() {
+  local tab_id="${1:-$TAB_ID}"
+  local before="$2"
+  local after="$3"
+
+  local hfile
+  hfile="$(_tabbing_history_dir)/${tab_id}.yaml"
+
+  if [ ! -f "$hfile" ]; then
+    printf 'tabbing: no history for tab %s\n' "$tab_id"
+    return 0
+  fi
+
+  if [ -z "$before" ] && [ -z "$after" ]; then
+    # Delete entire file
+    rm -f "$hfile"
+    printf 'tabbing: cleared history for tab %s\n' "$tab_id"
+    return 0
+  fi
+
+  # Filter by time range — keep entries outside the range
+  local tmpfile="${hfile}.tmp"
+  awk -v before="$before" -v after="$after" '
+    BEGIN { in_entry = 0; skip = 0; header = 1 }
+    /^  - timestamp:/ {
+      if (in_entry && !skip) {
+        printf "%s", buf
+      }
+      in_entry = 1; skip = 0; buf = ""
+      ts = $2; gsub(/"/, "", ts)
+      if (after != "" && ts < after) skip = 0
+      else if (before != "" && ts > before) skip = 0
+      else if (after != "" && before != "" && ts >= after && ts <= before) skip = 1
+      else if (after != "" && ts >= after) skip = 1
+      else if (before != "" && ts <= before) skip = 1
+    }
+    in_entry { buf = buf $0 "\n"; next }
+    { print }
+    END { if (in_entry && !skip) printf "%s", buf }
+  ' "$hfile" > "$tmpfile"
+  mv "$tmpfile" "$hfile"
+
+  printf 'tabbing: cleared history entries'
+  [ -n "$after" ] && printf ' after %s' "$after"
+  [ -n "$before" ] && printf ' before %s' "$before"
+  printf ' for tab %s\n' "$tab_id"
+}
+
+# ---------------------------------------------------------------------------
+# Clear todos for a tab
+# Args: [tab_id]
+# ---------------------------------------------------------------------------
+_tabbing_clear_todos() {
+  local tab_id="${1:-$TAB_ID}"
+  local tfile
+  tfile="$(_tabbing_state_dir)/todos/${tab_id}.yaml"
+
+  if [ ! -f "$tfile" ]; then
+    printf 'tabbing: no todos for tab %s\n' "$tab_id"
+    return 0
+  fi
+
+  rm -f "$tfile"
+  printf 'tabbing: cleared todos for tab %s\n' "$tab_id"
+}
+
+# ---------------------------------------------------------------------------
+# Clear recordings for a tab
+# Args: [tab_id]
+# ---------------------------------------------------------------------------
+_tabbing_clear_recordings() {
+  local tab_id="${1:-$TAB_ID}"
+  local rec_dir
+  rec_dir="$(_tabbing_state_dir)/recordings/${tab_id}"
+
+  if [ ! -d "$rec_dir" ]; then
+    printf 'tabbing: no recordings for tab %s\n' "$tab_id"
+    return 0
+  fi
+
+  local count=0
+  for cf in "$rec_dir"/*.cast; do
+    [ -f "$cf" ] || continue
+    count=$((count + 1))
+  done
+
+  rm -rf "$rec_dir"
+  printf 'tabbing: cleared %s recordings for tab %s\n' "$count" "$tab_id"
+}
+
+# ---------------------------------------------------------------------------
+# Clear all data for a tab (history + todos + recordings)
+# Args: [tab_id]
+# ---------------------------------------------------------------------------
+_tabbing_clear_all() {
+  local tab_id="${1:-$TAB_ID}"
+  _tabbing_clear_history "$tab_id"
+  _tabbing_clear_todos "$tab_id"
+  _tabbing_clear_recordings "$tab_id"
+}
+
+# ---------------------------------------------------------------------------
+# Clear everything across ALL tabs
+# ---------------------------------------------------------------------------
+_tabbing_clear_everything() {
+  local state_dir
+  state_dir="$(_tabbing_state_dir)"
+  rm -rf "${state_dir}/history" "${state_dir}/todos" "${state_dir}/recordings"
+  printf 'tabbing: cleared all data for all tabs\n'
+}
