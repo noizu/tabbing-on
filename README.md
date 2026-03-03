@@ -1,5 +1,7 @@
 # tabbing-on
 
+![title bar](docs/assets/title-bar.png)
+
 A pure-shell terminal tab title, status & task manager.
 Works with iTerm2, Ghostty, Kitty, WezTerm, Alacritty, and more.
 
