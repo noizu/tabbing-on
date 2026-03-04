@@ -5,18 +5,30 @@ Supports Bash 4.0+ and Zsh 5.0+ with a shared POSIX library foundation.
 
 ```
 tabbing-on/
-├── bin/                            # Entry points
+├── bin/                            # Entry points & CLI wrappers
 │   ├── tabbing-init                #   Shell bootstrapper — eval "$(tabbing-init bash|zsh)"
-│   └── demo-runner                #   Typewriter-style interactive demo runner
+│   ├── demo-runner                #   Typewriter-style interactive demo runner
+│   ├── _tabbing-wrapper            #   Shared setup: sources adapter + all libs, loads session
+│   ├── _tabbing-commit             #   Side-effects helper: history, display, session save
+│   ├── tabbing-on                  #   CLI: set/display tab title & status
+│   ├── tabbing-status              #   CLI: update status
+│   ├── tabbing-todo                #   CLI: manage todos (supports --list-pending, --export-switch)
+│   ├── tabbing-report              #   CLI: time-in-state reports
+│   ├── tabbing-history             #   CLI: search/browse history
+│   ├── tabbing-recordings          #   CLI: manage recordings
+│   ├── tabbing-info                #   CLI: full state dump
+│   └── tabbing-clear               #   CLI: clear history/todos/recordings
 ├── lib/                            # POSIX-compatible shared libraries
-│   ├── core.sh                     #   Colors, emoji, urgency, tab state rendering
+│   ├── render.sh                   #   Render pipeline: emoji, color, display, title escape sequences
+│   ├── core.sh                     #   Supplementary: emoji list, color list, help, YAML escape
+│   ├── terminal.sh                 #   Terminal detection, badge, clear (non-render functions)
 │   ├── history.sh                  #   Tab ID generation, YAML history tracking
 │   ├── recording.sh               #   asciinema recording lifecycle
-│   ├── terminal.sh                 #   Terminal detection & escape sequences
+│   ├── session.sh                  #   Per-session state persistence (TAB_SESSION-keyed files)
 │   └── todo.sh                     #   Per-tab todo management (provider pattern)
-├── shell/                          # Shell-specific integrations
-│   ├── tabbing.bash                #   Bash function definitions & PROMPT_COMMAND hook
-│   └── tabbing.zsh                 #   Zsh function definitions & precmd hook
+├── shell/                          # Shell-specific thin adapters
+│   ├── tabbing.bash                #   Bash: sources render.sh, defines public functions, delegates to bin/
+│   └── tabbing.zsh                 #   Zsh: sources render.sh, defines public functions, delegates to bin/
 ├── demo/                           # Demo scripts
 │   └── showcase.demo               #   Interactive feature walkthrough
 ├── tests/                          # Test suites (empty)
@@ -24,6 +36,7 @@ tabbing-on/
 │   ├── PROJ-LAYOUT.md              #   This file
 │   └── PROJ-LAYOUT.summary.md     #   Quick-reference tree
 ├── LICENSE                         # MIT (Copyright 2026 Keith Brings)
+├── TODO.md                         # Roadmap & known limitations
 ├── script.md                       # Demo command reference
 └── terminal-utils.zshrc            # Legacy shim — prefer tabbing-init
 ```
@@ -48,9 +61,10 @@ XDG-compliant (`~/.local/state/tabbing/`):
 
 ```
 ~/.local/state/tabbing/
-├── history/{TAB_ID}.yaml       # Title/status change log
-├── todos/{TAB_ID}.yaml         # Todo items per tab
-└── recordings/{TAB_ID}/*.cast  # asciinema recordings
+├── history/{TAB_ID}.yaml           # Title/status change log
+├── todos/{TAB_ID}.yaml             # Todo items per tab
+├── recordings/{TAB_ID}/*.cast      # asciinema recordings
+└── sessions/{TAB_SESSION}.env      # Persisted env state for CLI wrappers
 ```
 
 ## Environment Variables
@@ -64,4 +78,5 @@ XDG-compliant (`~/.local/state/tabbing/`):
 | `TAB_EMOJI` | Named emoji (overrides urgency dot) |
 | `TAB_TERMINAL` | Detected terminal emulator |
 | `TAB_ID` | Unique tab fingerprint (hex) |
+| `TAB_SESSION` | Session fingerprint for state file scoping (hex) |
 | `TABBING_ROOT` | Installation root directory |

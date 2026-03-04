@@ -2,23 +2,36 @@
 
 ```
 tabbing-on/
-├── bin/                            # Entry points
+├── bin/                            # Entry points & CLI wrappers
 │   ├── tabbing-init                #   Shell bootstrapper
-│   └── demo-runner                #   Demo runner
+│   ├── demo-runner                #   Demo runner
+│   ├── _tabbing-wrapper            #   Shared setup (sources adapter + all libs)
+│   ├── _tabbing-commit             #   Side-effects helper for thin adapter
+│   ├── tabbing-on                  #   CLI: set title & status
+│   ├── tabbing-status              #   CLI: update status
+│   ├── tabbing-todo                #   CLI: manage todos
+│   ├── tabbing-report              #   CLI: reports
+│   ├── tabbing-history             #   CLI: history
+│   ├── tabbing-recordings          #   CLI: recordings
+│   ├── tabbing-info                #   CLI: state dump
+│   └── tabbing-clear               #   CLI: clear data
 ├── lib/                            # POSIX shared libraries
-│   ├── core.sh                     #   Colors, emoji, rendering
+│   ├── render.sh                   #   Render pipeline (sourced by adapter)
+│   ├── core.sh                     #   Emoji/color lists, help, YAML escape
+│   ├── terminal.sh                 #   Terminal detection, badge, clear
 │   ├── history.sh                  #   Tab history tracking
 │   ├── recording.sh               #   asciinema integration
-│   ├── terminal.sh                 #   Terminal detection
+│   ├── session.sh                  #   Session state persistence
 │   └── todo.sh                     #   Todo management
-├── shell/                          # Shell integrations
-│   ├── tabbing.bash                #   Bash commands
-│   └── tabbing.zsh                 #   Zsh commands
+├── shell/                          # Shell thin adapters
+│   ├── tabbing.bash                #   Bash adapter (sources render.sh only)
+│   └── tabbing.zsh                 #   Zsh adapter (sources render.sh only)
 ├── demo/                           # Demo scripts
 │   └── showcase.demo
 ├── tests/                          # Tests (empty)
 ├── docs/                           # Documentation
 ├── LICENSE                         # MIT
+├── TODO.md                         # Roadmap
 ├── script.md                       # Demo reference
 └── terminal-utils.zshrc            # Legacy shim
 ```

@@ -1,24 +1,61 @@
 #!/bin/bash
-# shell/tabbing.bash — Bash-specific tabbing-on command definitions
+# shell/tabbing.bash — Bash-specific tabbing-on command definitions (thin adapter)
 #
-# Sources POSIX-compatible libs, then defines bash functions.
-# Key difference from zsh: arrays are 0-based.
+# Sources ONLY lib/render.sh for minimal namespace footprint.
+# Heavy operations (history, recording, todo, session) are delegated
+# to bin/ scripts running in subprocesses.
 #
 # Init: eval "$(tabbing-init bash)" in your .bashrc
 
 # ---------------------------------------------------------------------------
-# Locate and source shared libraries
+# Locate root and source minimal render pipeline
 # ---------------------------------------------------------------------------
 _tabbing_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-source "${_tabbing_root}/lib/core.sh"
-source "${_tabbing_root}/lib/terminal.sh"
-source "${_tabbing_root}/lib/history.sh"
-source "${_tabbing_root}/lib/recording.sh"
-source "${_tabbing_root}/lib/todo.sh"
+source "${_tabbing_root}/lib/render.sh"
 
-# Detect terminal once at init
-_tabbing_detect_terminal
+# ---------------------------------------------------------------------------
+# Inline: detect terminal emulator (runs once at init)
+# ---------------------------------------------------------------------------
+if [ -n "${ITERM_SESSION_ID:-}" ]; then
+  TAB_TERMINAL="iterm2"
+elif [ -n "${GHOSTTY_RESOURCES_DIR:-}" ]; then
+  TAB_TERMINAL="ghostty"
+elif [ -n "${KITTY_WINDOW_ID:-}" ]; then
+  TAB_TERMINAL="kitty"
+elif [ "${TERM_PROGRAM:-}" = "WezTerm" ]; then
+  TAB_TERMINAL="wezterm"
+elif [ "${TERM_PROGRAM:-}" = "Apple_Terminal" ]; then
+  TAB_TERMINAL="apple-terminal"
+elif [ -n "${WT_SESSION:-}" ]; then
+  TAB_TERMINAL="windows-terminal"
+elif [ "${TERM_PROGRAM:-}" = "Alacritty" ] || [ "${TERM:-}" = "alacritty" ]; then
+  TAB_TERMINAL="alacritty"
+elif [ -n "${KONSOLE_VERSION:-}" ]; then
+  TAB_TERMINAL="konsole"
+elif [ -n "${GNOME_TERMINAL_SCREEN:-}" ]; then
+  TAB_TERMINAL="gnome-terminal"
+elif [ -n "${TMUX:-}" ]; then
+  TAB_TERMINAL="tmux"
+elif [ "${TERM:-}" = "xterm" ] || [ "${TERM:-}" = "xterm-256color" ]; then
+  TAB_TERMINAL="xterm"
+else
+  TAB_TERMINAL="unknown"
+fi
+export TAB_TERMINAL
+
+# ---------------------------------------------------------------------------
+# Inline: generate session fingerprint (runs once at init)
+# ---------------------------------------------------------------------------
+if [ -z "${TAB_SESSION:-}" ]; then
+  if [ -r /dev/urandom ]; then
+    TAB_SESSION="$(od -An -tx1 -N4 /dev/urandom 2>/dev/null | tr -d ' \n')"
+  fi
+  if [ -z "${TAB_SESSION:-}" ]; then
+    TAB_SESSION="$(printf '%04x%04x' $$ "$(date +%s)" | cut -c1-8)"
+  fi
+  export TAB_SESSION
+fi
 
 # Known color names for -color shorthand matching (bash array)
 _tabbing_known_colors=(
@@ -29,18 +66,21 @@ _tabbing_known_colors=(
 )
 
 # ---------------------------------------------------------------------------
+# Internal: commit side effects (history, display, session save)
+# Uses full libs if available (bin/ context), else delegates to subprocess
+# ---------------------------------------------------------------------------
+_tabbing_commit() {
+  if [ -n "${_TABBING_FULL_LIBS:-}" ]; then
+    _tabbing_record_event "${1:-status}"
+    _tabbing_display
+    _tabbing_session_save
+  else
+    "${TABBING_ROOT:-$_tabbing_root}/bin/_tabbing-commit" "${1:-status}"
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # tabbing-on [flags in any position] [title] [status]
-#
-# Flags:
-#   --highlight, -h, -COLOR        set title highlight color
-#   --urgency, --pri, -p, -priN    set urgency 0-5
-#   --emoji, -e, -EMOJI            set named emoji
-#   --no-emoji                     clear emoji
-#   --emoji-list                   show available emojis
-#   --record                       start asciinema recording
-#   --continue                     keep recording on status change
-#   --stop-recording               stop recording
-#   --terminal-info                show detected terminal info
 # ---------------------------------------------------------------------------
 tabbing-on() {
   local opt_highlight="" opt_urgency="" opt_emoji=""
@@ -68,19 +108,28 @@ tabbing-on() {
       --emoji)       opt_emoji="$2"; has_emoji=1; shift 2 ;;
       -e)            opt_emoji="$2"; has_emoji=1; shift 2 ;;
       --no-emoji)    no_emoji=1; shift ;;
-      --emoji-list|--emojis) _tabbing_emoji_list; return ;;
-      --help)        _tabbing_help; return ;;
+
+      # Subcommands: use full libs if available, else delegate to bin/
+      --emoji-list|--emojis)
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list
+        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
+        return ;;
+      --help)
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_help
+        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --help; fi
+        return ;;
+      --terminal-info)
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_terminal_info
+        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --terminal-info; fi
+        return ;;
 
       --record)         has_record=1; shift ;;
       --continue)       has_continue=1; shift ;;
       --stop-recording) has_stop_recording=1; shift ;;
 
-      --terminal-info)  _tabbing_terminal_info; return ;;
-
       # -COLOR or -EMOJI shorthand (e.g. -blue, -rocket)
       -[a-z]*)
         local maybe="${1#-}"
-        # Check for -priN first
         if [[ "$maybe" =~ ^pri[0-5]$ ]]; then
           opt_urgency="${maybe#pri}"; has_urgency=1; shift
         else
@@ -117,9 +166,18 @@ tabbing-on() {
   # Subcommands: "tabbing-on emojis", "tabbing-on help", "tabbing-on colors"
   if [[ ${#positional[@]} -eq 1 ]]; then
     case "${positional[0]}" in
-      emojis|emoji-list) _tabbing_emoji_list; return ;;
-      colors|color-list) _tabbing_color_list; return ;;
-      help)              _tabbing_help; return ;;
+      emojis|emoji-list)
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list
+        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
+        return ;;
+      colors|color-list)
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_color_list
+        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" colors; fi
+        return ;;
+      help)
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_help
+        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --help; fi
+        return ;;
     esac
   fi
 
@@ -162,19 +220,34 @@ tabbing-on() {
     fi
   fi
 
-  # Ensure TAB_ID exists for history tracking
-  _tabbing_ensure_tab_id
+  # Inline: ensure TAB_ID exists
+  if [[ -z "${TAB_ID:-}" ]]; then
+    if [[ -r /dev/urandom ]]; then
+      TAB_ID="$(od -An -tx1 -N4 /dev/urandom 2>/dev/null | tr -d ' \n')"
+    fi
+    [[ -z "${TAB_ID:-}" ]] && TAB_ID="$(printf '%04x%04x' $$ "$(date +%s)" | cut -c1-8)"
+    export TAB_ID
+  fi
 
-  # Record history event
+  # Render immediately (from render.sh)
   if [[ -n "$TAB_TITLE" ]]; then
-    _tabbing_record_event "title"
     _tabbing_render
     _tabbing_apply_urgency_color
   fi
 
-  # Handle recording flags
+  # Commit side effects (history + display + session save)
+  _tabbing_commit "title"
+
+  # Handle recording flags (on-demand source)
   if [[ $has_record -eq 1 || $has_continue -eq 1 || $has_stop_recording -eq 1 ]]; then
+    if [ -z "${_TABBING_FULL_LIBS:-}" ]; then
+      . "$_tabbing_root/lib/core.sh"
+      . "$_tabbing_root/lib/history.sh"
+      . "$_tabbing_root/lib/recording.sh"
+      . "$_tabbing_root/lib/session.sh"
+    fi
     _tabbing_handle_recording "$has_record" "$has_continue" "$has_stop_recording"
+    _tabbing_session_save
   fi
 }
 
@@ -253,87 +326,53 @@ tabbing-status() {
 
   _tabbing_render
   _tabbing_apply_urgency_color
-  _tabbing_record_event "status"
 
-  # Handle recording
+  # Commit side effects
+  _tabbing_commit "status"
+
+  # Handle recording (on-demand source)
   if [[ $has_record -eq 1 || $has_continue -eq 1 || $has_stop_recording -eq 1 ]]; then
+    if [ -z "${_TABBING_FULL_LIBS:-}" ]; then
+      . "$_tabbing_root/lib/core.sh"
+      . "$_tabbing_root/lib/history.sh"
+      . "$_tabbing_root/lib/recording.sh"
+      . "$_tabbing_root/lib/session.sh"
+    fi
     _tabbing_handle_recording "$has_record" "$has_continue" "$has_stop_recording"
+    _tabbing_session_save
   fi
 }
 
 # ---------------------------------------------------------------------------
-# tabbing-todo — task/todo management per tab
+# tabbing-todo — delegates to bin/ script
+# Interactive switch handled inline (needs TTY + env var setting)
 # ---------------------------------------------------------------------------
 tabbing-todo() {
-  local opt_desc="" opt_emoji="" opt_urgency=""
-  local has_desc=0 has_emoji=0 has_urgency=0
+  local _root="${TABBING_ROOT:-$_tabbing_root}"
+
+  # Quick check: --switch/-n needs inline handling for env var setting
+  local has_switch=0
   local has_record=0 has_continue=0 has_stop_recording=0
-  local do_switch=0 do_done=0 done_id=""
-  local positional=()
+  local orig_args=("$@")
 
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      -m|--message)     opt_desc="$2"; has_desc=1; shift 2 ;;
-      -m=*|--message=*) opt_desc="${1#*=}"; has_desc=1; shift ;;
-
-      --emoji=*)   opt_emoji="${1#--emoji=}"; has_emoji=1; shift ;;
-      --emoji)     opt_emoji="$2"; has_emoji=1; shift 2 ;;
-      -e)          opt_emoji="$2"; has_emoji=1; shift 2 ;;
-
-      --urgency=*) opt_urgency="${1#--urgency=}"; has_urgency=1; shift ;;
-      --urgency)   opt_urgency="$2"; has_urgency=1; shift 2 ;;
-      --pri=*)     opt_urgency="${1#--pri=}"; has_urgency=1; shift ;;
-      --pri)       opt_urgency="$2"; has_urgency=1; shift 2 ;;
-      -p)          opt_urgency="$2"; has_urgency=1; shift 2 ;;
-      -pri[0-5])   opt_urgency="${1#-pri}"; has_urgency=1; shift ;;
-
-      -n|--switch|--pick) do_switch=1; shift ;;
-      --done)
-        do_done=1
-        if [[ -n "${2:-}" && "$2" =~ ^[0-9]+$ ]]; then
-          done_id="$2"; shift 2
-        else
-          shift
-        fi
-        ;;
-
-      --record)         has_record=1; shift ;;
-      --continue)       has_continue=1; shift ;;
-      --stop-recording) has_stop_recording=1; shift ;;
-
-      # -EMOJI shorthand
-      -[a-z]*)
-        local maybe="${1#-}"
-        if [[ "$maybe" =~ ^pri[0-5]$ ]]; then
-          opt_urgency="${maybe#pri}"; has_urgency=1; shift
-        elif _tabbing_is_known_emoji "$maybe"; then
-          opt_emoji="$maybe"; has_emoji=1; shift
-        else
-          positional+=("$1"); shift
-        fi
-        ;;
-
-      *) positional+=("$1"); shift ;;
+  for arg in "$@"; do
+    case "$arg" in
+      -n|--switch|--pick) has_switch=1 ;;
+      --record)           has_record=1 ;;
+      --continue)         has_continue=1 ;;
+      --stop-recording)   has_stop_recording=1 ;;
     esac
   done
 
-  if [[ -z "$TAB_TITLE" ]]; then
-    echo "tabbing-todo: no TAB_TITLE set — call tabbing-on first" >&2
-    return 1
-  fi
+  if [[ $has_switch -eq 1 ]]; then
+    if [[ -z "$TAB_TITLE" ]]; then
+      echo "tabbing-todo: no TAB_TITLE set — call tabbing-on first" >&2
+      return 1
+    fi
 
-  _tabbing_ensure_tab_id
-
-  # Handle --done
-  if [[ $do_done -eq 1 ]]; then
-    _tabbing_todo_done "$done_id"
-    return
-  fi
-
-  # Handle --switch / -n (interactive)
-  if [[ $do_switch -eq 1 ]]; then
+    # Get pending list from bin/ script
     local pending
-    pending="$(_tabbing_todo_pending)"
+    pending="$("$_root/bin/tabbing-todo" --list-pending)"
     if [[ -z "$pending" ]]; then
       echo "tabbing: no pending todos to switch to" >&2
       return 1
@@ -363,205 +402,73 @@ tabbing-todo() {
       return 1
     fi
 
-    _tabbing_todo_switch "$choice"
+    # Get export statements from bin/ script and eval them
+    local _exports
+    _exports="$("$_root/bin/tabbing-todo" --export-switch "$choice")"
+    if [[ -n "$_exports" ]]; then
+      eval "$_exports"
+      _tabbing_render
+      _tabbing_apply_urgency_color
+    fi
 
+    # Handle recording if requested
     if [[ $has_record -eq 1 || $has_continue -eq 1 || $has_stop_recording -eq 1 ]]; then
+      if [ -z "${_TABBING_FULL_LIBS:-}" ]; then
+        . "$_tabbing_root/lib/core.sh"
+        . "$_tabbing_root/lib/history.sh"
+        . "$_tabbing_root/lib/recording.sh"
+        . "$_tabbing_root/lib/session.sh"
+      fi
       _tabbing_handle_recording "$has_record" "$has_continue" "$has_stop_recording"
+      _tabbing_session_save
     fi
     return
   fi
 
-  # No positional args — list todos (bash: 0-based)
-  if [[ ${#positional[@]} -eq 0 ]]; then
-    _tabbing_todo_list
-    return
-  fi
-
-  # Add a new todo (bash: 0-based)
-  local title="${positional[0]}"
-  _tabbing_todo_add "$title" "$opt_desc" "$opt_emoji" "$opt_urgency"
-
-  if [[ $has_record -eq 1 || $has_continue -eq 1 || $has_stop_recording -eq 1 ]]; then
-    _tabbing_handle_recording "$has_record" "$has_continue" "$has_stop_recording"
-  fi
+  # All other todo operations delegate entirely to bin/ script
+  "$_root/bin/tabbing-todo" "${orig_args[@]}"
 }
 
 # ---------------------------------------------------------------------------
-# tabbing-report — history reporting
+# Read-only commands — pure delegation to bin/ scripts
 # ---------------------------------------------------------------------------
 tabbing-report() {
-  local target_tab="${TAB_ID:-}"
-  local do_mermaid=0 do_all=0 do_list=0
-  local search_query=""
-
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --mermaid)     do_mermaid=1; shift ;;
-      --tab)         target_tab="$2"; shift 2 ;;
-      --tab=*)       target_tab="${1#--tab=}"; shift ;;
-      --all)         do_all=1; shift ;;
-      --list)        do_list=1; shift ;;
-      --search)      search_query="$2"; shift 2 ;;
-      --search=*)    search_query="${1#--search=}"; shift ;;
-      *)             shift ;;
-    esac
-  done
-
-  if [[ $do_list -eq 1 ]]; then
-    _tabbing_history_list_tabs
-    return
-  fi
-
-  if [[ -n "$search_query" ]]; then
-    _tabbing_history_search "$search_query"
-    return
-  fi
-
-  if [[ $do_all -eq 1 ]]; then
-    if [[ $do_mermaid -eq 1 ]]; then
-      local dir
-      dir="$(_tabbing_history_dir)"
-      for f in "$dir"/*.yaml; do
-        [[ -f "$f" ]] || continue
-        local tid
-        tid="$(sed -n 's/^tab_id: "\(.*\)"/\1/p' "$f" | head -1)"
-        _tabbing_report_mermaid "$tid"
-        printf '\n'
-      done
-    else
-      _tabbing_report_all
-    fi
-    return
-  fi
-
-  if [[ -z "$target_tab" ]]; then
-    echo "tabbing-report: no TAB_ID set — call tabbing-on first" >&2
-    return 1
-  fi
-
-  if [[ $do_mermaid -eq 1 ]]; then
-    _tabbing_report_mermaid "$target_tab"
-  else
-    _tabbing_report "$target_tab"
-  fi
+  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-report" "$@"
 }
 
-# ---------------------------------------------------------------------------
-# tabbing-history — search/browse history
-# ---------------------------------------------------------------------------
 tabbing-history() {
-  if [[ $# -eq 0 ]]; then
-    _tabbing_history_list_tabs
-    return
-  fi
-  _tabbing_history_search "$*"
+  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-history" "$@"
 }
 
-# ---------------------------------------------------------------------------
-# tabbing-recordings — list/manage recordings
-# ---------------------------------------------------------------------------
 tabbing-recordings() {
-  local target_tab="${TAB_ID:-}"
-
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --tab)    target_tab="$2"; shift 2 ;;
-      --tab=*)  target_tab="${1#--tab=}"; shift ;;
-      --to-gif)
-        if [[ -n "${2:-}" ]]; then
-          _tabbing_recording_to_gif "$2" "${3:-}"
-          return
-        else
-          echo "tabbing-recordings: --to-gif requires a .cast file path" >&2
-          return 1
-        fi
-        ;;
-      *) shift ;;
-    esac
-  done
-
-  _tabbing_recordings_list "$target_tab"
+  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-recordings" "$@"
 }
 
-# ---------------------------------------------------------------------------
-# tabbing-clear — clear history, todos, recordings
-# ---------------------------------------------------------------------------
 tabbing-clear() {
-  local target="${1:-}"
-  shift 2>/dev/null || true
-
-  local tab_id="${TAB_ID:-}"
-  local before="" after="" clear_all_tabs=0
-
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --tab)      tab_id="$2"; shift 2 ;;
-      --tab=*)    tab_id="${1#--tab=}"; shift ;;
-      --before)   before="$2"; shift 2 ;;
-      --before=*) before="${1#--before=}"; shift ;;
-      --after)    after="$2"; shift 2 ;;
-      --after=*)  after="${1#--after=}"; shift ;;
-      --all)      clear_all_tabs=1; shift ;;
-      *)          shift ;;
-    esac
-  done
-
-  _tabbing_ensure_tab_id
-
-  case "$target" in
-    history)
-      if [[ $clear_all_tabs -eq 1 ]]; then
-        local dir
-        dir="$(_tabbing_history_dir)"
-        rm -rf "$dir"
-        printf 'tabbing: cleared history for all tabs\n'
-      else
-        _tabbing_clear_history "${tab_id:-$TAB_ID}" "$before" "$after"
-      fi
-      ;;
-    todos)
-      _tabbing_clear_todos "${tab_id:-$TAB_ID}"
-      ;;
-    recordings)
-      _tabbing_clear_recordings "${tab_id:-$TAB_ID}"
-      ;;
-    all)
-      _tabbing_clear_all "${tab_id:-$TAB_ID}"
-      ;;
-    everything)
-      _tabbing_clear_everything
-      ;;
-    *)
-      printf 'Usage: tabbing-clear history|todos|recordings|all|everything\n' >&2
-      printf '\n' >&2
-      printf '  history                 Clear history (current tab)\n' >&2
-      printf '  history --all           Clear history (all tabs)\n' >&2
-      printf '  history --before DATE   Clear entries before ISO date\n' >&2
-      printf '  history --after DATE    Clear entries after ISO date\n' >&2
-      printf '  todos                   Clear todos (current tab)\n' >&2
-      printf '  recordings              Clear recordings (current tab)\n' >&2
-      printf '  all                     Clear everything (current tab)\n' >&2
-      printf '  everything              Clear everything (all tabs)\n' >&2
-      return 1
-      ;;
-  esac
+  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-clear" "$@"
 }
 
-# ---------------------------------------------------------------------------
-# tabbing-info — full info dump (state, paths, recordings, todos)
-# ---------------------------------------------------------------------------
 tabbing-info() {
-  _tabbing_ensure_tab_id
-  _tabbing_info "${1:-$TAB_ID}"
+  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-info" "$@"
 }
 
 # ---------------------------------------------------------------------------
-# Optional: auto-render via PROMPT_COMMAND
+# Prompt hook: tab title re-render + optional inline prompt prefix
+# Auto-registered — lightweight no-op when tabbing is not active.
+# Set TABBING_PROMPT=1 to prepend [indicator Title: Status] to your prompt.
 # ---------------------------------------------------------------------------
 _tabbing_precmd() {
   if [[ -n "${TAB_TITLE:-}" ]]; then
     _tabbing_render
   fi
+
+  # TODO: TABBING_PROMPT — inline prompt prefix is disabled pending fix
+  # for escape sequence / cursor corruption on Ghostty and Kitty.
 }
-# Uncomment to enable:
-# PROMPT_COMMAND="_tabbing_precmd;${PROMPT_COMMAND:-}"
+
+# Register hook — append so we run LAST,
+# after Ghostty/Kitty shell integration hooks that reset the title.
+case "${PROMPT_COMMAND:-}" in
+  *_tabbing_precmd*) ;;
+  *) PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND;}_tabbing_precmd" ;;
+esac

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# bin/tabbing-on — CLI wrapper for tabbing-on
+# Sources full libs via wrapper, then calls the adapter function
+# which uses _TABBING_FULL_LIBS to avoid subprocess delegation
+source "$(dirname "${BASH_SOURCE[0]}")/_tabbing-wrapper"
+tabbing-on "$@"

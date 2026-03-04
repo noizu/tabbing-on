@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# bin/tabbing-history — search/browse history CLI
+source "$(dirname "${BASH_SOURCE[0]}")/_tabbing-wrapper"
+
+if [[ $# -eq 0 ]]; then
+  _tabbing_history_list_tabs
+  exit
+fi
+_tabbing_history_search "$*"

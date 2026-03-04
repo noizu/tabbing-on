@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# bin/_tabbing-wrapper — shared setup for CLI wrapper scripts
+#
+# Sourced (not executed) by each bin/tabbing-* wrapper.
+# Sets up: TABBING_ROOT, sources adapter + all libs, loads state,
+# registers EXIT trap to save state on completion.
+
+TABBING_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Source the bash adapter (loads render.sh + defines public functions)
+source "$TABBING_ROOT/shell/tabbing.bash"
+
+# Source remaining libs that the adapter no longer loads
+source "$TABBING_ROOT/lib/core.sh"
+source "$TABBING_ROOT/lib/terminal.sh"
+source "$TABBING_ROOT/lib/history.sh"
+source "$TABBING_ROOT/lib/recording.sh"
+source "$TABBING_ROOT/lib/todo.sh"
+source "$TABBING_ROOT/lib/session.sh"
+
+# Sentinel: tells adapter functions that full libs are available
+_TABBING_FULL_LIBS=1
+
+# Load persisted session state (TAB_SESSION inherited from parent env)
+_tabbing_session_load
+
+# Auto-save state when the wrapper exits
+trap '_tabbing_session_save' EXIT
