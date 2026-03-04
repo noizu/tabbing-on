@@ -170,6 +170,55 @@ tabbing/
   recordings/{TAB_ID}/*.cast      # asciinema recordings
 ```
 
+## Terminal Support
+
+Status key: **Out-of-box** — works with no extra setup | **Requires `tabbing-doctor`** — needs config patching (see Notes) | **Untested** — not yet verified
+
+### macOS
+
+| Terminal | Status | Color | Unicode | Notes |
+|----------|--------|-------|---------|-------|
+| iTerm2 | Out-of-box | ✅ | ✅ | |
+| Terminal.app | Out-of-box | ✅ | ✅ | |
+| Ghostty | Requires `tabbing-doctor` | ✅ | ✅ | Requires disabling title-set logic and restarting; `tabbing-doctor` handles this automatically. Investigating a more elegant fix. |
+| Kitty | Requires `tabbing-doctor` | ✅ | ✅ | Requires disabling title-set logic and restarting; `tabbing-doctor` handles this automatically. Investigating a more elegant fix. |
+| Alacritty | Out-of-box | ✅ | ✅ | |
+| WezTerm | Out-of-box | ✅ | ✅ | |
+| Warp | Out-of-box | ✅ | ✅ | |
+| Hyper | Out-of-box | ✅ | ✅ | |
+| Rio | Out-of-box | ✅ | ✅ | |
+| Tabby | Out-of-box | ✅ | ✅ | |
+
+### Linux
+
+| Terminal | Status | Color | Unicode | Notes |
+|----------|--------|-------|---------|-------|
+| GNOME Terminal | Untested | | | |
+| Konsole | Untested | | | |
+| Kitty | Untested | | | |
+| Alacritty | Untested | | | |
+| WezTerm | Untested | | | |
+| Ghostty | Untested | | | |
+| xterm | Untested | | | |
+| Terminator | Untested | | | |
+| foot | Untested | | | |
+| rxvt-unicode (urxvt) | Untested | | | |
+
+### Windows
+
+| Terminal | Status | Color | Unicode | Notes |
+|----------|--------|-------|---------|-------|
+| Windows Terminal | Untested | | | |
+| ConEmu | Untested | | | |
+| Cmder | Untested | | | |
+| Hyper | Untested | | | |
+| Alacritty | Untested | | | |
+| WezTerm | Untested | | | |
+| Tabby | Untested | | | |
+| MobaXterm | Untested | | | |
+| PuTTY | Untested | | | |
+| Cygwin Terminal | Untested | | | |
+
 ## License
 
 MIT - Copyright 2026 Keith Brings

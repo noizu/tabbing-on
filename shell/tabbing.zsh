@@ -454,6 +454,25 @@ tabbing-info() {
   "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-info" "$@"
 }
 
+tabbing-doctor() {
+  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-doctor" "$@"
+}
+
+# ---------------------------------------------------------------------------
+# tabbing-off — Deactivate tabbing and restore terminal defaults
+# Clears title, tab color, and badge, then unsets runtime variables.
+# Preserves TAB_TERMINAL and TAB_SESSION for re-activation.
+# ---------------------------------------------------------------------------
+tabbing-off() {
+  _tabbing_clear_title
+  . "${_tabbing_root}/lib/terminal.sh"
+  _tabbing_clear_tab_color
+  _tabbing_clear_badge
+  unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_ID TAB_RECORDING
+  unset _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE
+  printf 'tabbing: off\n'
+}
+
 # ---------------------------------------------------------------------------
 # Prompt hook: tab title re-render + optional inline prompt prefix
 # Auto-registered — lightweight no-op when tabbing is not active.
@@ -462,6 +481,10 @@ tabbing-info() {
 _tabbing_precmd() {
   if [[ -n "${TAB_TITLE:-}" ]]; then
     _tabbing_render
+    _TABBING_WAS_ACTIVE=1
+  elif [[ -n "${_TABBING_WAS_ACTIVE:-}" ]]; then
+    _tabbing_clear_title
+    unset _TABBING_WAS_ACTIVE
   fi
 
   # TODO: TABBING_PROMPT — inline prompt prefix is disabled pending fix

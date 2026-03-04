@@ -17,7 +17,8 @@ tabbing-on/
 │   ├── tabbing-history             #   CLI: search/browse history
 │   ├── tabbing-recordings          #   CLI: manage recordings
 │   ├── tabbing-info                #   CLI: full state dump
-│   └── tabbing-clear               #   CLI: clear history/todos/recordings
+│   ├── tabbing-clear               #   CLI: clear history/todos/recordings
+│   └── tabbing-doctor              #   CLI: check/fix terminal config (Ghostty/Kitty title conflicts)
 ├── lib/                            # POSIX-compatible shared libraries
 │   ├── render.sh                   #   Render pipeline: emoji, color, display, title escape sequences
 │   ├── core.sh                     #   Supplementary: emoji list, color list, help, YAML escape
@@ -54,6 +55,7 @@ After `eval "$(tabbing-init bash|zsh)"`:
 | `tabbing-history` | Search/browse tab history |
 | `tabbing-recordings` | Manage asciinema recordings |
 | `tabbing-info` | Full state dump + file paths |
+| `tabbing-doctor` | Check/fix terminal config for title conflicts |
 
 ## Data Storage
 

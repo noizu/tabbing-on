@@ -12,16 +12,84 @@ set -e
 # Resolve the tabbing-on root directory (parent of bin/)
 TABBING_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+_emit_checks() {
+  _shell="$1"
+  case "$_shell" in
+    bash) _rcfile=".bashrc" ;;
+    zsh)  _rcfile=".zshrc" ;;
+  esac
+  cat <<'CHECKS'
+# tabbing-on: startup config checks
+if [ -z "${TABBING_NO_WARN:-}" ]; then
+  _tabbing_init_warn() { printf '\033[31m[tabbing-on] %s\033[0m\n' "$1" >&2; }
+  _tabbing_init_notitle=0
+  case "${TERM:-}" in
+    xterm-kitty)
+      _tabbing_init_conf="${XDG_CONFIG_HOME:-$HOME/.config}/kitty/kitty.conf"
+      if [ -f "$_tabbing_init_conf" ]; then
+        if grep -v '^ *#' "$_tabbing_init_conf" | grep -q 'no-title' 2>/dev/null; then
+          _tabbing_init_notitle=1
+        fi
+      fi
+      if [ "$_tabbing_init_notitle" -eq 0 ]; then
+        _tabbing_init_warn "Kitty shell_integration missing 'no-title' — tab titles will be overwritten"
+        _tabbing_init_warn "Fix: add 'shell_integration no-title' to kitty.conf, or run: tabbing-doctor"
+CHECKS
+  printf '        _tabbing_init_warn "Suppress: export TABBING_NO_WARN=1 in %s before tabbing-init"\n' "$_rcfile"
+  cat <<'CHECKS'
+      fi
+      ;;
+    xterm-ghostty)
+      for _tabbing_init_conf in \
+        "$HOME/Library/Application Support/com.mitchellh.ghostty/config" \
+        "${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config"; do
+        if [ -f "$_tabbing_init_conf" ]; then
+          if grep -v '^ *#' "$_tabbing_init_conf" | grep -q 'no-title' 2>/dev/null; then
+            _tabbing_init_notitle=1
+          fi
+        fi
+      done
+      if [ "$_tabbing_init_notitle" -eq 0 ]; then
+        _tabbing_init_warn "Ghostty shell-integration-features missing 'no-title' — tab titles will be overwritten"
+        _tabbing_init_warn "Fix: add 'shell-integration-features = no-title' to ghostty config, or run: tabbing-doctor"
+CHECKS
+  printf '        _tabbing_init_warn "Suppress: export TABBING_NO_WARN=1 in %s before tabbing-init"\n' "$_rcfile"
+  cat <<'CHECKS'
+      fi
+      ;;
+  esac
+  case "${TERM:-}" in
+    xterm-kitty|xterm-ghostty)
+      if [ -n "${TERM_FOR_SSHD:-}" ]; then
+CHECKS
+  printf '        if [ -f "$HOME/%s" ] && ! grep -v '"'"'^ *#'"'"' "$HOME/%s" | grep -qE '"'"'(ssh\\s*\\(\\)|function ssh)'"'"' 2>/dev/null; then\n' "$_rcfile" "$_rcfile"
+  cat <<'CHECKS'
+          _tabbing_init_warn "No ssh wrapper — remote hosts will get TERM=$TERM"
+CHECKS
+  printf '          _tabbing_init_warn "Fix: add ssh() { TERM=\\\"\\$TERM_FOR_SSHD\\\" command ssh \\\"\\$@\\\"; } to %s"\n' "$_rcfile"
+  cat <<'CHECKS'
+        fi
+      fi
+      ;;
+  esac
+  unset _tabbing_init_conf _tabbing_init_notitle
+  unset -f _tabbing_init_warn 2>/dev/null
+fi
+CHECKS
+}
+
 case "${1:-}" in
   bash)
     printf 'export TABBING_ROOT="%s"\n' "$TABBING_ROOT"
     printf 'export PATH="%s/bin:$PATH"\n' "$TABBING_ROOT"
     printf 'source "%s/shell/tabbing.bash"\n' "$TABBING_ROOT"
+    _emit_checks bash
     ;;
   zsh)
     printf 'export TABBING_ROOT="%s"\n' "$TABBING_ROOT"
     printf 'export PATH="%s/bin:$PATH"\n' "$TABBING_ROOT"
     printf 'source "%s/shell/tabbing.zsh"\n' "$TABBING_ROOT"
+    _emit_checks zsh
     ;;
   bat|cmd|windows)
     printf '@echo off\n'
@@ -38,6 +106,7 @@ case "${1:-}" in
     printf '  source "%s/shell/tabbing.zsh"    # .zshrc\n' "$TABBING_ROOT"
     printf '\nAvailable commands after init:\n'
     printf '  tabbing-on         Set/display tab title, status, highlight, urgency, emoji\n'
+    printf '  tabbing-off        Deactivate tabbing and restore terminal defaults\n'
     printf '  tabbing-status     Update status text and urgency/emoji\n'
     printf '  tabbing-todo       Manage per-tab todo items\n'
     printf '  tabbing-report     View time-in-state reports and charts\n'

@@ -14,7 +14,8 @@ tabbing-on/
 │   ├── tabbing-history             #   CLI: history
 │   ├── tabbing-recordings          #   CLI: recordings
 │   ├── tabbing-info                #   CLI: state dump
-│   └── tabbing-clear               #   CLI: clear data
+│   ├── tabbing-clear               #   CLI: clear data
+│   └── tabbing-doctor              #   CLI: check/fix terminal config
 ├── lib/                            # POSIX shared libraries
 │   ├── render.sh                   #   Render pipeline (sourced by adapter)
 │   ├── core.sh                     #   Emoji/color lists, help, YAML escape

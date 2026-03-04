@@ -285,6 +285,16 @@ _tabbing_send_title() {
 }
 
 # ---------------------------------------------------------------------------
+# Clear tab/window title — sends empty OSC 2 to reset terminal title state
+# On Ghostty this resets `seen_title = false`, re-enabling the pwd fallback.
+# Uses OSC 2 (not OSC 0) to specifically target the title without icon name.
+# ---------------------------------------------------------------------------
+_tabbing_clear_title() {
+  printf '\033]2;\007' >/dev/tty 2>/dev/null || \
+    printf '\033]2;\007'
+}
+
+# ---------------------------------------------------------------------------
 # Set tab background color (terminal-specific, no-op where unsupported)
 # Args: r g b (0-255 each)
 # ---------------------------------------------------------------------------
