@@ -86,7 +86,7 @@ tabbing-on() {
   local opt_highlight="" opt_urgency="" opt_emoji=""
   local has_highlight=0 has_urgency=0 has_emoji=0
   local has_record=0 has_continue=0 has_stop_recording=0
-  local no_emoji=0
+  local no_emoji=0 has_marquee=0 no_marquee=0
   local positional=()
 
   while [[ $# -gt 0 ]]; do
@@ -108,6 +108,9 @@ tabbing-on() {
       --emoji)       opt_emoji="$2"; has_emoji=1; shift 2 ;;
       -e)            opt_emoji="$2"; has_emoji=1; shift 2 ;;
       --no-emoji)    no_emoji=1; shift ;;
+
+      -m|--marquee)    has_marquee=1; shift ;;
+      --no-marquee)    no_marquee=1; shift ;;
 
       # Emoji search: -emoji:FILTER or --emoji-search=FILTER
       -emoji:*|--emoji-search=*)
@@ -181,7 +184,7 @@ tabbing-on() {
   done
 
   # No args at all — display current state
-  if [[ ${#positional[@]} -eq 0 && $has_highlight -eq 0 && $has_urgency -eq 0 && $has_emoji -eq 0 && $no_emoji -eq 0 && $has_record -eq 0 && $has_continue -eq 0 && $has_stop_recording -eq 0 ]]; then
+  if [[ ${#positional[@]} -eq 0 && $has_highlight -eq 0 && $has_urgency -eq 0 && $has_emoji -eq 0 && $no_emoji -eq 0 && $has_marquee -eq 0 && $no_marquee -eq 0 && $has_record -eq 0 && $has_continue -eq 0 && $has_stop_recording -eq 0 ]]; then
     _tabbing_display
     return
   fi
@@ -244,6 +247,14 @@ tabbing-on() {
     unset TAB_EMOJI
   fi
 
+  if [[ $has_marquee -eq 1 ]]; then
+    export TAB_MARQUEE=1
+  fi
+  if [[ $no_marquee -eq 1 ]]; then
+    unset TAB_MARQUEE
+    _tabbing_marquee_kill
+  fi
+
   # Positional args: bash arrays are 0-based
   if [[ ${#positional[@]} -ge 1 ]]; then
     export TAB_TITLE="${positional[0]}"
@@ -267,6 +278,7 @@ tabbing-on() {
   if [[ -n "$TAB_TITLE" ]]; then
     _tabbing_render
     _tabbing_apply_urgency_color
+    _tabbing_marquee_render
   fi
 
   # Commit side effects (history + display + session save)
@@ -291,6 +303,7 @@ tabbing-on() {
 tabbing-status() {
   local opt_urgency="" opt_emoji=""
   local has_urgency=0 has_emoji=0 no_emoji=0
+  local has_marquee=0 no_marquee=0
   local has_record=0 has_continue=0 has_stop_recording=0
   local positional=()
 
@@ -307,6 +320,9 @@ tabbing-status() {
       --emoji)     opt_emoji="$2";            has_emoji=1; shift 2 ;;
       -e)          opt_emoji="$2";            has_emoji=1; shift 2 ;;
       --no-emoji)  no_emoji=1; shift ;;
+
+      -m|--marquee)    has_marquee=1; shift ;;
+      --no-marquee)    no_marquee=1; shift ;;
 
       --record)         has_record=1; shift ;;
       --continue)       has_continue=1; shift ;;
@@ -354,6 +370,14 @@ tabbing-status() {
     unset TAB_EMOJI
   fi
 
+  if [[ $has_marquee -eq 1 ]]; then
+    export TAB_MARQUEE=1
+  fi
+  if [[ $no_marquee -eq 1 ]]; then
+    unset TAB_MARQUEE
+    _tabbing_marquee_kill
+  fi
+
   # Bash: 0-based arrays
   if [[ ${#positional[@]} -ge 1 ]]; then
     export TAB_STATUS="${positional[0]}"
@@ -361,6 +385,7 @@ tabbing-status() {
 
   _tabbing_render
   _tabbing_apply_urgency_color
+  _tabbing_marquee_render
 
   # Commit side effects
   _tabbing_commit "status"

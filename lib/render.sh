@@ -823,6 +823,11 @@ _tabbing_render() {
     output="${dot}${t_title}: ${t_status}"
   fi
 
+  # Skip static title when marquee is active — marquee subprocess owns the title
+  if [ "${TAB_MARQUEE:-}" = "1" ] && [ -n "$t_status" ]; then
+    return 0
+  fi
+
   _tabbing_send_title "$output"
 }
 
@@ -890,6 +895,104 @@ _tabbing_send_title() {
 _tabbing_clear_title() {
   printf '\033]2;\007' >/dev/tty 2>/dev/null || \
     printf '\033]2;\007'
+}
+
+# ---------------------------------------------------------------------------
+# Marquee: kill any running marquee subprocess
+# ---------------------------------------------------------------------------
+_tabbing_marquee_kill() {
+  local state_dir
+  state_dir="$(_tabbing_state_dir)"
+  local pidfile="${state_dir}/marquee.pid"
+  if [ -f "$pidfile" ]; then
+    local pid
+    pid="$(cat "$pidfile")"
+    kill "$pid" 2>/dev/null || true
+    rm -f "$pidfile"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Marquee: spawn a background subprocess that scrolls the status portion
+# of the tab title. The title prefix (indicator + TAB_TITLE) stays fixed;
+# only TAB_STATUS scrolls across a 20-char window.
+#
+# Env: TAB_MARQUEE=1 enables, TAB_MARQUEE="" or unset disables.
+# Automatically kills any prior marquee process before spawning.
+# ---------------------------------------------------------------------------
+_tabbing_marquee_start() {
+  local width=20
+  local delay=0.2
+
+  local t_title="${TAB_TITLE:-}"
+  local t_status="${TAB_STATUS:-}"
+
+  # Nothing to marquee without a status
+  [ -z "$t_status" ] && return 0
+
+  local max_title=25
+
+  # Truncate title (same logic as _tabbing_render)
+  if [ ${#t_title} -gt $max_title ]; then
+    t_title="$(printf '%s' "$t_title" | cut -c1-$((max_title - 1)))"
+    t_title="${t_title}$(printf '\xE2\x80\xA6')"
+  fi
+
+  # Build the static prefix: indicator + title + ": "
+  local dot=""
+  dot="$(_tabbing_get_indicator)"
+  if [ -n "$dot" ]; then
+    dot="$dot "
+  fi
+  local prefix="${dot}${t_title}: "
+
+  # Pad status with spaces for smooth wrap-around
+  local padded="${t_status}    "
+  local padded_len=${#padded}
+
+  local state_dir
+  state_dir="$(_tabbing_state_dir)"
+  local pidfile="${state_dir}/marquee.pid"
+  mkdir -p "$state_dir"
+
+  # Spawn background marquee loop
+  (
+    _offset=0
+    trap 'printf "\033]0;\007" >/dev/tty 2>/dev/null; rm -f "'"$pidfile"'"; exit 0' INT TERM
+
+    while true; do
+      # Build visible window by wrapping around the padded status
+      _visible=""
+      _i=0
+      while [ "$_i" -lt "$width" ]; do
+        _pos=$(( (_offset + _i) % padded_len ))
+        _char="$(printf '%s' "$padded" | cut -c$((_pos + 1)))"
+        _visible="${_visible}${_char}"
+        _i=$((_i + 1))
+      done
+
+      printf '\033]0;%s%s\007' "$prefix" "$_visible" >/dev/tty 2>/dev/null
+
+      _offset=$(( (_offset + 1) % padded_len ))
+      sleep "$delay"
+    done
+  ) &
+
+  printf '%s' "$!" > "$pidfile"
+}
+
+# ---------------------------------------------------------------------------
+# Marquee-aware render: if TAB_MARQUEE is set, start marquee instead of
+# static title. Called from adapters after normal _tabbing_render.
+# ---------------------------------------------------------------------------
+_tabbing_marquee_render() {
+  # Always kill the old marquee first — prevents orphaned processes
+  # when title/status changes or marquee is toggled off
+  _tabbing_marquee_kill
+
+  if [ "${TAB_MARQUEE:-}" = "1" ] && [ -n "${TAB_STATUS:-}" ]; then
+    _tabbing_marquee_start
+  fi
 }
 
 # ---------------------------------------------------------------------------
