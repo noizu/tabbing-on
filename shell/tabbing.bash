@@ -109,9 +109,20 @@ tabbing-on() {
       -e)            opt_emoji="$2"; has_emoji=1; shift 2 ;;
       --no-emoji)    no_emoji=1; shift ;;
 
+      # Emoji search: -emoji:FILTER or --emoji-search=FILTER
+      -emoji:*|--emoji-search=*)
+        local _efilter="${1#*[=:]}"
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_search "$_efilter" | _tabbing_pager
+        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-search="$_efilter"; fi
+        return ;;
+      --emoji-search)
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_search "$2"
+        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-search="$2"; fi
+        return ;;
+
       # Subcommands: use full libs if available, else delegate to bin/
-      --emoji-list|--emojis)
-        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list
+      --emoji-list|--emojis|-emojis)
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
         else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
         return ;;
       --help)
@@ -148,11 +159,23 @@ tabbing-on() {
           if [[ $found -eq 1 ]]; then
             shift
           else
-            positional+=("$1"); shift
+            case "$maybe" in
+              emoji|emjois|emojsi|emojs|emojies|emoj|eomjis|emjis|emois|emoij|emojii|emoijis|emojss|ejmois)
+                printf 'tabbing: did you mean "-emojis"? [y/N] '
+                local answer; read -r answer
+                case "$answer" in
+                  [yY]|[yY][eE][sS])
+                    if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
+                    else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
+                    return ;;
+                esac ;;
+            esac
+            echo "tabbing: unknown option: $1" >&2; return 1
           fi
         fi
         ;;
 
+      -*)  echo "tabbing: unknown option: $1" >&2; return 1 ;;
       *) positional+=("$1"); shift ;;
     esac
   done
@@ -167,7 +190,7 @@ tabbing-on() {
   if [[ ${#positional[@]} -eq 1 ]]; then
     case "${positional[0]}" in
       emojis|emoji-list)
-        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
         else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
         return ;;
       colors|color-list)
@@ -178,6 +201,17 @@ tabbing-on() {
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_help
         else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --help; fi
         return ;;
+      emoji|emjois|emojsi|emojs|emojies|emoj|eomjis|emjis|emois|emoij|emojii|emoijis|emojss|ejmois)
+        printf 'tabbing: did you mean "emojis"? [y/N] '
+        local answer
+        read -r answer
+        case "$answer" in
+          [yY]|[yY][eE][sS])
+            if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
+            else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
+            return ;;
+        esac
+        ;;
     esac
   fi
 
@@ -286,10 +320,11 @@ tabbing-status() {
         elif _tabbing_is_known_emoji "$maybe"; then
           opt_emoji="$maybe"; has_emoji=1; shift
         else
-          positional+=("$1"); shift
+          echo "tabbing: unknown option: $1" >&2; return 1
         fi
         ;;
 
+      -*)  echo "tabbing: unknown option: $1" >&2; return 1 ;;
       *)           positional+=("$1"); shift ;;
     esac
   done

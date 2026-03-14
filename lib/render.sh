@@ -95,66 +95,489 @@ _tabbing_urgency_dot() {
 # ---------------------------------------------------------------------------
 _tabbing_emoji_lookup() {
   case "${1:-}" in
-    # --- Build & Deploy ---
-    rocket)              printf '\xF0\x9F\x9A\x80' ;;
-    ship)                printf '\xF0\x9F\x9A\xA2' ;;
-    package)             printf '\xF0\x9F\x93\xA6' ;;
-    construction)        printf '\xF0\x9F\x9A\xA7' ;;
-    hammer)              printf '\xF0\x9F\x94\xA8' ;;
+    # =======================================================================
+    # Build & Deploy
+    # =======================================================================
+    rocket)                                printf '\xF0\x9F\x9A\x80' ;;
+    ship)                                  printf '\xF0\x9F\x9A\xA2' ;;
+    package)                               printf '\xF0\x9F\x93\xA6' ;;
+    construction)                          printf '\xF0\x9F\x9A\xA7' ;;
+    hammer)                                printf '\xF0\x9F\x94\xA8' ;;
+    hammer-wrench|tools|build-tools)       printf '\xF0\x9F\x9B\xA0' ;;
+    nut-bolt|hardware|fastener)            printf '\xF0\x9F\x94\xA9' ;;
+    bricks|blocks|wall|foundation)         printf '\xF0\x9F\xA7\xB1' ;;
+    label|tag|version|release)             printf '\xF0\x9F\x8F\xB7' ;;
+    factory|manufacture|industry)          printf '\xF0\x9F\x8F\xAD' ;;
 
-    # --- Status ---
-    check|done)          printf '\xE2\x9C\x85'     ;;
-    cross|fail)          printf '\xE2\x9D\x8C'     ;;
-    warning|warn)        printf '\xE2\x9A\xA0'     ;;
-    stop)                printf '\xF0\x9F\x9B\x91' ;;
-    hourglass|wait)      printf '\xE2\x8F\xB3'     ;;
+    # =======================================================================
+    # Status
+    # =======================================================================
+    check|done)                            printf '\xE2\x9C\x85' ;;
+    cross|fail)                            printf '\xE2\x9D\x8C' ;;
+    warning|warn)                          printf '\xE2\x9A\xA0' ;;
+    stop)                                  printf '\xF0\x9F\x9B\x91' ;;
+    hourglass|wait)                        printf '\xE2\x8F\xB3' ;;
+    no-entry|forbidden|blocked|deny)       printf '\xE2\x9B\x94' ;;
+    prohibited|banned|no-sign)             printf '\xF0\x9F\x9A\xAB' ;;
+    exclamation|important|bang-mark)       printf '\xE2\x9D\x97' ;;
+    question-mark|help-mark)               printf '\xE2\x9D\x93' ;;
+    infinity|forever|endless)              printf '\xE2\x99\xBE' ;;
 
-    # --- Activity ---
-    bug)                 printf '\xF0\x9F\x90\x9B' ;;
-    fire)                printf '\xF0\x9F\x94\xA5' ;;
-    test|lab)            printf '\xF0\x9F\xA7\xAA' ;;
-    search|mag)          printf '\xF0\x9F\x94\x8D' ;;
-    wrench|fix)          printf '\xF0\x9F\x94\xA7' ;;
-    gear|config)         printf '\xE2\x9A\x99'     ;;
-    lock|secure)         printf '\xF0\x9F\x94\x92' ;;
-    key)                 printf '\xF0\x9F\x94\x91' ;;
-    trash|delete)        printf '\xF0\x9F\x97\x91' ;;
+    # =======================================================================
+    # Activity & Dev
+    # =======================================================================
+    bug)                                   printf '\xF0\x9F\x90\x9B' ;;
+    fire)                                  printf '\xF0\x9F\x94\xA5' ;;
+    test|lab)                              printf '\xF0\x9F\xA7\xAA' ;;
+    search|mag)                            printf '\xF0\x9F\x94\x8D' ;;
+    wrench|fix)                            printf '\xF0\x9F\x94\xA7' ;;
+    gear|config)                           printf '\xE2\x9A\x99' ;;
+    lock|secure)                           printf '\xF0\x9F\x94\x92' ;;
+    key)                                   printf '\xF0\x9F\x94\x91' ;;
+    trash|delete|wastebasket|garbage|rubbish) printf '\xF0\x9F\x97\x91' ;;
+    terminal|console|cli|prompt|shell)     printf '\xF0\x9F\x96\xA5' ;;
+    laptop|computer|pc|mac)                printf '\xF0\x9F\x92\xBB' ;;
+    keyboard|type|input|keys)              printf '\xE2\x8C\xA8' ;;
+    printer|print)                         printf '\xF0\x9F\x96\xA8' ;;
+    disk|floppy|save|backup)               printf '\xF0\x9F\x92\xBE' ;;
+    cd|disc|dvd|optical)                   printf '\xF0\x9F\x92\xBF' ;;
+    toolbox|toolkit|devtools|swiss-army)   printf '\xF0\x9F\xA7\xB0' ;;
+    microscope|research|examine)           printf '\xF0\x9F\x94\xAC' ;;
+    telescope|observe|astronomy)           printf '\xF0\x9F\x94\xAD' ;;
+    crystal-ball|fortune|predict)          printf '\xF0\x9F\x94\xAE' ;;
+    magnet|attract|pull)                   printf '\xF0\x9F\xA7\xB2' ;;
+    dna|genetics|helix|genome)             printf '\xF0\x9F\xA7\xAC' ;;
+    petri-dish|culture|grow|incubate)      printf '\xF0\x9F\xA7\xAB' ;;
+    abacus|count|tally|legacy)             printf '\xF0\x9F\xA7\xAE' ;;
+    atom|physics|science-symbol)           printf '\xE2\x9A\x9B' ;;
+    hook|webhook|callback|trigger)         printf '\xF0\x9F\xAA\x9D' ;;
+    chains|linked|blockchain|connection)   printf '\xE2\x9B\x93' ;;
+    plug|electric-plug|outlet|socket)      printf '\xF0\x9F\x94\x8C' ;;
+    battery|power|charge|energy)           printf '\xF0\x9F\x94\x8B' ;;
+    broom|cleanup|sweep|tidy)              printf '\xF0\x9F\xA7\xB9' ;;
+    sponge|wipe|scrub|absorb)              printf '\xF0\x9F\xA7\xBD' ;;
+    fire-extinguisher|suppress|douse)      printf '\xF0\x9F\xA7\xAF' ;;
+    plunger|unclog|unstick|fix-pipe)       printf '\xF0\x9F\xAA\xA0' ;;
+    mousetrap|catch-bug|snare)             printf '\xF0\x9F\xAA\xA4' ;;
+    ladder|climb-up|elevate)               printf '\xF0\x9F\xAA\x9C' ;;
+    knot|tied|tangled|complex)             printf '\xF0\x9F\xAA\xA2' ;;
+    bucket|pail|container)                 printf '\xF0\x9F\xAA\xA3' ;;
 
-    # --- Communication / Review ---
-    eyes|review)         printf '\xF0\x9F\x91\x80' ;;
-    chat|discuss)        printf '\xF0\x9F\x92\xAC' ;;
-    mail|email)          printf '\xF0\x9F\x93\xA7' ;;
-    bell|alert)          printf '\xF0\x9F\x94\x94' ;;
+    # =======================================================================
+    # Communication & Review
+    # =======================================================================
+    eyes|review)                           printf '\xF0\x9F\x91\x80' ;;
+    chat|discuss|speech|balloon)           printf '\xF0\x9F\x92\xAC' ;;
+    mail|email)                            printf '\xF0\x9F\x93\xA7' ;;
+    bell|alert)                            printf '\xF0\x9F\x94\x94' ;;
+    phone|call|mobile|cell)                printf '\xF0\x9F\x93\xB1' ;;
+    envelope|letter|mail-env)              printf '\xE2\x9C\x89' ;;
+    inbox|tray|incoming)                   printf '\xF0\x9F\x93\xA5' ;;
+    outbox|send|outgoing)                  printf '\xF0\x9F\x93\xA4' ;;
+    mailbox|letterbox|post)                printf '\xF0\x9F\x93\xAC' ;;
+    radio|broadcast|fm|am)                 printf '\xF0\x9F\x93\xBB' ;;
+    satellite-dish|signal|antenna|receive) printf '\xF0\x9F\x93\xA1' ;;
+    newspaper|news|press|media)            printf '\xF0\x9F\x93\xB0' ;;
+    thought|thought-bubble)                printf '\xF0\x9F\x92\xAD' ;;
 
-    # --- Data / Infra ---
-    db|database)         printf '\xF0\x9F\x97\x84' ;;
-    cloud)               printf '\xE2\x98\x81'     ;;
-    link)                printf '\xF0\x9F\x94\x97' ;;
-    electric|zap)        printf '\xE2\x9A\xA1'     ;;
+    # =======================================================================
+    # Data & Infra
+    # =======================================================================
+    db|database|file-cabinet|archive|storage|vault) printf '\xF0\x9F\x97\x84' ;;
+    cloud)                                 printf '\xE2\x98\x81' ;;
+    link)                                  printf '\xF0\x9F\x94\x97' ;;
+    electric|zap)                          printf '\xE2\x9A\xA1' ;;
+    globe-web|www|internet|web|network)    printf '\xF0\x9F\x8C\x90' ;;
+    satellite|orbit|space)                 printf '\xF0\x9F\x9B\xB0' ;;
+    earth|globe|world)                     printf '\xF0\x9F\x8C\x8D' ;;
+    compass|direction|navigate)            printf '\xF0\x9F\xA7\xAD' ;;
+    folder|directory|dir)                  printf '\xF0\x9F\x93\x81' ;;
+    folder-open|browse|explore)            printf '\xF0\x9F\x93\x82' ;;
+    page|document|doc)                     printf '\xF0\x9F\x93\x84' ;;
+    scroll|parchment|ancient)              printf '\xF0\x9F\x93\x9C' ;;
 
-    # --- Progress ---
-    sparkle|clean)       printf '\xE2\x9C\xA8'     ;;
-    star)                printf '\xE2\xAD\x90'     ;;
-    coffee|break)        printf '\xE2\x98\x95'     ;;
-    sleep|zzz)           printf '\xF0\x9F\x92\xA4' ;;
-    brain|think)         printf '\xF0\x9F\xA7\xA0' ;;
-    books|docs)          printf '\xF0\x9F\x93\x9A' ;;
-    pin)                 printf '\xF0\x9F\x93\x8C' ;;
-    clipboard)           printf '\xF0\x9F\x93\x8B' ;;
-    chart)               printf '\xF0\x9F\x93\x8A' ;;
+    # =======================================================================
+    # Progress & Time
+    # =======================================================================
+    sparkle|clean)                         printf '\xE2\x9C\xA8' ;;
+    star)                                  printf '\xE2\xAD\x90' ;;
+    coffee|break)                          printf '\xE2\x98\x95' ;;
+    sleep|zzz)                             printf '\xF0\x9F\x92\xA4' ;;
+    brain|think)                           printf '\xF0\x9F\xA7\xA0' ;;
+    books|docs)                            printf '\xF0\x9F\x93\x9A' ;;
+    pin)                                   printf '\xF0\x9F\x93\x8C' ;;
+    clipboard)                             printf '\xF0\x9F\x93\x8B' ;;
+    chart)                                 printf '\xF0\x9F\x93\x8A' ;;
+    chart-up|trending|growth|stonks)       printf '\xF0\x9F\x93\x88' ;;
+    chart-down|decline|loss|crash-chart)   printf '\xF0\x9F\x93\x89' ;;
+    alarm|timer|clock-alarm)               printf '\xE2\x8F\xB0' ;;
+    watch|time|clock-watch)                printf '\xE2\x8C\x9A' ;;
+    calendar|date|event|schedule)          printf '\xF0\x9F\x93\x85' ;;
+    target|bullseye|goal|aim)              printf '\xF0\x9F\x8E\xAF' ;;
 
-    # --- Miscellaneous ---
-    tada|celebrate)      printf '\xF0\x9F\x8E\x89' ;;
-    art|design)          printf '\xF0\x9F\x8E\xA8' ;;
-    bulb|idea)           printf '\xF0\x9F\x92\xA1' ;;
-    shield|protect)      printf '\xF0\x9F\x9B\xA1' ;;
-    recycle|refactor)    printf '\xE2\x99\xBB'     ;;
-    truck|move)          printf '\xF0\x9F\x9A\x9A' ;;
-    memo|note)           printf '\xF0\x9F\x93\x9D' ;;
+    # =======================================================================
+    # Miscellaneous — Celebration & Symbols
+    # =======================================================================
+    tada|celebrate)                        printf '\xF0\x9F\x8E\x89' ;;
+    art|design)                            printf '\xF0\x9F\x8E\xA8' ;;
+    bulb|idea)                             printf '\xF0\x9F\x92\xA1' ;;
+    shield|protect)                        printf '\xF0\x9F\x9B\xA1' ;;
+    recycle|refactor)                      printf '\xE2\x99\xBB' ;;
+    truck|move)                            printf '\xF0\x9F\x9A\x9A' ;;
+    memo|note)                             printf '\xF0\x9F\x93\x9D' ;;
+    gift|present|surprise|wrapped)         printf '\xF0\x9F\x8E\x81' ;;
+    balloon|party-balloon|inflate)         printf '\xF0\x9F\x8E\x88' ;;
+    confetti|celebration|festive)          printf '\xF0\x9F\x8E\x8A' ;;
+    trophy|winner|champion|cup)            printf '\xF0\x9F\x8F\x86' ;;
+    medal|award|prize|gold)                printf '\xF0\x9F\x8F\x85' ;;
+    ticket|pass|admission|entry)           printf '\xF0\x9F\x8E\xAB' ;;
+    crown|king|queen|royal|ruler)          printf '\xF0\x9F\x91\x91' ;;
+    gem|diamond|jewel|precious)            printf '\xF0\x9F\x92\x8E' ;;
+    hundred|100|perfect|score)             printf '\xF0\x9F\x92\xAF' ;;
+    boom|explosion|bang|collision|crash)    printf '\xF0\x9F\x92\xA5' ;;
+    flashlight|torch|light)                printf '\xF0\x9F\x94\xA6' ;;
+    candle|flame|wax)                      printf '\xF0\x9F\x95\xAF' ;;
+    door|entrance|exit|gateway)            printf '\xF0\x9F\x9A\xAA' ;;
+    window-pane|viewport)                  printf '\xF0\x9F\xAA\x9F' ;;
+    magician|wizard|wand)                  printf '\xF0\x9F\xAA\x84' ;;
+    mirror-ball|disco|dance)               printf '\xF0\x9F\xAA\xA9' ;;
+    joker|wildcard|trump)                  printf '\xF0\x9F\x83\x8F' ;;
+
+    # =======================================================================
+    # Smileys & Emotion
+    # =======================================================================
+    smile|happy)                           printf '\xF0\x9F\x98\x8A' ;;
+    grin)                                  printf '\xF0\x9F\x98\x81' ;;
+    laugh|lol)                             printf '\xF0\x9F\x98\x82' ;;
+    rofl)                                  printf '\xF0\x9F\xA4\xA3' ;;
+    wink)                                  printf '\xF0\x9F\x98\x89' ;;
+    love-eyes|heart-eyes)                  printf '\xF0\x9F\x98\x8D' ;;
+    cool|sunglasses)                       printf '\xF0\x9F\x98\x8E' ;;
+    hmm|wondering)                         printf '\xF0\x9F\xA4\x94' ;;
+    shush|quiet)                           printf '\xF0\x9F\xA4\xAB' ;;
+    sweat)                                 printf '\xF0\x9F\x98\x85' ;;
+    cry|sob)                               printf '\xF0\x9F\x98\xA2' ;;
+    angry|mad)                             printf '\xF0\x9F\x98\xA0' ;;
+    rage|fury)                             printf '\xF0\x9F\x98\xA1' ;;
+    scream|horror)                         printf '\xF0\x9F\x98\xB1' ;;
+    sick|nausea)                           printf '\xF0\x9F\xA4\xA2' ;;
+    dizzy-face)                            printf '\xF0\x9F\x98\xB5' ;;
+    nerd)                                  printf '\xF0\x9F\xA4\x93' ;;
+    monocle|inspect)                       printf '\xF0\x9F\xA7\x90' ;;
+    party-face|celebrate-face)             printf '\xF0\x9F\xA5\xB3' ;;
+    yawn|tired)                            printf '\xF0\x9F\xA5\xB1' ;;
+    melting|melt|dissolve|hot-face)        printf '\xF0\x9F\xAB\xA0' ;;
+    peeking|peek|spy-face|sneak)           printf '\xF0\x9F\xAB\xA3' ;;
+
+    # =======================================================================
+    # Gestures & Body
+    # =======================================================================
+    wave|hi|bye)                           printf '\xF0\x9F\x91\x8B' ;;
+    ok|okay)                               printf '\xF0\x9F\x91\x8C' ;;
+    thumbsup|like|approve)                 printf '\xF0\x9F\x91\x8D' ;;
+    thumbsdown|dislike|reject)             printf '\xF0\x9F\x91\x8E' ;;
+    clap|applause)                         printf '\xF0\x9F\x91\x8F' ;;
+    pray|thanks|namaste)                   printf '\xF0\x9F\x99\x8F' ;;
+    muscle|strong|flex)                    printf '\xF0\x9F\x92\xAA' ;;
+    fist|punch|bump)                       printf '\xF0\x9F\x91\x8A' ;;
+    victory|peace-sign)                    printf '\xE2\x9C\x8C' ;;
+    crossed-fingers|luck)                  printf '\xF0\x9F\xA4\x9E' ;;
+    handshake|deal|agree)                  printf '\xF0\x9F\xA4\x9D' ;;
+    point-right)                           printf '\xF0\x9F\x91\x89' ;;
+    point-left)                            printf '\xF0\x9F\x91\x88' ;;
+    point-up)                              printf '\xE2\x98\x9D' ;;
+    point-down)                            printf '\xF0\x9F\x91\x87' ;;
+    raised-hand|stop-hand|halt)            printf '\xE2\x9C\x8B' ;;
+    salute)                                printf '\xF0\x9F\xAB\xA1' ;;
+
+    # =======================================================================
+    # People & Characters
+    # =======================================================================
+    skull|dead|rip)                        printf '\xF0\x9F\x92\x80' ;;
+    ghost)                                 printf '\xF0\x9F\x91\xBB' ;;
+    robot|bot)                             printf '\xF0\x9F\xA4\x96' ;;
+    alien)                                 printf '\xF0\x9F\x91\xBD' ;;
+    clown)                                 printf '\xF0\x9F\xA4\xA1' ;;
+    poop|crap)                             printf '\xF0\x9F\x92\xA9' ;;
+    ninja)                                 printf '\xF0\x9F\xA5\xB7' ;;
+    detective|spy)                         printf '\xF0\x9F\x95\xB5' ;;
+
+    # =======================================================================
+    # Hearts & Emotion Symbols
+    # =======================================================================
+    heart|love-heart|red-heart)            printf '\xE2\x9D\xA4' ;;
+    broken-heart|heartbreak)               printf '\xF0\x9F\x92\x94' ;;
+    sparkling-heart|glowing-heart)         printf '\xF0\x9F\x92\x96' ;;
+    sweat-drops|effort|splash)             printf '\xF0\x9F\x92\xA6' ;;
+    anger-symbol|fury-mark)                printf '\xF0\x9F\x92\xA2' ;;
+    droplet|water|drip)                    printf '\xF0\x9F\x92\xA7' ;;
+
+    # =======================================================================
+    # Animals
+    # =======================================================================
+    dog|puppy)                             printf '\xF0\x9F\x90\xB6' ;;
+    cat|kitty)                             printf '\xF0\x9F\x90\xB1' ;;
+    fox)                                   printf '\xF0\x9F\xA6\x8A' ;;
+    bear)                                  printf '\xF0\x9F\x90\xBB' ;;
+    panda)                                 printf '\xF0\x9F\x90\xBC' ;;
+    monkey)                                printf '\xF0\x9F\x90\xB5' ;;
+    chicken|hen)                           printf '\xF0\x9F\x90\x94' ;;
+    penguin)                               printf '\xF0\x9F\x90\xA7' ;;
+    bird|tweet)                            printf '\xF0\x9F\x90\xA6' ;;
+    eagle)                                 printf '\xF0\x9F\xA6\x85' ;;
+    owl)                                   printf '\xF0\x9F\xA6\x89' ;;
+    bat)                                   printf '\xF0\x9F\xA6\x87' ;;
+    butterfly)                             printf '\xF0\x9F\xA6\x8B' ;;
+    snake)                                 printf '\xF0\x9F\x90\x8D' ;;
+    dragon)                                printf '\xF0\x9F\x90\x89' ;;
+    whale)                                 printf '\xF0\x9F\x90\xB3' ;;
+    dolphin)                               printf '\xF0\x9F\x90\xAC' ;;
+    octopus)                               printf '\xF0\x9F\x90\x99' ;;
+    snail|slow)                            printf '\xF0\x9F\x90\x8C' ;;
+    turtle|tortoise)                       printf '\xF0\x9F\x90\xA2' ;;
+    crab|crustacean)                       printf '\xF0\x9F\xA6\x80' ;;
+    spider)                                printf '\xF0\x9F\x95\xB7' ;;
+    scorpion)                              printf '\xF0\x9F\xA6\x82' ;;
+    unicorn|magic)                         printf '\xF0\x9F\xA6\x84' ;;
+    bee|honeybee|buzz)                     printf '\xF0\x9F\x90\x9D' ;;
+    ant)                                   printf '\xF0\x9F\x90\x9C' ;;
+    ladybug)                               printf '\xF0\x9F\x90\x9E' ;;
+    shark)                                 printf '\xF0\x9F\xA6\x88' ;;
+    wolf)                                  printf '\xF0\x9F\x90\xBA' ;;
+    horse|pony)                            printf '\xF0\x9F\x90\xB4' ;;
+    pig|oink)                              printf '\xF0\x9F\x90\xB7' ;;
+    frog|toad)                             printf '\xF0\x9F\x90\xB8' ;;
+    gorilla|ape)                           printf '\xF0\x9F\xA6\x8D' ;;
+    deer|stag)                             printf '\xF0\x9F\xA6\x8C' ;;
+    rabbit|bunny)                          printf '\xF0\x9F\x90\xB0' ;;
+    mouse|rodent)                          printf '\xF0\x9F\x90\xAD' ;;
+    camel)                                 printf '\xF0\x9F\x90\xAB' ;;
+    elephant)                              printf '\xF0\x9F\x90\x98' ;;
+    lion)                                  printf '\xF0\x9F\xA6\x81' ;;
+    tiger)                                 printf '\xF0\x9F\x90\xAF' ;;
+    crocodile|croc|gator)                  printf '\xF0\x9F\x90\x8A' ;;
+    parrot)                                printf '\xF0\x9F\xA6\x9C' ;;
+    flamingo)                              printf '\xF0\x9F\xA6\xA9' ;;
+    peacock)                               printf '\xF0\x9F\xA6\x9A' ;;
+    lobster)                               printf '\xF0\x9F\xA6\x9E' ;;
+    shrimp|prawn)                          printf '\xF0\x9F\xA6\x90' ;;
+    squid)                                 printf '\xF0\x9F\xA6\x91' ;;
+    hedgehog|porcupine)                    printf '\xF0\x9F\xA6\x94' ;;
+    raccoon|trash-panda)                   printf '\xF0\x9F\xA6\x9D' ;;
+    sloth|lazy)                            printf '\xF0\x9F\xA6\xA5' ;;
+    otter)                                 printf '\xF0\x9F\xA6\xA6' ;;
+    skunk|stink)                           printf '\xF0\x9F\xA6\xA8' ;;
+    mammoth|woolly)                        printf '\xF0\x9F\xA6\xA3' ;;
+    dodo|extinct)                          printf '\xF0\x9F\xA6\xA4' ;;
+    microbe|germ|bacteria)                 printf '\xF0\x9F\xA6\xA0' ;;
+
+    # =======================================================================
+    # Nature & Weather
+    # =======================================================================
+    tree|evergreen)                        printf '\xF0\x9F\x8C\xB2' ;;
+    palm-tree|tropical)                    printf '\xF0\x9F\x8C\xB4' ;;
+    flower|blossom|cherry)                 printf '\xF0\x9F\x8C\xB8' ;;
+    rose)                                  printf '\xF0\x9F\x8C\xB9' ;;
+    sunflower)                             printf '\xF0\x9F\x8C\xBB' ;;
+    leaf|leaves|wind-leaf)                 printf '\xF0\x9F\x8D\x83' ;;
+    herb|plant|seedling)                   printf '\xF0\x9F\x8C\xBF' ;;
+    mushroom|fungi|toadstool)              printf '\xF0\x9F\x8D\x84' ;;
+    cactus)                                printf '\xF0\x9F\x8C\xB5' ;;
+    sun|sunny)                             printf '\xE2\x98\x80' ;;
+    moon|crescent)                         printf '\xF0\x9F\x8C\x99' ;;
+    full-moon)                             printf '\xF0\x9F\x8C\x95' ;;
+    rainbow)                               printf '\xF0\x9F\x8C\x88' ;;
+    snowflake|frozen|cold)                 printf '\xE2\x9D\x84' ;;
+    tornado|cyclone|twister)               printf '\xF0\x9F\x8C\xAA' ;;
+    ocean|waves|sea)                       printf '\xF0\x9F\x8C\x8A' ;;
+    volcano|eruption|lava)                 printf '\xF0\x9F\x8C\x8B' ;;
+    comet|meteor|shooting-star)            printf '\xE2\x98\x84' ;;
+    umbrella|rain-cover)                   printf '\xE2\x98\x82' ;;
+    lotus|zen|mindful|calm)                printf '\xF0\x9F\xAA\xB7' ;;
+    feather|lightweight|quill)             printf '\xF0\x9F\xAA\xB6' ;;
+    coral|reef|marine)                     printf '\xF0\x9F\xAA\xB8' ;;
+    nest|nested|home-base)                 printf '\xF0\x9F\xAA\xB9' ;;
+
+    # =======================================================================
+    # Food & Drink
+    # =======================================================================
+    apple|fruit)                           printf '\xF0\x9F\x8D\x8E' ;;
+    banana)                                printf '\xF0\x9F\x8D\x8C' ;;
+    grapes|vine)                           printf '\xF0\x9F\x8D\x87' ;;
+    watermelon|melon)                      printf '\xF0\x9F\x8D\x89' ;;
+    lemon|citrus|sour)                     printf '\xF0\x9F\x8D\x8B' ;;
+    peach)                                 printf '\xF0\x9F\x8D\x91' ;;
+    cherry|cherries)                       printf '\xF0\x9F\x8D\x92' ;;
+    strawberry)                            printf '\xF0\x9F\x8D\x93' ;;
+    tomato)                                printf '\xF0\x9F\x8D\x85' ;;
+    avocado)                               printf '\xF0\x9F\xA5\x91' ;;
+    eggplant|aubergine)                    printf '\xF0\x9F\x8D\x86' ;;
+    pepper|hot|spicy|chili)                printf '\xF0\x9F\x8C\xB6' ;;
+    pizza|pie)                             printf '\xF0\x9F\x8D\x95' ;;
+    burger|hamburger)                      printf '\xF0\x9F\x8D\x94' ;;
+    fries|chips|french-fries)              printf '\xF0\x9F\x8D\x9F' ;;
+    hotdog|sausage|frank)                  printf '\xF0\x9F\x8C\xAD' ;;
+    taco)                                  printf '\xF0\x9F\x8C\xAE' ;;
+    burrito|wrap)                          printf '\xF0\x9F\x8C\xAF' ;;
+    sushi|japanese)                        printf '\xF0\x9F\x8D\xA3' ;;
+    ramen|noodles|soup)                    printf '\xF0\x9F\x8D\x9C' ;;
+    cake|birthday|bday)                    printf '\xF0\x9F\x8E\x82' ;;
+    cookie|biscuit)                        printf '\xF0\x9F\x8D\xAA' ;;
+    chocolate|candy-bar)                   printf '\xF0\x9F\x8D\xAB' ;;
+    donut|doughnut|pastry)                 printf '\xF0\x9F\x8D\xA9' ;;
+    ice-cream|icecream|gelato)             printf '\xF0\x9F\x8D\xA8' ;;
+    honey|honeypot|sweet)                  printf '\xF0\x9F\x8D\xAF' ;;
+    beer|brew|pint)                        printf '\xF0\x9F\x8D\xBA' ;;
+    wine|glass|vino)                       printf '\xF0\x9F\x8D\xB7' ;;
+    cocktail|martini|drink)                printf '\xF0\x9F\x8D\xB8' ;;
+    popcorn)                               printf '\xF0\x9F\x8D\xBF' ;;
+    bread|loaf|toast)                      printf '\xF0\x9F\x8D\x9E' ;;
+    cheese|cheddar)                        printf '\xF0\x9F\xA7\x80' ;;
+    meat|steak|beef)                       printf '\xF0\x9F\xA5\xA9' ;;
+    bacon|pork)                            printf '\xF0\x9F\xA5\x93' ;;
+    candy|lollipop|sweet-treat)            printf '\xF0\x9F\x8D\xAC' ;;
+    cupcake|muffin)                        printf '\xF0\x9F\xA7\x81' ;;
+    salt|seasoning)                        printf '\xF0\x9F\xA7\x82' ;;
+    beans|coffee-beans|java)               printf '\xF0\x9F\xAB\x98' ;;
+    jar|preserve|store)                    printf '\xF0\x9F\xAB\x99' ;;
+
+    # =======================================================================
+    # Travel & Transport
+    # =======================================================================
+    car|auto|drive|vehicle)                printf '\xF0\x9F\x9A\x97' ;;
+    taxi|cab)                              printf '\xF0\x9F\x9A\x95' ;;
+    bus|transit)                            printf '\xF0\x9F\x9A\x8C' ;;
+    ambulance|ems|emergency)               printf '\xF0\x9F\x9A\x91' ;;
+    fire-truck|firetruck)                  printf '\xF0\x9F\x9A\x92' ;;
+    police-car|cop|patrol)                 printf '\xF0\x9F\x9A\x93' ;;
+    train|rail|locomotive)                 printf '\xF0\x9F\x9A\x86' ;;
+    airplane|plane|flight|jet)             printf '\xE2\x9C\x88' ;;
+    helicopter|chopper|heli)               printf '\xF0\x9F\x9A\x81' ;;
+    sailboat|boat|sailing)                 printf '\xE2\x9B\xB5' ;;
+    anchor|dock|port)                      printf '\xE2\x9A\x93' ;;
+    fuel|gas|petrol|pump)                  printf '\xE2\x9B\xBD' ;;
+    bike|bicycle|cycle)                    printf '\xF0\x9F\x9A\xB2' ;;
+
+    # =======================================================================
+    # Places & Buildings
+    # =======================================================================
+    house|home)                            printf '\xF0\x9F\x8F\xA0' ;;
+    office|building|corp)                  printf '\xF0\x9F\x8F\xA2' ;;
+    hospital|medical|health-bldg)          printf '\xF0\x9F\x8F\xA5' ;;
+    school|education|learn)                printf '\xF0\x9F\x8F\xAB' ;;
+    castle|fortress|fort)                  printf '\xF0\x9F\x8F\xB0' ;;
+    tent|camp|camping|outdoor)             printf '\xE2\x9B\xBA' ;;
+    church|worship|chapel)                 printf '\xE2\x9B\xAA' ;;
+
+    # =======================================================================
+    # Writing & Office
+    # =======================================================================
+    book|read|manual|textbook)             printf '\xF0\x9F\x93\x96' ;;
+    notebook|journal|diary)                printf '\xF0\x9F\x93\x93' ;;
+    pencil|write|edit|compose)             printf '\xE2\x9C\x8F' ;;
+    pen|author|ink)                        printf '\xF0\x9F\x96\x8A' ;;
+    paintbrush|paint|brush)                printf '\xF0\x9F\x96\x8C' ;;
+    crayon|draw|sketch|color)              printf '\xF0\x9F\x96\x8D' ;;
+    paperclip|attach|attachment)           printf '\xF0\x9F\x93\x8E' ;;
+    scissors|cut|snip|trim)                printf '\xE2\x9C\x82' ;;
+    ruler|measure|length)                  printf '\xF0\x9F\x93\x8F' ;;
+    camera|photo|snap|picture)             printf '\xF0\x9F\x93\xB7' ;;
+    clapper|film|movie|action)             printf '\xF0\x9F\x8E\xAC' ;;
+    tv|television|screen|monitor)          printf '\xF0\x9F\x93\xBA' ;;
+
+    # =======================================================================
+    # Music & Sound
+    # =======================================================================
+    music|song|tune|melody)                printf '\xF0\x9F\x8E\xB5' ;;
+    guitar|rock|strum)                     printf '\xF0\x9F\x8E\xB8' ;;
+    drum|beat|rhythm)                      printf '\xF0\x9F\xA5\x81' ;;
+    trumpet|horn|fanfare|brass)            printf '\xF0\x9F\x8E\xBA' ;;
+    microphone|mic|karaoke|sing)           printf '\xF0\x9F\x8E\xA4' ;;
+    headphones|audio|listen|earphones)     printf '\xF0\x9F\x8E\xA7' ;;
+    speaker|volume|sound|loud)             printf '\xF0\x9F\x94\x8A' ;;
+    mute|silent|no-sound|quiet-speaker)    printf '\xF0\x9F\x94\x87' ;;
+
+    # =======================================================================
+    # Sports & Activities
+    # =======================================================================
+    soccer|football|kick)                  printf '\xE2\x9A\xBD' ;;
+    basketball|bball|hoop)                 printf '\xF0\x9F\x8F\x80' ;;
+    baseball|bat-ball)                     printf '\xE2\x9A\xBE' ;;
+    tennis|racket|serve)                   printf '\xF0\x9F\x8E\xBE' ;;
+    golf|putt|tee)                         printf '\xE2\x9B\xB3' ;;
+    boxing|fight-glove|bout)               printf '\xF0\x9F\xA5\x8A' ;;
+    bowling|strike|pins)                   printf '\xF0\x9F\x8E\xB3' ;;
+    gaming|joystick|game|play)             printf '\xF0\x9F\x8E\xAE' ;;
+    puzzle|jigsaw|piece|solve|component|module) printf '\xF0\x9F\xA7\xA9' ;;
+    chess|strategy|checkmate)              printf '\xE2\x99\x9F' ;;
+    dice|random|chance|roll)               printf '\xF0\x9F\x8E\xB2' ;;
+    fishing|catch|rod)                     printf '\xF0\x9F\x8E\xA3' ;;
+    surfing|surf|wave-ride)                printf '\xF0\x9F\x8F\x84' ;;
+    swimming|swim|pool|lap)                printf '\xF0\x9F\x8F\x8A' ;;
+    running|run|sprint|jog)                printf '\xF0\x9F\x8F\x83' ;;
+    eight-ball|pool|billiards)             printf '\xF0\x9F\x8E\xB1' ;;
+    slot-machine|jackpot|gamble)           printf '\xF0\x9F\x8E\xB0' ;;
+    mahjong|tile)                          printf '\xF0\x9F\x80\x84' ;;
+
+    # =======================================================================
+    # Combat & Danger
+    # =======================================================================
+    bomb|explosive|detonate)               printf '\xF0\x9F\x92\xA3' ;;
+    sword|fight|blade)                     printf '\xE2\x9A\x94' ;;
+    axe|chop|hatchet)                      printf '\xF0\x9F\xAA\x93' ;;
+    radioactive|nuclear|hazard)            printf '\xE2\x98\xA2' ;;
+    biohazard|toxic|danger)                printf '\xE2\x98\xA3' ;;
+
+    # =======================================================================
+    # Arrows & Shapes
+    # =======================================================================
+    arrow-up|ascending|upward)             printf '\xE2\xAC\x86' ;;
+    arrow-down|descending|downward)        printf '\xE2\xAC\x87' ;;
+    arrow-left|back|backward)              printf '\xE2\xAC\x85' ;;
+    arrow-right|forward|next|ahead)        printf '\xE2\x9E\xA1' ;;
+    arrows-rotate|sync|refresh|reload)     printf '\xF0\x9F\x94\x84' ;;
+    cycle|repeat|loop-arrows|redo)         printf '\xF0\x9F\x94\x83' ;;
+    plus|add|new|create)                   printf '\xE2\x9E\x95' ;;
+    minus|subtract|remove|delete-sign)     printf '\xE2\x9E\x96' ;;
+    multiply|times|x-mark|cross-mark)      printf '\xE2\x9C\x96' ;;
+    divide|split|separate)                 printf '\xE2\x9E\x97' ;;
+    red-circle)                            printf '\xF0\x9F\x94\xB4' ;;
+    orange-circle)                         printf '\xF0\x9F\x9F\xA0' ;;
+    yellow-circle)                         printf '\xF0\x9F\x9F\xA1' ;;
+    green-circle)                          printf '\xF0\x9F\x9F\xA2' ;;
+    blue-circle)                           printf '\xF0\x9F\x94\xB5' ;;
+    purple-circle)                         printf '\xF0\x9F\x9F\xA3' ;;
+    white-circle)                          printf '\xE2\x9A\xAA' ;;
+    black-circle)                          printf '\xE2\x9A\xAB' ;;
+    red-square)                            printf '\xF0\x9F\x9F\xA5' ;;
+    green-square)                          printf '\xF0\x9F\x9F\xA9' ;;
+    blue-square)                           printf '\xF0\x9F\x9F\xA6' ;;
+
+    # =======================================================================
+    # Money & Finance
+    # =======================================================================
+    currency|dollar|money|usd)             printf '\xF0\x9F\x92\xB2' ;;
+    moneybag|rich|cash|funds)              printf '\xF0\x9F\x92\xB0' ;;
+    credit-card|payment|pay|swipe)         printf '\xF0\x9F\x92\xB3' ;;
+
+    # =======================================================================
+    # Flags
+    # =======================================================================
+    flag|banner|pennant)                   printf '\xF0\x9F\x8F\xB4' ;;
+    white-flag|surrender|truce)            printf '\xF0\x9F\x8F\xB3' ;;
+    checkered-flag|finish|race|complete)   printf '\xF0\x9F\x8F\x81' ;;
+    triangular-flag|marker|waypoint)       printf '\xF0\x9F\x9A\xA9' ;;
+
+    # =======================================================================
+    # Peace & Philosophy
+    # =======================================================================
+    peace|antiwar|peace-symbol)            printf '\xE2\x98\xAE' ;;
+    yin-yang|balance|harmony)              printf '\xE2\x98\xAF' ;;
 
     *)
       printf "tabbing: unknown emoji '%s'\n" "$1" >&2
       printf "tabbing: use 'tabbing-on --emoji-list' to see available emojis\n" >&2
+      printf "tabbing: use 'tabbing-on -emoji:search' to search emojis\n" >&2
       return 1
       ;;
   esac
@@ -165,16 +588,191 @@ _tabbing_emoji_lookup() {
 # ---------------------------------------------------------------------------
 _tabbing_is_known_emoji() {
   case "${1:-}" in
+    # Build & Deploy
     rocket|ship|package|construction|hammer) return 0 ;;
+    hammer-wrench|tools|build-tools|nut-bolt|hardware|fastener) return 0 ;;
+    bricks|blocks|wall|foundation|label|tag|version|release) return 0 ;;
+    factory|manufacture|industry) return 0 ;;
+    # Status
     check|done|cross|fail|warning|warn|stop|hourglass|wait) return 0 ;;
+    no-entry|forbidden|blocked|deny|prohibited|banned|no-sign) return 0 ;;
+    exclamation|important|bang-mark|question-mark|help-mark) return 0 ;;
+    infinity|forever|endless) return 0 ;;
+    # Activity & Dev
     bug|fire|test|lab|search|mag|wrench|fix|gear|config) return 0 ;;
-    lock|secure|key|trash|delete) return 0 ;;
-    eyes|review|chat|discuss|mail|email|bell|alert) return 0 ;;
-    db|database|cloud|link|electric|zap) return 0 ;;
-    sparkle|clean|star|coffee|break|sleep|zzz|brain|think) return 0 ;;
-    books|docs|pin|clipboard|chart) return 0 ;;
+    lock|secure|key|trash|delete|wastebasket|garbage|rubbish) return 0 ;;
+    terminal|console|cli|prompt|shell) return 0 ;;
+    laptop|computer|pc|mac|keyboard|type|input|keys) return 0 ;;
+    printer|print|disk|floppy|save|backup|cd|disc|dvd|optical) return 0 ;;
+    toolbox|toolkit|devtools|swiss-army) return 0 ;;
+    microscope|research|examine|telescope|observe|astronomy) return 0 ;;
+    crystal-ball|fortune|predict|magnet|attract|pull) return 0 ;;
+    dna|genetics|helix|genome|petri-dish|culture|grow|incubate) return 0 ;;
+    abacus|count|tally|legacy|atom|physics|science-symbol) return 0 ;;
+    hook|webhook|callback|trigger) return 0 ;;
+    chains|linked|blockchain|connection) return 0 ;;
+    plug|electric-plug|outlet|socket|battery|power|charge|energy) return 0 ;;
+    broom|cleanup|sweep|tidy|sponge|wipe|scrub|absorb) return 0 ;;
+    fire-extinguisher|suppress|douse) return 0 ;;
+    plunger|unclog|unstick|fix-pipe|mousetrap|catch-bug|snare) return 0 ;;
+    ladder|climb-up|elevate|knot|tied|tangled|complex) return 0 ;;
+    bucket|pail|container) return 0 ;;
+    # Communication & Review
+    eyes|review|chat|discuss|speech|balloon) return 0 ;;
+    mail|email|bell|alert|phone|call|mobile|cell) return 0 ;;
+    envelope|letter|mail-env|inbox|tray|incoming) return 0 ;;
+    outbox|send|outgoing|mailbox|letterbox|post) return 0 ;;
+    radio|broadcast|fm|am|satellite-dish|signal|antenna|receive) return 0 ;;
+    newspaper|news|press|media|thought|thought-bubble) return 0 ;;
+    # Data & Infra
+    db|database|file-cabinet|archive|storage|vault) return 0 ;;
+    cloud|link|electric|zap) return 0 ;;
+    globe-web|www|internet|web|network) return 0 ;;
+    satellite|orbit|space|earth|globe|world) return 0 ;;
+    compass|direction|navigate) return 0 ;;
+    folder|directory|dir|folder-open|browse|explore) return 0 ;;
+    page|document|doc|scroll|parchment|ancient) return 0 ;;
+    # Progress & Time
+    sparkle|clean|star|coffee|break|sleep|zzz) return 0 ;;
+    brain|think|books|docs|pin|clipboard|chart) return 0 ;;
+    chart-up|trending|growth|stonks|chart-down|decline|loss|crash-chart) return 0 ;;
+    alarm|timer|clock-alarm|watch|time|clock-watch) return 0 ;;
+    calendar|date|event|schedule|target|bullseye|goal|aim) return 0 ;;
+    # Miscellaneous
     tada|celebrate|art|design|bulb|idea|shield|protect) return 0 ;;
     recycle|refactor|truck|move|memo|note) return 0 ;;
+    gift|present|surprise|wrapped|balloon|party-balloon|inflate) return 0 ;;
+    confetti|celebration|festive) return 0 ;;
+    trophy|winner|champion|cup|medal|award|prize|gold) return 0 ;;
+    ticket|pass|admission|entry) return 0 ;;
+    crown|king|queen|royal|ruler) return 0 ;;
+    gem|diamond|jewel|precious|hundred|100|perfect|score) return 0 ;;
+    boom|explosion|bang|collision|crash) return 0 ;;
+    flashlight|torch|light|candle|flame|wax) return 0 ;;
+    door|entrance|exit|gateway|window-pane|viewport) return 0 ;;
+    magician|wizard|wand|mirror-ball|disco|dance) return 0 ;;
+    joker|wildcard|trump) return 0 ;;
+    # Smileys & Emotion
+    smile|happy|grin|laugh|lol|rofl|wink) return 0 ;;
+    love-eyes|heart-eyes|cool|sunglasses) return 0 ;;
+    hmm|wondering|shush|quiet|sweat) return 0 ;;
+    cry|sob|angry|mad|rage|fury|scream|horror) return 0 ;;
+    sick|nausea|dizzy-face|nerd|monocle|inspect) return 0 ;;
+    party-face|celebrate-face|yawn|tired) return 0 ;;
+    melting|melt|dissolve|hot-face|peeking|peek|spy-face|sneak) return 0 ;;
+    # Gestures & Body
+    wave|hi|bye|ok|okay) return 0 ;;
+    thumbsup|like|approve|thumbsdown|dislike|reject) return 0 ;;
+    clap|applause|pray|thanks|namaste) return 0 ;;
+    muscle|strong|flex|fist|punch|bump) return 0 ;;
+    victory|peace-sign|crossed-fingers|luck) return 0 ;;
+    handshake|deal|agree) return 0 ;;
+    point-right|point-left|point-up|point-down) return 0 ;;
+    raised-hand|stop-hand|halt|salute) return 0 ;;
+    # People & Characters
+    skull|dead|rip|ghost|robot|bot|alien|clown) return 0 ;;
+    poop|crap|ninja|detective|spy) return 0 ;;
+    # Hearts & Emotion Symbols
+    heart|love-heart|red-heart|broken-heart|heartbreak) return 0 ;;
+    sparkling-heart|glowing-heart) return 0 ;;
+    sweat-drops|effort|splash|anger-symbol|fury-mark) return 0 ;;
+    droplet|water|drip) return 0 ;;
+    # Animals
+    dog|puppy|cat|kitty|fox|bear|panda|monkey) return 0 ;;
+    chicken|hen|penguin|bird|tweet|eagle|owl|bat) return 0 ;;
+    butterfly|snake|dragon|whale|dolphin|octopus) return 0 ;;
+    snail|slow|turtle|tortoise|crab|crustacean) return 0 ;;
+    spider|scorpion|unicorn|magic|bee|honeybee|buzz) return 0 ;;
+    ant|ladybug|shark|wolf|horse|pony|pig|oink) return 0 ;;
+    frog|toad|gorilla|ape|deer|stag|rabbit|bunny) return 0 ;;
+    mouse|rodent|camel|elephant|lion|tiger) return 0 ;;
+    crocodile|croc|gator|parrot|flamingo|peacock) return 0 ;;
+    lobster|shrimp|prawn|squid|hedgehog|porcupine) return 0 ;;
+    raccoon|trash-panda|sloth|lazy|otter) return 0 ;;
+    skunk|stink|mammoth|woolly|dodo|extinct) return 0 ;;
+    microbe|germ|bacteria) return 0 ;;
+    # Nature & Weather
+    tree|evergreen|palm-tree|tropical|flower|blossom) return 0 ;;
+    cherry|rose|sunflower|leaf|leaves|wind-leaf) return 0 ;;
+    herb|plant|seedling|mushroom|fungi|toadstool|cactus) return 0 ;;
+    sun|sunny|moon|crescent|full-moon|rainbow) return 0 ;;
+    snowflake|frozen|cold|tornado|cyclone|twister) return 0 ;;
+    ocean|waves|sea|volcano|eruption|lava) return 0 ;;
+    comet|meteor|shooting-star|umbrella|rain-cover) return 0 ;;
+    lotus|zen|mindful|calm|feather|lightweight|quill) return 0 ;;
+    coral|reef|marine|nest|nested|home-base) return 0 ;;
+    # Food & Drink
+    apple|fruit|banana|grapes|vine|watermelon|melon) return 0 ;;
+    lemon|citrus|sour|peach|cherry|cherries|strawberry) return 0 ;;
+    tomato|avocado|eggplant|aubergine) return 0 ;;
+    pepper|hot|spicy|chili|pizza|pie|burger|hamburger) return 0 ;;
+    fries|chips|french-fries|hotdog|sausage|frank) return 0 ;;
+    taco|burrito|wrap|sushi|japanese|ramen|noodles|soup) return 0 ;;
+    cake|birthday|bday|cookie|biscuit|chocolate|candy-bar) return 0 ;;
+    donut|doughnut|pastry|ice-cream|icecream|gelato) return 0 ;;
+    honey|honeypot|sweet|beer|brew|pint) return 0 ;;
+    wine|glass|vino|cocktail|martini|drink|popcorn) return 0 ;;
+    bread|loaf|toast|cheese|cheddar|meat|steak|beef) return 0 ;;
+    bacon|pork|candy|lollipop|sweet-treat) return 0 ;;
+    cupcake|muffin|salt|seasoning) return 0 ;;
+    beans|coffee-beans|java|jar|preserve|store) return 0 ;;
+    # Travel & Transport
+    car|auto|drive|vehicle|taxi|cab|bus|transit) return 0 ;;
+    ambulance|ems|emergency|fire-truck|firetruck) return 0 ;;
+    police-car|cop|patrol|train|rail|locomotive) return 0 ;;
+    airplane|plane|flight|jet|helicopter|chopper|heli) return 0 ;;
+    sailboat|boat|sailing|anchor|dock|port) return 0 ;;
+    fuel|gas|petrol|pump|bike|bicycle|cycle) return 0 ;;
+    # Places & Buildings
+    house|home|office|building|corp) return 0 ;;
+    hospital|medical|health-bldg|school|education|learn) return 0 ;;
+    castle|fortress|fort|tent|camp|camping|outdoor) return 0 ;;
+    church|worship|chapel) return 0 ;;
+    # Writing & Office
+    book|read|manual|textbook|notebook|journal|diary) return 0 ;;
+    pencil|write|edit|compose|pen|author|ink) return 0 ;;
+    paintbrush|paint|brush|crayon|draw|sketch|color) return 0 ;;
+    paperclip|attach|attachment|scissors|cut|snip|trim) return 0 ;;
+    ruler|measure|length|camera|photo|snap|picture) return 0 ;;
+    clapper|film|movie|action|tv|television|screen|monitor) return 0 ;;
+    # Music & Sound
+    music|song|tune|melody|guitar|rock|strum) return 0 ;;
+    drum|beat|rhythm|trumpet|horn|fanfare|brass) return 0 ;;
+    microphone|mic|karaoke|sing|headphones|audio|listen|earphones) return 0 ;;
+    speaker|volume|sound|loud|mute|silent|no-sound|quiet-speaker) return 0 ;;
+    # Sports & Activities
+    soccer|football|kick|basketball|bball|hoop) return 0 ;;
+    baseball|bat-ball|tennis|racket|serve|golf|putt|tee) return 0 ;;
+    boxing|fight-glove|bout|bowling|strike|pins) return 0 ;;
+    gaming|joystick|game|play) return 0 ;;
+    puzzle|jigsaw|piece|solve|component|module) return 0 ;;
+    chess|strategy|checkmate|dice|random|chance|roll) return 0 ;;
+    fishing|catch|rod|surfing|surf|wave-ride) return 0 ;;
+    swimming|swim|pool|lap|running|run|sprint|jog) return 0 ;;
+    eight-ball|pool|billiards|slot-machine|jackpot|gamble) return 0 ;;
+    mahjong|tile) return 0 ;;
+    # Combat & Danger
+    bomb|explosive|detonate|sword|fight|blade) return 0 ;;
+    axe|chop|hatchet|radioactive|nuclear|hazard) return 0 ;;
+    biohazard|toxic|danger) return 0 ;;
+    # Arrows & Shapes
+    arrow-up|ascending|upward|arrow-down|descending|downward) return 0 ;;
+    arrow-left|back|backward|arrow-right|forward|next|ahead) return 0 ;;
+    arrows-rotate|sync|refresh|reload|cycle|repeat|loop-arrows|redo) return 0 ;;
+    plus|add|new|create|minus|subtract|remove|delete-sign) return 0 ;;
+    multiply|times|x-mark|cross-mark|divide|split|separate) return 0 ;;
+    red-circle|orange-circle|yellow-circle|green-circle) return 0 ;;
+    blue-circle|purple-circle|white-circle|black-circle) return 0 ;;
+    red-square|green-square|blue-square) return 0 ;;
+    # Money & Finance
+    currency|dollar|money|usd|moneybag|rich|cash|funds) return 0 ;;
+    credit-card|payment|pay|swipe) return 0 ;;
+    # Flags
+    flag|banner|pennant|white-flag|surrender|truce) return 0 ;;
+    checkered-flag|finish|race|complete) return 0 ;;
+    triangular-flag|marker|waypoint) return 0 ;;
+    # Peace & Philosophy
+    peace|antiwar|peace-symbol|yin-yang|balance|harmony) return 0 ;;
     *) return 1 ;;
   esac
 }

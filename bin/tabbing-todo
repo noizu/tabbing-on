@@ -111,10 +111,11 @@ while [[ $# -gt 0 ]]; do
       elif _tabbing_is_known_emoji "$maybe"; then
         opt_emoji="$maybe"; has_emoji=1; shift
       else
-        positional+=("$1"); shift
+        echo "tabbing: unknown option: $1" >&2; exit 1
       fi
       ;;
 
+    -*) echo "tabbing: unknown option: $1" >&2; exit 1 ;;
     *) positional+=("$1"); shift ;;
   esac
 done
