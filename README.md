@@ -476,3 +476,41 @@ $ ls -la
 
 Speed settings control the character delay: fast (0.01s), medium (0.03s), slow (0.06s).
 The `TABBING_DEMO_SPEED` environment variable can also set the default speed.
+
+
+* * *
+
+# DIR ENV hooks for dir theming. 
+
+
+```zsh
+eval "$(/Volumes/OSX-Extended/Github/noizu/tabbing-on/bin/tabbing-init zsh)"
+#. /etc/terminal-utils.zshrc
+
+# --- direnv → tabbing-on theme sync ---
+# Reacts to TAB_THEME exported by .envrc files.
+# Applies theme on enter, runs tabbing-off on leave.
+_tabbing_theme_sync() {
+  local want="${TAB_THEME:-}"
+  local have="${_TABBING_SYNCED_THEME:-}"
+  if [[ "$want" != "$have" ]]; then
+    if [[ -n "$want" ]]; then
+      if [[ -z "${TAB_TITLE:-}" ]]; then
+        local label="${PWD#$HOME/Github/}"
+        tabbing-on "${label%%/*}" --theme="$want"
+      else
+        tabbing-style --theme="$want"
+      fi
+      _TABBING_SYNCED_THEME="$want"
+    else
+      tabbing-off 2>/dev/null
+      unset _TABBING_SYNCED_THEME
+    fi
+  fi
+}
+precmd_functions=(${precmd_functions:#_tabbing_theme_sync} _tabbing_theme_sync)
+
+# --- tabbing title override test (option #3) ---
+# Force tab title via precmd/preexec/chpwd to override kitty/ghostty hooks
+autoload -Uz add-zsh-hook
+```
