@@ -11,6 +11,12 @@ Works with iTerm2, Ghostty, Kitty, WezTerm, Alacritty, and more.
 
 https://github.com/user-attachments/assets/dcefea35-beaa-43c8-afe6-9717a478e7cf
 
+
+
+https://github.com/user-attachments/assets/b454eecc-3542-472e-a563-99415ce6fbed
+
+
+
 ![tabbing-on showcase](demo/showcase.gif)
 
 > [View the full asciinema recording](demo/showcase.cast)
