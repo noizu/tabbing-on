@@ -9,6 +9,7 @@ tabbing-on/
 │   ├── _tabbing-commit             #   Side-effects helper for thin adapter
 │   ├── tabbing-on                  #   CLI: set title & status
 │   ├── tabbing-status              #   CLI: update status
+│   ├── tabbing-marquee             #   CLI: scrolling marquee text
 │   ├── tabbing-todo                #   CLI: manage todos
 │   ├── tabbing-report              #   CLI: reports
 │   ├── tabbing-history             #   CLI: history
@@ -27,11 +28,24 @@ tabbing-on/
 ├── shell/                          # Shell thin adapters
 │   ├── tabbing.bash                #   Bash adapter (sources render.sh only)
 │   └── tabbing.zsh                 #   Zsh adapter (sources render.sh only)
-├── demo/                           # Demo scripts
-│   └── showcase.demo
+├── examples/                       # Example config files
+│   └── themes/                     #   User theme templates (.theme files)
+├── demo/                           # Demo scripts & outputs
+│   ├── showcase.demo               #   Interactive walkthrough
+│   ├── showcase.cast               #   asciinema recording
+│   └── showcase.gif                #   GIF render
 ├── tests/                          # Tests (empty)
 ├── docs/                           # Documentation
+│   ├── PROJ-ARCH.md                #   Architecture
+│   ├── PROJ-ARCH.summary.md       #   Architecture summary
+│   ├── PROJ-LAYOUT.md              #   Layout (this doc's source)
+│   ├── PROJ-LAYOUT.summary.md     #   Layout summary
+│   └── assets/                     #   Images
+├── .envrc                          # direnv
+├── .gitignore                      # Git ignore rules
+├── CLAUDE.md                       # Claude Code instructions
 ├── LICENSE                         # MIT
+├── README.md                       # Project entry point
 ├── TODO.md                         # Roadmap
 ├── script.md                       # Demo reference
 └── terminal-utils.zshrc            # Legacy shim

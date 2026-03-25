@@ -12,6 +12,7 @@ tabbing-on/
 │   ├── _tabbing-commit             #   Side-effects helper: history, display, session save
 │   ├── tabbing-on                  #   CLI: set/display tab title & status
 │   ├── tabbing-status              #   CLI: update status
+│   ├── tabbing-marquee             #   CLI: scrolling marquee text in tab title
 │   ├── tabbing-todo                #   CLI: manage todos (supports --list-pending, --export-switch)
 │   ├── tabbing-report              #   CLI: time-in-state reports
 │   ├── tabbing-history             #   CLI: search/browse history
@@ -30,13 +31,27 @@ tabbing-on/
 ├── shell/                          # Shell-specific thin adapters
 │   ├── tabbing.bash                #   Bash: sources render.sh, defines public functions, delegates to bin/
 │   └── tabbing.zsh                 #   Zsh: sources render.sh, defines public functions, delegates to bin/
+├── examples/                       # Example config files
+│   └── themes/                     #   User theme templates
+│       ├── my-dark.theme           #     Full 19-key theme example
+│       └── minimal.theme           #     Minimal 2-key theme (bg + fg only)
 ├── demo/                           # Demo scripts
-│   └── showcase.demo               #   Interactive feature walkthrough
+│   ├── showcase.demo               #   Interactive feature walkthrough
+│   ├── showcase.cast               #   asciinema recording of demo
+│   └── showcase.gif                #   GIF render of demo
 ├── tests/                          # Test suites (empty)
 ├── docs/                           # Documentation
+│   ├── PROJ-ARCH.md                #   Architecture: components, diagrams, design decisions
+│   ├── PROJ-ARCH.summary.md       #   Architecture quick-reference
 │   ├── PROJ-LAYOUT.md              #   This file
-│   └── PROJ-LAYOUT.summary.md     #   Quick-reference tree
+│   ├── PROJ-LAYOUT.summary.md     #   Quick-reference tree
+│   └── assets/                     #   Documentation images
+│       └── title-bar.png           #     Screenshot of tab title bar
+├── .envrc                          # direnv — loads environment
+├── .gitignore                      # Git ignore rules
+├── CLAUDE.md                       # Claude Code project instructions
 ├── LICENSE                         # MIT (Copyright 2026 Keith Brings)
+├── README.md                       # Project entry point
 ├── TODO.md                         # Roadmap & known limitations
 ├── script.md                       # Demo command reference
 └── terminal-utils.zshrc            # Legacy shim — prefer tabbing-init
@@ -50,6 +65,7 @@ After `eval "$(tabbing-init bash|zsh)"`:
 |---------|---------|
 | `tabbing-on [args]` | Set/display tab title, status, color, urgency, emoji |
 | `tabbing-status` | Update status with emoji/urgency |
+| `tabbing-marquee` | Scrolling marquee text in tab title |
 | `tabbing-todo` | Add/list/pick/done todo items |
 | `tabbing-report` | ASCII/Mermaid reports of time-in-state |
 | `tabbing-history` | Search/browse tab history |
@@ -69,6 +85,13 @@ XDG-compliant (`~/.local/state/tabbing/`):
 └── sessions/{TAB_SESSION}.env      # Persisted env state for CLI wrappers
 ```
 
+User config (`~/.config/tabbing-on/` or `$XDG_CONFIG_HOME/tabbing-on/`):
+
+```
+~/.config/tabbing-on/
+└── themes/*.theme                  # User-defined color themes
+```
+
 ## Environment Variables
 
 | Variable | Description |
@@ -78,6 +101,9 @@ XDG-compliant (`~/.local/state/tabbing/`):
 | `TAB_HIGHLIGHT` | Color name for title highlight |
 | `TAB_URGENCY` | 0–5 (0=critical/red, 5=nominal/green) |
 | `TAB_EMOJI` | Named emoji (overrides urgency dot) |
+| `TAB_BG` | Terminal background color (name or `#RRGGBB`) |
+| `TAB_THEME` | Active terminal color theme name |
+| `TAB_MARQUEE` | Set to `1` to enable scrolling marquee |
 | `TAB_TERMINAL` | Detected terminal emulator |
 | `TAB_ID` | Unique tab fingerprint (hex) |
 | `TAB_SESSION` | Session fingerprint for state file scoping (hex) |

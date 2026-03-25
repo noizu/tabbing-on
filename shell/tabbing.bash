@@ -83,10 +83,10 @@ _tabbing_commit() {
 # tabbing-on [flags in any position] [title] [status]
 # ---------------------------------------------------------------------------
 tabbing-on() {
-  local opt_highlight="" opt_urgency="" opt_emoji=""
-  local has_highlight=0 has_urgency=0 has_emoji=0
+  local opt_highlight="" opt_urgency="" opt_emoji="" opt_bg="" opt_theme=""
+  local has_highlight=0 has_urgency=0 has_emoji=0 has_bg=0 has_theme=0
   local has_record=0 has_continue=0 has_stop_recording=0
-  local no_emoji=0 has_marquee=0 no_marquee=0
+  local no_emoji=0 no_bg=0 no_theme=0 has_marquee=0 no_marquee=0
   local positional=()
 
   while [[ $# -gt 0 ]]; do
@@ -108,6 +108,20 @@ tabbing-on() {
       --emoji)       opt_emoji="$2"; has_emoji=1; shift 2 ;;
       -e)            opt_emoji="$2"; has_emoji=1; shift 2 ;;
       --no-emoji)    no_emoji=1; shift ;;
+
+      --bg=*)        opt_bg="${1#--bg=}"; has_bg=1; shift ;;
+      --bg)          opt_bg="$2"; has_bg=1; shift 2 ;;
+      --no-bg)       no_bg=1; shift ;;
+
+      --theme=*)     opt_theme="${1#--theme=}"; has_theme=1; shift ;;
+      --theme)       opt_theme="$2"; has_theme=1; shift 2 ;;
+      --no-theme)    no_theme=1; shift ;;
+      --theme-list|--themes)
+        _tabbing_theme_list; return ;;
+      --color-list|--colors)
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_color_list
+        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" colors; fi
+        return ;;
 
       -m|--marquee)    has_marquee=1; shift ;;
       --no-marquee)    no_marquee=1; shift ;;
@@ -184,7 +198,7 @@ tabbing-on() {
   done
 
   # No args at all — display current state
-  if [[ ${#positional[@]} -eq 0 && $has_highlight -eq 0 && $has_urgency -eq 0 && $has_emoji -eq 0 && $no_emoji -eq 0 && $has_marquee -eq 0 && $no_marquee -eq 0 && $has_record -eq 0 && $has_continue -eq 0 && $has_stop_recording -eq 0 ]]; then
+  if [[ ${#positional[@]} -eq 0 && $has_highlight -eq 0 && $has_urgency -eq 0 && $has_emoji -eq 0 && $no_emoji -eq 0 && $has_bg -eq 0 && $no_bg -eq 0 && $has_theme -eq 0 && $no_theme -eq 0 && $has_marquee -eq 0 && $no_marquee -eq 0 && $has_record -eq 0 && $has_continue -eq 0 && $has_stop_recording -eq 0 ]]; then
     _tabbing_display
     return
   fi
@@ -200,6 +214,8 @@ tabbing-on() {
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_color_list
         else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" colors; fi
         return ;;
+      themes|theme-list)
+        _tabbing_theme_list; return ;;
       help)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_help
         else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --help; fi
@@ -247,6 +263,31 @@ tabbing-on() {
     unset TAB_EMOJI
   fi
 
+  if [[ $has_bg -eq 1 ]]; then
+    if ! _tabbing_color_to_hex "$opt_bg" >/dev/null 2>&1; then
+      _tabbing_color_to_hex "$opt_bg"
+      return 1
+    fi
+    export TAB_BG="$opt_bg"
+  fi
+  if [[ $no_bg -eq 1 ]]; then
+    _tabbing_clear_bg_color
+    unset TAB_BG
+  fi
+
+  if [[ $has_theme -eq 1 ]]; then
+    if ! _tabbing_apply_named_theme "$opt_theme" 2>/dev/null; then
+      echo "tabbing: unknown theme '$opt_theme'" >&2
+      _tabbing_theme_list >&2
+      return 1
+    fi
+    export TAB_THEME="$opt_theme"
+  fi
+  if [[ $no_theme -eq 1 ]]; then
+    _tabbing_clear_theme
+    unset TAB_THEME
+  fi
+
   if [[ $has_marquee -eq 1 ]]; then
     export TAB_MARQUEE=1
   fi
@@ -278,6 +319,7 @@ tabbing-on() {
   if [[ -n "$TAB_TITLE" ]]; then
     _tabbing_render
     _tabbing_apply_urgency_color
+    _tabbing_apply_bg_color
     _tabbing_marquee_render
   fi
 
@@ -301,8 +343,8 @@ tabbing-on() {
 # tabbing-status [flags] "text"
 # ---------------------------------------------------------------------------
 tabbing-status() {
-  local opt_urgency="" opt_emoji=""
-  local has_urgency=0 has_emoji=0 no_emoji=0
+  local opt_urgency="" opt_emoji="" opt_bg="" opt_theme=""
+  local has_urgency=0 has_emoji=0 no_emoji=0 has_bg=0 no_bg=0 has_theme=0 no_theme=0
   local has_marquee=0 no_marquee=0
   local has_record=0 has_continue=0 has_stop_recording=0
   local positional=()
@@ -320,6 +362,14 @@ tabbing-status() {
       --emoji)     opt_emoji="$2";            has_emoji=1; shift 2 ;;
       -e)          opt_emoji="$2";            has_emoji=1; shift 2 ;;
       --no-emoji)  no_emoji=1; shift ;;
+
+      --bg=*)      opt_bg="${1#--bg=}"; has_bg=1; shift ;;
+      --bg)        opt_bg="$2"; has_bg=1; shift 2 ;;
+      --no-bg)     no_bg=1; shift ;;
+
+      --theme=*)   opt_theme="${1#--theme=}"; has_theme=1; shift ;;
+      --theme)     opt_theme="$2"; has_theme=1; shift 2 ;;
+      --no-theme)  no_theme=1; shift ;;
 
       -m|--marquee)    has_marquee=1; shift ;;
       --no-marquee)    no_marquee=1; shift ;;
@@ -370,6 +420,31 @@ tabbing-status() {
     unset TAB_EMOJI
   fi
 
+  if [[ $has_bg -eq 1 ]]; then
+    if ! _tabbing_color_to_hex "$opt_bg" >/dev/null 2>&1; then
+      _tabbing_color_to_hex "$opt_bg"
+      return 1
+    fi
+    export TAB_BG="$opt_bg"
+  fi
+  if [[ $no_bg -eq 1 ]]; then
+    _tabbing_clear_bg_color
+    unset TAB_BG
+  fi
+
+  if [[ $has_theme -eq 1 ]]; then
+    if ! _tabbing_apply_named_theme "$opt_theme" 2>/dev/null; then
+      echo "tabbing: unknown theme '$opt_theme'" >&2
+      _tabbing_theme_list >&2
+      return 1
+    fi
+    export TAB_THEME="$opt_theme"
+  fi
+  if [[ $no_theme -eq 1 ]]; then
+    _tabbing_clear_theme
+    unset TAB_THEME
+  fi
+
   if [[ $has_marquee -eq 1 ]]; then
     export TAB_MARQUEE=1
   fi
@@ -385,6 +460,7 @@ tabbing-status() {
 
   _tabbing_render
   _tabbing_apply_urgency_color
+  _tabbing_apply_bg_color
   _tabbing_marquee_render
 
   # Commit side effects
@@ -517,16 +593,186 @@ tabbing-doctor() {
 }
 
 # ---------------------------------------------------------------------------
+# tabbing-style — Adjust tab appearance without changing title/status
+# Dedicated command for setting theme, bg, color, emoji, urgency, marquee.
+# Requires tabbing-on to have been called first.
+# ---------------------------------------------------------------------------
+tabbing-style() {
+  local opt_highlight="" opt_urgency="" opt_emoji="" opt_bg="" opt_theme=""
+  local has_highlight=0 has_urgency=0 has_emoji=0 has_bg=0 has_theme=0
+  local no_emoji=0 no_bg=0 no_theme=0 has_marquee=0 no_marquee=0
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --highlight=*) opt_highlight="${1#--highlight=}"; has_highlight=1; shift ;;
+      --highlight)   opt_highlight="$2"; has_highlight=1; shift 2 ;;
+      --color=*)     opt_highlight="${1#--color=}"; has_highlight=1; shift ;;
+      --color)       opt_highlight="$2"; has_highlight=1; shift 2 ;;
+      -h)            opt_highlight="$2"; has_highlight=1; shift 2 ;;
+
+      --urgency=*)   opt_urgency="${1#--urgency=}"; has_urgency=1; shift ;;
+      --urgency)     opt_urgency="$2"; has_urgency=1; shift 2 ;;
+      --pri=*)       opt_urgency="${1#--pri=}"; has_urgency=1; shift ;;
+      --pri)         opt_urgency="$2"; has_urgency=1; shift 2 ;;
+      -p)            opt_urgency="$2"; has_urgency=1; shift 2 ;;
+      -pri[0-5])     opt_urgency="${1#-pri}"; has_urgency=1; shift ;;
+
+      --emoji=*)     opt_emoji="${1#--emoji=}"; has_emoji=1; shift ;;
+      --emoji)       opt_emoji="$2"; has_emoji=1; shift 2 ;;
+      -e)            opt_emoji="$2"; has_emoji=1; shift 2 ;;
+      --no-emoji)    no_emoji=1; shift ;;
+
+      --bg=*)        opt_bg="${1#--bg=}"; has_bg=1; shift ;;
+      --bg)          opt_bg="$2"; has_bg=1; shift 2 ;;
+      --no-bg)       no_bg=1; shift ;;
+
+      --theme=*)     opt_theme="${1#--theme=}"; has_theme=1; shift ;;
+      --theme)       opt_theme="$2"; has_theme=1; shift 2 ;;
+      --no-theme)    no_theme=1; shift ;;
+
+      -m|--marquee)    has_marquee=1; shift ;;
+      --no-marquee)    no_marquee=1; shift ;;
+
+      --theme-list|--themes) _tabbing_theme_list; return ;;
+      --color-list|--colors)
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_color_list
+        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" colors; fi
+        return ;;
+      --emoji-list|--emojis|-emojis)
+        if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
+        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
+        return ;;
+
+      # -COLOR or -EMOJI shorthand
+      -[a-z]*)
+        local maybe="${1#-}"
+        if [[ "$maybe" =~ ^pri[0-5]$ ]]; then
+          opt_urgency="${maybe#pri}"; has_urgency=1; shift
+        else
+          local found=0
+          for c in "${_tabbing_known_colors[@]}"; do
+            if [[ "$maybe" == "$c" ]]; then
+              opt_highlight="$maybe"; has_highlight=1; found=1
+              break
+            fi
+          done
+          if [[ $found -eq 0 ]]; then
+            if _tabbing_is_known_emoji "$maybe"; then
+              opt_emoji="$maybe"; has_emoji=1; found=1
+            fi
+          fi
+          if [[ $found -eq 1 ]]; then
+            shift
+          else
+            echo "tabbing-style: unknown option: $1" >&2; return 1
+          fi
+        fi
+        ;;
+
+      -*)  echo "tabbing-style: unknown option: $1" >&2; return 1 ;;
+      *)   echo "tabbing-style: unexpected argument: $1 (use tabbing-on to set title/status)" >&2; return 1 ;;
+    esac
+  done
+
+  if [[ -z "${TAB_TITLE:-}" ]]; then
+    echo "tabbing-style: no TAB_TITLE set — call tabbing-on first" >&2
+    return 1
+  fi
+
+  # No flags at all — show current settings
+  if [[ $has_highlight -eq 0 && $has_urgency -eq 0 && $has_emoji -eq 0 && $no_emoji -eq 0 && $has_bg -eq 0 && $no_bg -eq 0 && $has_theme -eq 0 && $no_theme -eq 0 && $has_marquee -eq 0 && $no_marquee -eq 0 ]]; then
+    printf 'highlight: %s\n' "${TAB_HIGHLIGHT:-(none)}"
+    printf 'urgency:   %s\n' "${TAB_URGENCY:-(none)}"
+    printf 'emoji:     %s\n' "${TAB_EMOJI:-(none)}"
+    printf 'bg:        %s\n' "${TAB_BG:-(none)}"
+    printf 'theme:     %s\n' "${TAB_THEME:-(none)}"
+    printf 'marquee:   %s\n' "${TAB_MARQUEE:-off}"
+    return
+  fi
+
+  # Apply settings
+  if [[ $has_highlight -eq 1 ]]; then
+    if ! _tabbing_color_code "$opt_highlight" >/dev/null 2>&1; then
+      _tabbing_color_code "$opt_highlight"
+      return 1
+    fi
+    export TAB_HIGHLIGHT="$opt_highlight"
+  fi
+
+  if [[ $has_urgency -eq 1 ]]; then
+    if [[ ! "$opt_urgency" =~ ^[0-5]$ ]]; then
+      echo "tabbing: urgency must be 0-5 (0=critical, 5=nominal)" >&2
+      return 1
+    fi
+    export TAB_URGENCY="$opt_urgency"
+  fi
+
+  if [[ $has_emoji -eq 1 ]]; then
+    if ! _tabbing_emoji_lookup "$opt_emoji" >/dev/null 2>&1; then
+      _tabbing_emoji_lookup "$opt_emoji"
+      return 1
+    fi
+    export TAB_EMOJI="$opt_emoji"
+  fi
+  if [[ $no_emoji -eq 1 ]]; then
+    unset TAB_EMOJI
+  fi
+
+  if [[ $has_bg -eq 1 ]]; then
+    if ! _tabbing_color_to_hex "$opt_bg" >/dev/null 2>&1; then
+      _tabbing_color_to_hex "$opt_bg"
+      return 1
+    fi
+    export TAB_BG="$opt_bg"
+  fi
+  if [[ $no_bg -eq 1 ]]; then
+    _tabbing_clear_bg_color
+    unset TAB_BG
+  fi
+
+  if [[ $has_theme -eq 1 ]]; then
+    if ! _tabbing_apply_named_theme "$opt_theme" 2>/dev/null; then
+      echo "tabbing: unknown theme '$opt_theme'" >&2
+      _tabbing_theme_list >&2
+      return 1
+    fi
+    export TAB_THEME="$opt_theme"
+  fi
+  if [[ $no_theme -eq 1 ]]; then
+    _tabbing_clear_theme
+    unset TAB_THEME
+  fi
+
+  if [[ $has_marquee -eq 1 ]]; then
+    export TAB_MARQUEE=1
+  fi
+  if [[ $no_marquee -eq 1 ]]; then
+    unset TAB_MARQUEE
+    _tabbing_marquee_kill
+  fi
+
+  # Re-render with new settings
+  _tabbing_render
+  _tabbing_apply_urgency_color
+  _tabbing_apply_bg_color
+  _tabbing_marquee_render
+
+  _tabbing_commit "settings"
+}
+
+# ---------------------------------------------------------------------------
 # tabbing-off — Deactivate tabbing and restore terminal defaults
 # Clears title, tab color, and badge, then unsets runtime variables.
 # Preserves TAB_TERMINAL and TAB_SESSION for re-activation.
 # ---------------------------------------------------------------------------
 tabbing-off() {
   _tabbing_clear_title
+  _tabbing_clear_bg_color
+  _tabbing_clear_theme
   . "${_tabbing_root}/lib/terminal.sh"
   _tabbing_clear_tab_color
   _tabbing_clear_badge
-  unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_ID TAB_RECORDING
+  unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_BG TAB_THEME TAB_ID TAB_RECORDING
   unset _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE
   printf 'tabbing: off\n'
 }

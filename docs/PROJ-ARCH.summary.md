@@ -6,10 +6,12 @@ Shell utility for terminal tab management. Layered architecture: POSIX shared li
 
 ## Components
 
-- **lib/core.sh** -- Color/emoji mapping, urgency levels, tab state rendering
+- **lib/render.sh** -- Minimal render pipeline for prompt hook: title display, color/emoji validation
+- **lib/core.sh** -- Color/emoji mapping, urgency levels, help, YAML escape
 - **lib/terminal.sh** -- Terminal detection (10+ emulators), escape sequence abstraction
 - **lib/history.sh** -- Tab ID generation, YAML event logging, search, reporting
 - **lib/recording.sh** -- asciinema recording lifecycle
+- **lib/session.sh** -- Per-session state persistence via TAB_SESSION-keyed env files
 - **lib/todo.sh** -- Per-tab todo CRUD with provider pattern
 - **shell/tabbing.zsh** -- Zsh adapter (1-based arrays, precmd hook)
 - **shell/tabbing.bash** -- Bash adapter (0-based arrays, PROMPT_COMMAND hook)
@@ -17,13 +19,14 @@ Shell utility for terminal tab management. Layered architecture: POSIX shared li
 
 ## State
 
-- **Runtime**: Environment variables (`TAB_TITLE`, `TAB_STATUS`, `TAB_ID`, etc.)
-- **Persistent**: YAML files under `$XDG_STATE_HOME/tabbing/` (history, todos, recordings per tab)
+- **Runtime**: Environment variables (`TAB_TITLE`, `TAB_STATUS`, `TAB_ID`, `TAB_SESSION`, etc.)
+- **Persistent**: YAML files under `$XDG_STATE_HOME/tabbing/` (history, todos, recordings per tab; session env files)
 
 ## Key Decisions
 
 - POSIX library layer for portability; shell-specific syntax only in adapters
+- Render.sh is the only lib sourced at shell init (lightweight); other libs loaded on demand by bin/ scripts
 - Environment variables for session state; YAML for persistence
-- Per-tab isolation via unique TAB_ID
+- Per-tab isolation via unique TAB_ID; per-session isolation via TAB_SESSION
 - No external dependencies (asciinema optional)
 - Provider pattern for extensible todo backends
