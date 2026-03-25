@@ -901,8 +901,7 @@ _tabbing_clear_title() {
 # Marquee: kill any running marquee subprocess
 # ---------------------------------------------------------------------------
 _tabbing_marquee_kill() {
-  local state_dir
-  state_dir="$(_tabbing_state_dir)"
+  local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/tabbing"
   local pidfile="${state_dir}/marquee.pid"
   if [ -f "$pidfile" ]; then
     local pid
@@ -950,8 +949,7 @@ _tabbing_marquee_start() {
   local padded="${t_status}    "
   local padded_len=${#padded}
 
-  local state_dir
-  state_dir="$(_tabbing_state_dir)"
+  local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/tabbing"
   local pidfile="${state_dir}/marquee.pid"
   mkdir -p "$state_dir"
 

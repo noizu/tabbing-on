@@ -306,6 +306,13 @@ tabbing-on() {
     fi
   fi
 
+  # Style-only invocation (no title given, no existing title) — nudge toward tabbing-style
+  if [[ ${#positional[@]} -eq 0 && -z "${TAB_TITLE:-}" ]]; then
+    if [[ $has_highlight -eq 1 || $has_urgency -eq 1 || $has_emoji -eq 1 || $has_bg -eq 1 || $has_theme -eq 1 || $has_marquee -eq 1 || $no_emoji -eq 1 || $no_bg -eq 1 || $no_theme -eq 1 || $no_marquee -eq 1 ]]; then
+      echo "tabbing: hint: it is better to use tabbing-style to set these items." >&2
+    fi
+  fi
+
   # Inline: ensure TAB_ID exists
   if [[ -z "${TAB_ID:-}" ]]; then
     if [[ -r /dev/urandom ]]; then
@@ -674,11 +681,6 @@ tabbing-style() {
     esac
   done
 
-  if [[ -z "${TAB_TITLE:-}" ]]; then
-    echo "tabbing-style: no TAB_TITLE set — call tabbing-on first" >&2
-    return 1
-  fi
-
   # No flags at all — show current settings
   if [[ $has_highlight -eq 0 && $has_urgency -eq 0 && $has_emoji -eq 0 && $no_emoji -eq 0 && $has_bg -eq 0 && $no_bg -eq 0 && $has_theme -eq 0 && $no_theme -eq 0 && $has_marquee -eq 0 && $no_marquee -eq 0 ]]; then
     printf 'highlight: %s\n' "${TAB_HIGHLIGHT:-(none)}"
@@ -751,13 +753,19 @@ tabbing-style() {
     _tabbing_marquee_kill
   fi
 
-  # Re-render with new settings
-  _tabbing_render
+  # Apply visual effects immediately
   _tabbing_apply_urgency_color
   _tabbing_apply_bg_color
-  _tabbing_marquee_render
 
-  _tabbing_commit "settings"
+  # Title rendering and session commit require an active tab
+  if [[ -n "${TAB_TITLE:-}" ]]; then
+    _tabbing_render
+    _tabbing_marquee_render
+    _tabbing_commit "settings"
+  fi
+
+  # Prevent external tools from overwriting our styling
+  export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
 }
 
 # ---------------------------------------------------------------------------
