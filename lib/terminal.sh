@@ -101,14 +101,27 @@ _tabbing_terminal_info() {
   case "${TAB_TERMINAL:-unknown}" in
     iterm2)
       printf '  Tab Color:      yes (iTerm2 OSC 6)\n'
+      printf '  Background:     yes (OSC 11)\n'
       printf '  Badge:          yes (iTerm2 OSC 1337)\n'
+      ;;
+    ghostty)
+      printf '  Tab Color:      no\n'
+      printf '  Background:     yes (OSC 11)\n'
+      printf '  Badge:          no\n'
       ;;
     kitty)
       printf '  Tab Color:      yes (kitty remote control)\n'
+      printf '  Background:     yes (OSC 11)\n'
+      printf '  Badge:          no\n'
+      ;;
+    wezterm|xterm)
+      printf '  Tab Color:      no\n'
+      printf '  Background:     yes (OSC 11)\n'
       printf '  Badge:          no\n'
       ;;
     *)
       printf '  Tab Color:      no\n'
+      printf '  Background:     no\n'
       printf '  Badge:          no\n'
       ;;
   esac

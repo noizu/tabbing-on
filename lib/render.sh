@@ -988,8 +988,7 @@ _tabbing_clear_title() {
 # Marquee: kill any running marquee subprocess
 # ---------------------------------------------------------------------------
 _tabbing_marquee_kill() {
-  local state_dir
-  state_dir="$(_tabbing_state_dir)"
+  local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/tabbing"
   local pidfile="${state_dir}/marquee.pid"
   if [ -f "$pidfile" ]; then
     local pid
@@ -1037,8 +1036,7 @@ _tabbing_marquee_start() {
   local padded="${t_status}    "
   local padded_len=${#padded}
 
-  local state_dir
-  state_dir="$(_tabbing_state_dir)"
+  local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/tabbing"
   local pidfile="${state_dir}/marquee.pid"
   mkdir -p "$state_dir"
 
@@ -1130,5 +1128,514 @@ _tabbing_apply_urgency_color() {
   if [ -n "$rgb" ]; then
     # shellcheck disable=SC2086
     _tabbing_send_tab_color $rgb
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Map color name to hex value for terminal background
+# Accepts: #RRGGBB hex strings, or named color keywords
+# ---------------------------------------------------------------------------
+_tabbing_color_to_hex() {
+  case "${1:-}" in
+    \#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F])
+      echo "$1" ;;
+
+    # Standard terminal colors
+    black)          echo "#000000" ;;
+    red)            echo "#CC3333" ;;
+    green)          echo "#33CC33" ;;
+    yellow)         echo "#CCCC33" ;;
+    blue)           echo "#3333CC" ;;
+    magenta)        echo "#CC33CC" ;;
+    cyan)           echo "#33CCCC" ;;
+    white)          echo "#FFFFFF" ;;
+    bright-black)   echo "#666666" ;;
+    bright-red)     echo "#FF6666" ;;
+    bright-green)   echo "#66FF66" ;;
+    bright-yellow)  echo "#FFFF66" ;;
+    bright-blue)    echo "#6666FF" ;;
+    bright-magenta) echo "#FF66FF" ;;
+    bright-cyan)    echo "#66FFFF" ;;
+    bright-white)   echo "#FFFFFF" ;;
+
+    # Dark theme backgrounds
+    dark)           echo "#1E1E1E" ;;
+    midnight)       echo "#0D1117" ;;
+    charcoal)       echo "#2B2B2B" ;;
+    slate)          echo "#2E3440" ;;
+    graphite)       echo "#3B3B3B" ;;
+    obsidian)       echo "#1A1A2E" ;;
+    onyx)           echo "#0F0F0F" ;;
+
+    # Popular editor/terminal themes
+    nord)           echo "#2E3440" ;;
+    dracula)        echo "#282A36" ;;
+    monokai)        echo "#272822" ;;
+    solarized-dark) echo "#002B36" ;;
+    solarized-light) echo "#FDF6E3" ;;
+    gruvbox)        echo "#282828" ;;
+    gruvbox-light)  echo "#FBF1C7" ;;
+    tokyo-night)    echo "#1A1B26" ;;
+    catppuccin)     echo "#1E1E2E" ;;
+    one-dark)       echo "#282C34" ;;
+    rose-pine)      echo "#191724" ;;
+    kanagawa)       echo "#1F1F28" ;;
+
+    # Semantic / mood colors
+    ocean)          echo "#0A1628" ;;
+    forest)         echo "#0B2B1A" ;;
+    sunset)         echo "#2C1810" ;;
+    wine)           echo "#2C0B0E" ;;
+    plum)           echo "#2D1B30" ;;
+    storm)          echo "#1B2838" ;;
+    ember)          echo "#3B1518" ;;
+    moss)           echo "#1A2E1A" ;;
+    sand)           echo "#3B3426" ;;
+    ice)            echo "#1A2B3C" ;;
+
+    # Production/environment indicators
+    danger)         echo "#3B0F0F" ;;
+    warning)        echo "#3B2E0F" ;;
+    safe)           echo "#0F3B1A" ;;
+    info)           echo "#0F1E3B" ;;
+
+    # Common web colors (dark-friendly tints)
+    navy)           echo "#001F3F" ;;
+    olive)          echo "#3D3D00" ;;
+    teal)           echo "#003B3B" ;;
+    maroon)         echo "#3B0000" ;;
+    purple)         echo "#2D0A3B" ;;
+    orange)         echo "#3B2200" ;;
+    brown)          echo "#2B1A0A" ;;
+    pink)           echo "#3B0A2D" ;;
+    gray|grey)      echo "#333333" ;;
+    silver)         echo "#C0C0C0" ;;
+
+    *)
+      echo "tabbing: unknown bg color '$1'" >&2
+      echo "tabbing: use #RRGGBB hex or: black red green blue cyan magenta yellow white" >&2
+      echo "tabbing: themes: nord dracula monokai solarized-dark gruvbox tokyo-night catppuccin" >&2
+      echo "tabbing: moods: ocean forest sunset wine storm ember midnight dark charcoal" >&2
+      return 1
+      ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# Set terminal background color via OSC 11
+# Args: hex color string (#RRGGBB)
+# Supported: Ghostty, iTerm2, Kitty, WezTerm, xterm, most modern terminals
+# ---------------------------------------------------------------------------
+_tabbing_send_bg_color() {
+  local color="$1"
+  printf '\033]11;%s\007' "$color" >/dev/tty 2>/dev/null || \
+    printf '\033]11;%s\007' "$color"
+}
+
+# ---------------------------------------------------------------------------
+# Reset terminal background color to default via OSC 111
+# ---------------------------------------------------------------------------
+_tabbing_clear_bg_color() {
+  printf '\033]111\007' >/dev/tty 2>/dev/null || \
+    printf '\033]111\007'
+}
+
+# ---------------------------------------------------------------------------
+# Apply TAB_BG if set — converts name to hex and sends OSC 11
+# ---------------------------------------------------------------------------
+_tabbing_apply_bg_color() {
+  if [ -n "${TAB_BG:-}" ]; then
+    local hex
+    hex="$(_tabbing_color_to_hex "$TAB_BG")" || return 0
+    _tabbing_send_bg_color "$hex"
+  fi
+}
+
+# ===========================================================================
+# Theme system — full terminal recoloring via OSC sequences
+#
+# Themes set: background (OSC 11), foreground (OSC 10), cursor (OSC 12),
+# and the 16-color palette (OSC 4;0..15). Works on Ghostty, Kitty, iTerm2,
+# WezTerm, xterm, and any terminal supporting these standard OSCs.
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Low-level: emit OSC sequences for a full theme
+# Args: bg fg cursor c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15
+# All values are #RRGGBB hex strings
+# ---------------------------------------------------------------------------
+_tabbing_send_theme() {
+  local bg="$1" fg="$2" cursor="$3"
+  shift 3
+
+  # Palette colors 0-15
+  local i=0
+  while [ $i -lt 16 ] && [ $# -gt 0 ]; do
+    printf '\033]4;%d;%s\007' "$i" "$1" >/dev/tty 2>/dev/null || \
+      printf '\033]4;%d;%s\007' "$i" "$1"
+    i=$((i + 1))
+    shift
+  done
+
+  # Background, foreground, cursor
+  printf '\033]11;%s\007' "$bg" >/dev/tty 2>/dev/null || \
+    printf '\033]11;%s\007' "$bg"
+  printf '\033]10;%s\007' "$fg" >/dev/tty 2>/dev/null || \
+    printf '\033]10;%s\007' "$fg"
+  printf '\033]12;%s\007' "$cursor" >/dev/tty 2>/dev/null || \
+    printf '\033]12;%s\007' "$cursor"
+}
+
+# ---------------------------------------------------------------------------
+# Reset terminal to default colors (undo theme)
+# OSC 104 = reset palette, 110 = reset fg, 111 = reset bg, 112 = reset cursor
+# ---------------------------------------------------------------------------
+_tabbing_clear_theme() {
+  {
+    printf '\033]104\007'
+    printf '\033]110\007'
+    printf '\033]111\007'
+    printf '\033]112\007'
+  } >/dev/tty 2>/dev/null || {
+    printf '\033]104\007'
+    printf '\033]110\007'
+    printf '\033]111\007'
+    printf '\033]112\007'
+  }
+}
+
+# ---------------------------------------------------------------------------
+# User theme directory: ~/.config/tabbing-on/themes/
+# Respects XDG_CONFIG_HOME if set.
+# ---------------------------------------------------------------------------
+_tabbing_theme_dir() {
+  echo "${XDG_CONFIG_HOME:-$HOME/.config}/tabbing-on/themes"
+}
+
+# ---------------------------------------------------------------------------
+# Load and apply a user-defined .theme file
+# File format (key=value, one per line, # comments):
+#
+#   bg=#1E1E2E
+#   fg=#CDD6F4
+#   cursor=#F5E0DC
+#   color0=#45475A
+#   color1=#F38BA8
+#   ...
+#   color15=#A6ADC8
+#
+# Returns 0 on success, 1 if file not found or invalid
+# ---------------------------------------------------------------------------
+_tabbing_load_user_theme() {
+  local name="$1"
+  local theme_dir
+  theme_dir="$(_tabbing_theme_dir)"
+  local file="${theme_dir}/${name}.theme"
+
+  [ -f "$file" ] || return 1
+
+  # Parse key=value pairs into variables
+  local bg="" fg="" cursor=""
+  local c0="" c1="" c2="" c3="" c4="" c5="" c6="" c7=""
+  local c8="" c9="" c10="" c11="" c12="" c13="" c14="" c15=""
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    # Skip comments and blank lines
+    case "$line" in
+      \#*|"") continue ;;
+    esac
+
+    # Strip inline comments and leading/trailing whitespace
+    line="${line%%#*}"
+    # Extract key and value
+    local key="${line%%=*}"
+    local val="${line#*=}"
+
+    # Trim whitespace from key and val
+    key="$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    val="$(echo "$val" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^["'"'"']//;s/["'"'"']$//')"
+
+    case "$key" in
+      bg|background)  bg="$val" ;;
+      fg|foreground)  fg="$val" ;;
+      cursor)         cursor="$val" ;;
+      color0)  c0="$val"  ;; color1)  c1="$val"  ;;
+      color2)  c2="$val"  ;; color3)  c3="$val"  ;;
+      color4)  c4="$val"  ;; color5)  c5="$val"  ;;
+      color6)  c6="$val"  ;; color7)  c7="$val"  ;;
+      color8)  c8="$val"  ;; color9)  c9="$val"  ;;
+      color10) c10="$val" ;; color11) c11="$val" ;;
+      color12) c12="$val" ;; color13) c13="$val" ;;
+      color14) c14="$val" ;; color15) c15="$val" ;;
+    esac
+  done < "$file"
+
+  # bg and fg are required
+  if [ -z "$bg" ] || [ -z "$fg" ]; then
+    echo "tabbing: theme '$name' missing required bg/fg" >&2
+    return 1
+  fi
+
+  # Default cursor to fg if not set
+  [ -z "$cursor" ] && cursor="$fg"
+
+  # Default unset palette entries to fg (visible) or bg (background)
+  [ -z "$c0" ]  && c0="$bg"   # usually dark
+  [ -z "$c1" ]  && c1="$fg"
+  [ -z "$c2" ]  && c2="$fg"
+  [ -z "$c3" ]  && c3="$fg"
+  [ -z "$c4" ]  && c4="$fg"
+  [ -z "$c5" ]  && c5="$fg"
+  [ -z "$c6" ]  && c6="$fg"
+  [ -z "$c7" ]  && c7="$fg"
+  [ -z "$c8" ]  && c8="$bg"   # usually dark (bright-black)
+  [ -z "$c9" ]  && c9="$fg"
+  [ -z "$c10" ] && c10="$fg"
+  [ -z "$c11" ] && c11="$fg"
+  [ -z "$c12" ] && c12="$fg"
+  [ -z "$c13" ] && c13="$fg"
+  [ -z "$c14" ] && c14="$fg"
+  [ -z "$c15" ] && c15="$fg"
+
+  _tabbing_send_theme "$bg" "$fg" "$cursor" \
+    "$c0" "$c1" "$c2" "$c3" "$c4" "$c5" "$c6" "$c7" \
+    "$c8" "$c9" "$c10" "$c11" "$c12" "$c13" "$c14" "$c15"
+}
+
+# ---------------------------------------------------------------------------
+# Theme data: name → _tabbing_send_theme args
+# Checks user themes first (~/.config/tabbing-on/themes/NAME.theme),
+# then falls back to built-in themes.
+# Format: bg fg cursor palette[0..15]
+# Returns 0 on success, 1 if theme not found
+# ---------------------------------------------------------------------------
+_tabbing_apply_named_theme() {
+  # Try user theme first
+  _tabbing_load_user_theme "$1" 2>/dev/null && return 0
+
+  case "${1:-}" in
+
+    catppuccin|catppuccin-mocha)
+      _tabbing_send_theme \
+        "#1E1E2E" "#CDD6F4" "#F5E0DC" \
+        "#45475A" "#F38BA8" "#A6E3A1" "#F9E2AF" \
+        "#89B4FA" "#F5C2E7" "#94E2D5" "#BAC2DE" \
+        "#585B70" "#F38BA8" "#A6E3A1" "#F9E2AF" \
+        "#89B4FA" "#F5C2E7" "#94E2D5" "#A6ADC8"
+      ;;
+
+    catppuccin-latte)
+      _tabbing_send_theme \
+        "#EFF1F5" "#4C4F69" "#DC8A78" \
+        "#BCC0CC" "#D20F39" "#40A02B" "#DF8E1D" \
+        "#1E66F5" "#EA76CB" "#179299" "#5C5F77" \
+        "#ACB0BE" "#D20F39" "#40A02B" "#DF8E1D" \
+        "#1E66F5" "#EA76CB" "#179299" "#6C6F85"
+      ;;
+
+    dracula)
+      _tabbing_send_theme \
+        "#282A36" "#F8F8F2" "#F8F8F2" \
+        "#21222C" "#FF5555" "#50FA7B" "#F1FA8C" \
+        "#BD93F9" "#FF79C6" "#8BE9FD" "#F8F8F2" \
+        "#6272A4" "#FF6E6E" "#69FF94" "#FFFFA5" \
+        "#D6ACFF" "#FF92DF" "#A4FFFF" "#FFFFFF"
+      ;;
+
+    nord)
+      _tabbing_send_theme \
+        "#2E3440" "#D8DEE9" "#D8DEE9" \
+        "#3B4252" "#BF616A" "#A3BE8C" "#EBCB8B" \
+        "#81A1C1" "#B48EAD" "#88C0D0" "#E5E9F0" \
+        "#4C566A" "#BF616A" "#A3BE8C" "#EBCB8B" \
+        "#81A1C1" "#B48EAD" "#8FBCBB" "#ECEFF4"
+      ;;
+
+    tokyo-night)
+      _tabbing_send_theme \
+        "#1A1B26" "#C0CAF5" "#C0CAF5" \
+        "#15161E" "#F7768E" "#9ECE6A" "#E0AF68" \
+        "#7AA2F7" "#BB9AF7" "#7DCFFF" "#A9B1D6" \
+        "#414868" "#F7768E" "#9ECE6A" "#E0AF68" \
+        "#7AA2F7" "#BB9AF7" "#7DCFFF" "#C0CAF5"
+      ;;
+
+    gruvbox|gruvbox-dark)
+      _tabbing_send_theme \
+        "#282828" "#EBDBB2" "#EBDBB2" \
+        "#282828" "#CC241D" "#98971A" "#D79921" \
+        "#458588" "#B16286" "#689D6A" "#A89984" \
+        "#928374" "#FB4934" "#B8BB26" "#FABD2F" \
+        "#83A598" "#D3869B" "#8EC07C" "#EBDBB2"
+      ;;
+
+    gruvbox-light)
+      _tabbing_send_theme \
+        "#FBF1C7" "#3C3836" "#3C3836" \
+        "#FBF1C7" "#CC241D" "#98971A" "#D79921" \
+        "#458588" "#B16286" "#689D6A" "#7C6F64" \
+        "#928374" "#9D0006" "#79740E" "#B57614" \
+        "#076678" "#8F3F71" "#427B58" "#3C3836"
+      ;;
+
+    solarized-dark)
+      _tabbing_send_theme \
+        "#002B36" "#839496" "#839496" \
+        "#073642" "#DC322F" "#859900" "#B58900" \
+        "#268BD2" "#D33682" "#2AA198" "#EEE8D5" \
+        "#002B36" "#CB4B16" "#586E75" "#657B83" \
+        "#839496" "#6C71C4" "#93A1A1" "#FDF6E3"
+      ;;
+
+    solarized-light)
+      _tabbing_send_theme \
+        "#FDF6E3" "#657B83" "#657B83" \
+        "#EEE8D5" "#DC322F" "#859900" "#B58900" \
+        "#268BD2" "#D33682" "#2AA198" "#073642" \
+        "#FDF6E3" "#CB4B16" "#93A1A1" "#839496" \
+        "#657B83" "#6C71C4" "#586E75" "#002B36"
+      ;;
+
+    monokai)
+      _tabbing_send_theme \
+        "#272822" "#F8F8F2" "#F8F8F0" \
+        "#272822" "#F92672" "#A6E22E" "#F4BF75" \
+        "#66D9EF" "#AE81FF" "#A1EFE4" "#F8F8F2" \
+        "#75715E" "#F92672" "#A6E22E" "#F4BF75" \
+        "#66D9EF" "#AE81FF" "#A1EFE4" "#F9F8F5"
+      ;;
+
+    one-dark)
+      _tabbing_send_theme \
+        "#282C34" "#ABB2BF" "#528BFF" \
+        "#282C34" "#E06C75" "#98C379" "#E5C07B" \
+        "#61AFEF" "#C678DD" "#56B6C2" "#ABB2BF" \
+        "#545862" "#E06C75" "#98C379" "#E5C07B" \
+        "#61AFEF" "#C678DD" "#56B6C2" "#C8CCD4"
+      ;;
+
+    rose-pine)
+      _tabbing_send_theme \
+        "#191724" "#E0DEF4" "#524F67" \
+        "#26233A" "#EB6F92" "#31748F" "#F6C177" \
+        "#9CCFD8" "#C4A7E7" "#EBBCBA" "#E0DEF4" \
+        "#6E6A86" "#EB6F92" "#31748F" "#F6C177" \
+        "#9CCFD8" "#C4A7E7" "#EBBCBA" "#E0DEF4"
+      ;;
+
+    rose-pine-moon)
+      _tabbing_send_theme \
+        "#232136" "#E0DEF4" "#59546D" \
+        "#2A273F" "#EB6F92" "#3E8FB0" "#F6C177" \
+        "#9CCFD8" "#C4A7E7" "#EA9A97" "#E0DEF4" \
+        "#6E6A86" "#EB6F92" "#3E8FB0" "#F6C177" \
+        "#9CCFD8" "#C4A7E7" "#EA9A97" "#E0DEF4"
+      ;;
+
+    kanagawa)
+      _tabbing_send_theme \
+        "#1F1F28" "#DCD7BA" "#C8C093" \
+        "#16161D" "#C34043" "#76946A" "#C0A36E" \
+        "#7E9CD8" "#957FB8" "#6A9589" "#C8C093" \
+        "#727169" "#E82424" "#98BB6C" "#E6C384" \
+        "#7FB4CA" "#938AA9" "#7AA89F" "#DCD7BA"
+      ;;
+
+    # --- Semantic / environment themes ---
+
+    danger|production)
+      _tabbing_send_theme \
+        "#2C0B0E" "#FFCCCC" "#FF6666" \
+        "#1A0608" "#FF4444" "#CC6666" "#FFAA66" \
+        "#CC8888" "#FF6688" "#CC9999" "#FFCCCC" \
+        "#663333" "#FF6666" "#DD8888" "#FFBB88" \
+        "#DDAAAA" "#FF88AA" "#DDBBBB" "#FFE0E0"
+      ;;
+
+    safe|development)
+      _tabbing_send_theme \
+        "#0B2B1A" "#CCFFCC" "#66FF66" \
+        "#061A0F" "#66CC66" "#44FF44" "#AAFF66" \
+        "#66CCAA" "#88CC66" "#44DDAA" "#CCFFCC" \
+        "#336633" "#88DD88" "#66FF66" "#CCFF88" \
+        "#88DDCC" "#AADD88" "#66FFCC" "#E0FFE0"
+      ;;
+
+    ocean)
+      _tabbing_send_theme \
+        "#0A1628" "#B0C4DE" "#87CEEB" \
+        "#051020" "#CD5C5C" "#66CDAA" "#F0E68C" \
+        "#6495ED" "#9370DB" "#48D1CC" "#B0C4DE" \
+        "#2F4F6F" "#E07070" "#7CE0BE" "#F5EEA0" \
+        "#7CAAF0" "#A888E0" "#5CE0D8" "#D0E0F0"
+      ;;
+
+    forest)
+      _tabbing_send_theme \
+        "#0B2B1A" "#A8C8A8" "#8FBC8F" \
+        "#061A0F" "#CD6060" "#6B8E23" "#BDB76B" \
+        "#5F9EA0" "#8B7B8B" "#66CDAA" "#A8C8A8" \
+        "#2E5E3E" "#D87070" "#7BA833" "#CDC87B" \
+        "#6FB8B0" "#9B8B9B" "#76DDBA" "#C0E0C0"
+      ;;
+
+    sunset)
+      _tabbing_send_theme \
+        "#2C1810" "#F0D0B0" "#E8A060" \
+        "#1A0E0A" "#E06040" "#B8A040" "#F0C060" \
+        "#C08060" "#D06080" "#C0A080" "#F0D0B0" \
+        "#604030" "#F07050" "#C8B050" "#F0D070" \
+        "#D09070" "#E07090" "#D0B090" "#F8E0C8"
+      ;;
+
+    *)
+      return 1
+      ;;
+  esac
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# List available theme names
+# ---------------------------------------------------------------------------
+_tabbing_theme_list() {
+  printf 'Available themes:\n'
+  printf '\n  Editor/Terminal:\n'
+  printf '    catppuccin (catppuccin-mocha)  catppuccin-latte\n'
+  printf '    dracula        nord             tokyo-night\n'
+  printf '    gruvbox         gruvbox-light    monokai\n'
+  printf '    one-dark        solarized-dark   solarized-light\n'
+  printf '    rose-pine       rose-pine-moon   kanagawa\n'
+  printf '\n  Semantic:\n'
+  printf '    danger (production)  safe (development)\n'
+  printf '    ocean    forest      sunset\n'
+
+  # List user themes if any exist
+  local theme_dir
+  theme_dir="$(_tabbing_theme_dir)"
+  if [ -d "$theme_dir" ]; then
+    local found=0
+    for f in "$theme_dir"/*.theme; do
+      [ -f "$f" ] || continue
+      if [ $found -eq 0 ]; then
+        printf '\n  User (~/.config/tabbing-on/themes/):\n'
+        found=1
+      fi
+      local name
+      name="$(basename "$f" .theme)"
+      printf '    %s\n' "$name"
+    done
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Apply TAB_THEME if set
+# ---------------------------------------------------------------------------
+_tabbing_apply_theme() {
+  if [ -n "${TAB_THEME:-}" ]; then
+    _tabbing_apply_named_theme "$TAB_THEME" || {
+      echo "tabbing: unknown theme '$TAB_THEME'" >&2
+      return 1
+    }
   fi
 }

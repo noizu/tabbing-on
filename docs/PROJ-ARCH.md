@@ -11,12 +11,14 @@ graph TB
     subgraph "User Commands"
         TO[tabbing-on]
         TS[tabbing-status]
+        TM[tabbing-marquee]
         TT[tabbing-todo]
         TR[tabbing-report]
         TH[tabbing-history]
         TC[tabbing-clear]
         TI[tabbing-info]
         TRC[tabbing-recordings]
+        TD[tabbing-doctor]
     end
 
     subgraph "Shell Adapters"
@@ -25,10 +27,12 @@ graph TB
     end
 
     subgraph "POSIX Libraries"
+        REND[lib/render.sh]
         CORE[lib/core.sh]
         TERM[lib/terminal.sh]
         HIST[lib/history.sh]
         REC[lib/recording.sh]
+        SESS[lib/session.sh]
         TODO[lib/todo.sh]
     end
 
@@ -39,11 +43,12 @@ graph TB
         ESC[Terminal Escape Sequences]
     end
 
-    TO & TS & TT & TR & TH & TC & TI & TRC --> ZSH & BASH
-    ZSH & BASH --> CORE & TERM & HIST & REC & TODO
-    CORE --> ENV
+    TO & TS & TM & TT & TR & TH & TC & TI & TRC & TD --> ZSH & BASH
+    ZSH & BASH --> REND & CORE & TERM & HIST & REC & SESS & TODO
+    REND & CORE --> ENV
     TERM --> ESC
     HIST & TODO --> YAML
+    SESS --> YAML
     REC --> ASC
 ```
 
@@ -51,10 +56,12 @@ graph TB
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| Core | `lib/core.sh` | Color/emoji mapping, urgency levels, tab state rendering |
+| Render | `lib/render.sh` | Minimal render pipeline for prompt hook: title display, color/emoji validation |
+| Core | `lib/core.sh` | Color/emoji mapping, urgency levels, help, YAML escape |
 | Terminal | `lib/terminal.sh` | Terminal emulator detection, escape sequence abstraction |
 | History | `lib/history.sh` | Tab ID generation, YAML event logging, search, reporting |
 | Recording | `lib/recording.sh` | asciinema recording lifecycle management |
+| Session | `lib/session.sh` | Per-session state persistence via `TAB_SESSION`-keyed env files |
 | Todo | `lib/todo.sh` | Per-tab todo CRUD with provider pattern |
 | Zsh Adapter | `shell/tabbing.zsh` | Zsh functions, 1-based arrays, precmd hook |
 | Bash Adapter | `shell/tabbing.bash` | Bash functions, 0-based arrays, PROMPT_COMMAND hook |
@@ -66,7 +73,7 @@ The codebase has three layers, each with a clear responsibility:
 
 1. **POSIX Libraries** (`lib/*.sh`) -- Pure POSIX sh. No bash/zsh-isms. Prefixed `_tabbing_*`. Provide all data logic, terminal I/O, and persistence. Can be sourced by any POSIX-compatible shell.
 
-2. **Shell Adapters** (`shell/tabbing.{bash,zsh}`) -- Source all five libraries, then define user-facing functions (`tabbing-on`, `tabbing-status`, etc.) using shell-specific features: array indexing (0-based vs 1-based), `[[ ]]` conditionals, prompt hooks (`PROMPT_COMMAND` vs `precmd`).
+2. **Shell Adapters** (`shell/tabbing.{bash,zsh}`) -- Source render.sh at init (lightweight), then define user-facing functions (`tabbing-on`, `tabbing-status`, etc.) using shell-specific features: array indexing (0-based vs 1-based), `[[ ]]` conditionals, prompt hooks (`PROMPT_COMMAND` vs `precmd`).
 
 3. **Bootstrap** (`bin/tabbing-init`) -- POSIX `/bin/sh` script that resolves `TABBING_ROOT` and outputs the correct `source` line for the user's shell.
 
@@ -80,6 +87,7 @@ The codebase has three layers, each with a clear responsibility:
 | `TAB_ID` | Session | Auto-generated on first use |
 | `TAB_TERMINAL` | Session | Auto-detected at init |
 | `TAB_RECORDING` | Session | Recording lifecycle |
+| `TAB_SESSION` | Session | Session fingerprint for state file scoping |
 
 **Persistent state** uses YAML files under `$XDG_STATE_HOME/tabbing/` (default `~/.local/state/tabbing/`):
 
@@ -87,7 +95,8 @@ The codebase has three layers, each with a clear responsibility:
 ~/.local/state/tabbing/
 ├── history/{TAB_ID}.yaml       # Timestamped event log
 ├── todos/{TAB_ID}.yaml         # Todo items with status
-└── recordings/{TAB_ID}/*.cast  # asciinema recordings
+├── recordings/{TAB_ID}/*.cast  # asciinema recordings
+└── sessions/{TAB_SESSION}.env  # Persisted env state for CLI wrappers
 ```
 
 Each tab gets its own files keyed by `TAB_ID` (8-char hex from `/dev/urandom`).
