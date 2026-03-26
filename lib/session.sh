@@ -58,6 +58,9 @@ _tabbing_session_save() {
     printf "TAB_URGENCY='%s'\n"   "$(printf '%s' "${TAB_URGENCY:-}"   | sed "s/'/'\\\\''/g")"
     printf "TAB_EMOJI='%s'\n"     "$(printf '%s' "${TAB_EMOJI:-}"     | sed "s/'/'\\\\''/g")"
     printf "TAB_TERMINAL='%s'\n"  "$(printf '%s' "${TAB_TERMINAL:-}"  | sed "s/'/'\\\\''/g")"
+    printf "TABBING_PIPE='%s'\n" "$(printf '%s' "${TABBING_PIPE:-}" | sed "s/'/'\\\\''/g")"
+    printf "TABBING_CLAUDE_PID='%s'\n" "$(printf '%s' "${TABBING_CLAUDE_PID:-}" | sed "s/'/'\\\\''/g")"
+    printf "TABBING_RUN_WITH_PIPE='%s'\n" "$(printf '%s' "${TABBING_RUN_WITH_PIPE:-}" | sed "s/'/'\\\\''/g")"
   } > "$_file"
 }
 
@@ -70,5 +73,6 @@ _tabbing_session_load() {
   if [ -f "$_file" ]; then
     . "$_file"
     export TAB_ID TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_TERMINAL
+    export TABBING_PIPE TABBING_CLAUDE_PID TABBING_RUN_WITH_PIPE
   fi
 }

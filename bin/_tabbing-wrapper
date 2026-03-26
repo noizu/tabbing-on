@@ -17,6 +17,7 @@ source "$TABBING_ROOT/lib/history.sh"
 source "$TABBING_ROOT/lib/recording.sh"
 source "$TABBING_ROOT/lib/todo.sh"
 source "$TABBING_ROOT/lib/session.sh"
+source "$TABBING_ROOT/lib/claude.sh"
 
 # Sentinel: tells adapter functions that full libs are available
 _TABBING_FULL_LIBS=1

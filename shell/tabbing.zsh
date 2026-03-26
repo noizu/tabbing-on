@@ -87,6 +87,8 @@ tabbing-on() {
   local has_highlight=0 has_urgency=0 has_emoji=0
   local has_record=0 has_continue=0 has_stop_recording=0
   local no_emoji=0 has_marquee=0 no_marquee=0
+  local has_claude=0 has_run_with=0
+  local claude_args=() run_with_args=()
   local positional=()
 
   # Parse args — flags can appear anywhere
@@ -138,6 +140,9 @@ tabbing-on() {
         else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --terminal-info; fi
         return ;;
 
+      --claude)  has_claude=1; shift; claude_args=("$@"); break ;;
+      --run-with) has_run_with=1; shift; run_with_args=("$@"); break ;;
+
       --record)         has_record=1; shift ;;
       --continue)       has_continue=1; shift ;;
       --stop-recording) has_stop_recording=1; shift ;;
@@ -174,12 +179,12 @@ tabbing-on() {
                     return ;;
                 esac ;;
             esac
-            echo "tabbing: unknown option: $1" >&2; return 1
+            _tabbing_out -v 0 -e 'tabbing: unknown option: %s\n' "$1"; return 1
           fi
         fi
         ;;
 
-      -*)  echo "tabbing: unknown option: $1" >&2; return 1 ;;
+      -*)  _tabbing_out -v 0 -e 'tabbing: unknown option: %s\n' "$1"; return 1 ;;
       *) positional+=("$1"); shift ;;
     esac
   done
@@ -230,7 +235,7 @@ tabbing-on() {
 
   if [[ $has_urgency -eq 1 ]]; then
     if [[ ! "$opt_urgency" =~ ^[0-5]$ ]]; then
-      echo "tabbing: urgency must be 0-5 (0=critical, 5=nominal)" >&2
+      _tabbing_out -v 0 -e 'tabbing: urgency must be 0-5 (0=critical, 5=nominal)\n'
       return 1
     fi
     export TAB_URGENCY="$opt_urgency"
@@ -296,6 +301,18 @@ tabbing-on() {
     _tabbing_handle_recording "$has_record" "$has_continue" "$has_stop_recording"
     _tabbing_session_save
   fi
+
+  # Handle --claude: start pipe bridge to Claude Code status line
+  if [[ $has_claude -eq 1 ]]; then
+    . "$_tabbing_root/lib/claude.sh"
+    _tabbing_claude_start_bridge "${claude_args[@]}"
+  fi
+
+  # Handle --run-with: start pipe bridge with a custom consumer command
+  if [[ $has_run_with -eq 1 ]]; then
+    . "$_tabbing_root/lib/claude.sh"
+    _tabbing_run_with_start "${run_with_args[@]}"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -337,23 +354,23 @@ tabbing-status() {
         elif _tabbing_is_known_emoji "$maybe"; then
           opt_emoji="$maybe"; has_emoji=1; shift
         else
-          echo "tabbing: unknown option: $1" >&2; return 1
+          _tabbing_out -v 0 -e 'tabbing: unknown option: %s\n' "$1"; return 1
         fi
         ;;
 
-      -*)  echo "tabbing: unknown option: $1" >&2; return 1 ;;
+      -*)  _tabbing_out -v 0 -e 'tabbing: unknown option: %s\n' "$1"; return 1 ;;
       *)           positional+=("$1"); shift ;;
     esac
   done
 
   if [[ -z "$TAB_TITLE" ]]; then
-    echo "tabbing-status: no TAB_TITLE set — call tabbing-on first" >&2
+    _tabbing_out -v 0 -e 'tabbing-status: no TAB_TITLE set — call tabbing-on first\n'
     return 1
   fi
 
   if [[ $has_urgency -eq 1 ]]; then
     if [[ ! "$opt_urgency" =~ ^[0-5]$ ]]; then
-      echo "tabbing: urgency must be 0-5 (0=critical, 5=nominal)" >&2
+      _tabbing_out -v 0 -e 'tabbing: urgency must be 0-5 (0=critical, 5=nominal)\n'
       return 1
     fi
     export TAB_URGENCY="$opt_urgency"
@@ -427,7 +444,7 @@ tabbing-todo() {
 
   if [[ $has_switch -eq 1 ]]; then
     if [[ -z "$TAB_TITLE" ]]; then
-      echo "tabbing-todo: no TAB_TITLE set — call tabbing-on first" >&2
+      _tabbing_out -v 0 -e 'tabbing-todo: no TAB_TITLE set — call tabbing-on first\n'
       return 1
     fi
 
@@ -435,7 +452,7 @@ tabbing-todo() {
     local pending
     pending="$("$_root/bin/tabbing-todo" --list-pending)"
     if [[ -z "$pending" ]]; then
-      echo "tabbing: no pending todos to switch to" >&2
+      _tabbing_out -v 0 -e 'tabbing: no pending todos to switch to\n'
       return 1
     fi
 
@@ -460,7 +477,7 @@ tabbing-todo() {
     done
 
     if [[ $valid -eq 0 ]]; then
-      echo "tabbing: invalid choice" >&2
+      _tabbing_out -v 0 -e 'tabbing: invalid choice\n'
       return 1
     fi
 
@@ -524,13 +541,20 @@ tabbing-doctor() {
 # Preserves TAB_TERMINAL and TAB_SESSION for re-activation.
 # ---------------------------------------------------------------------------
 tabbing-off() {
+  # Tear down bridges if active
+  if [ -n "${TABBING_PIPE:-}" ] || [ -n "${TABBING_RUN_WITH_PIPE:-}" ]; then
+    . "${_tabbing_root}/lib/claude.sh" 2>/dev/null
+    [ -n "${TABBING_PIPE:-}" ] && _tabbing_claude_stop_bridge
+    [ -n "${TABBING_RUN_WITH_PIPE:-}" ] && _tabbing_run_with_stop
+  fi
+
   _tabbing_clear_title
   . "${_tabbing_root}/lib/terminal.sh"
   _tabbing_clear_tab_color
   _tabbing_clear_badge
   unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_ID TAB_RECORDING
   unset _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE
-  printf 'tabbing: off\n'
+  _tabbing_out 'tabbing: off\n'
 }
 
 # ---------------------------------------------------------------------------
