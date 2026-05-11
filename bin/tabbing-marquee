@@ -16,6 +16,15 @@
 
 set -e
 
+# Output helper — use stdout when inside Claude Code, /dev/tty otherwise
+_tabbing_tty_printf() {
+  if [[ "${CLAUDECODE}" == "1" ]; then
+    printf "$@"
+  else
+    printf "$@" >/dev/tty 2>/dev/null || printf "$@"
+  fi
+}
+
 # Defaults
 _WIDTH=20
 _DELAY=0.2
@@ -89,7 +98,7 @@ _len=${#_padded}
 # Run the marquee loop in a background subprocess
 (
   _offset=0
-  trap 'printf "\033]0;\007" >/dev/tty 2>/dev/null; rm -f "'"$_pidfile"'"; exit 0' INT TERM
+  trap '_tabbing_tty_printf "\033]0;\007"; rm -f "'"$_pidfile"'"; exit 0' INT TERM
 
   while true; do
     # Build the visible window by wrapping around
@@ -103,7 +112,7 @@ _len=${#_padded}
       _i=$((_i + 1))
     done
 
-    printf '\033]0;%s\007' "$_visible" >/dev/tty 2>/dev/null
+    _tabbing_tty_printf '\033]0;%s\007' "$_visible"
 
     _offset=$(( (_offset + 1) % _len ))
     sleep "$_DELAY"

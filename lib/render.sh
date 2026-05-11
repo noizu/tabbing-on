@@ -10,6 +10,72 @@
 # remain in core.sh/terminal.sh and are only loaded by bin/ scripts.
 
 # ---------------------------------------------------------------------------
+# State directory — lightweight copy for render.sh standalone use.
+# If history.sh is loaded later its definition takes precedence (same body).
+# ---------------------------------------------------------------------------
+if ! command -v _tabbing_state_dir >/dev/null 2>&1; then
+  _tabbing_state_dir() {
+    printf '%s/tabbing' "${XDG_STATE_HOME:-$HOME/.local/state}"
+  }
+fi
+
+# ---------------------------------------------------------------------------
+# Output abstraction — must be defined before anything else
+# ---------------------------------------------------------------------------
+
+# _tabbing_tty_printf — Send escape sequences to the terminal.
+#
+# Normally writes to /dev/tty so sequences don't interfere with shell
+# integration hooks (Ghostty, Kitty) that also emit escapes during prompt
+# rendering.  When $CLAUDECODE is set (running inside Claude Code) /dev/tty
+# may not be available or may point somewhere unhelpful, so we fall back
+# to plain stdout.
+#
+# Usage: _tabbing_tty_printf FORMAT [ARGS...]
+_tabbing_tty_printf() {
+  if [[ "${CLAUDECODE}" == "1" ]]; then
+    printf "$@"
+  else
+    printf "$@" >/dev/tty 2>/dev/null || printf "$@"
+  fi
+}
+
+# _tabbing_out — User-facing output with verbosity control.
+#
+# Flags (must come before format string):
+#   -v LEVEL   Required verbosity level (0=error, 1=normal, 2=verbose)
+#              Default: 1.  Compared against TAB_VERBOSITY (default 1).
+#   -e         Write to stderr instead of stdout.
+#
+# Usage: _tabbing_out [-v LEVEL] [-e] FORMAT [ARGS...]
+#
+# Examples:
+#   _tabbing_out 'hello %s\n' "$name"
+#   _tabbing_out -e 'error: %s\n' "$msg"
+#   _tabbing_out -v 2 'debug: %s\n' "$detail"
+#   _tabbing_out -v 0 -e 'fatal: %s\n' "$err"
+_tabbing_out() {
+  _to_level=1
+  _to_stderr=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -v) _to_level="$2"; shift 2 ;;
+      -e) _to_stderr=1; shift ;;
+      *)  break ;;
+    esac
+  done
+
+  # Suppress if message verbosity exceeds configured level
+  [ "$_to_level" -gt "${TAB_VERBOSITY:-1}" ] && return 0
+
+  if [ "$_to_stderr" -eq 1 ]; then
+    printf "$@" >&2
+  else
+    printf "$@"
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Color name → ANSI code mapping
 # ---------------------------------------------------------------------------
 _tabbing_color_code() {
@@ -39,11 +105,11 @@ _tabbing_color_code() {
     strikethrough)  echo "9" ;;
     [0-9]*)         echo "$1" ;;
     *)
-      echo "tabbing: unknown color/effect '$1'" >&2
-      echo "tabbing: available: black red green yellow blue magenta cyan white" >&2
-      echo "tabbing:   bright-{black,red,green,yellow,blue,magenta,cyan,white}" >&2
-      echo "tabbing:   bold dim italic underline blink inverse strikethrough" >&2
-      echo "tabbing:   or raw ANSI codes (e.g. 31, 91)" >&2
+      _tabbing_out -v 0 -e 'tabbing: unknown color/effect '\''%s'\''\n' "$1"
+      _tabbing_out -v 0 -e 'tabbing: available: black red green yellow blue magenta cyan white\n'
+      _tabbing_out -v 0 -e 'tabbing:   bright-{black,red,green,yellow,blue,magenta,cyan,white}\n'
+      _tabbing_out -v 0 -e 'tabbing:   bold dim italic underline blink inverse strikethrough\n'
+      _tabbing_out -v 0 -e 'tabbing:   or raw ANSI codes (e.g. 31, 91)\n'
       return 1
       ;;
   esac
@@ -575,9 +641,9 @@ _tabbing_emoji_lookup() {
     yin-yang|balance|harmony)              printf '\xE2\x98\xAF' ;;
 
     *)
-      printf "tabbing: unknown emoji '%s'\n" "$1" >&2
-      printf "tabbing: use 'tabbing-on --emoji-list' to see available emojis\n" >&2
-      printf "tabbing: use 'tabbing-on -emoji:search' to search emojis\n" >&2
+      _tabbing_out -v 0 -e "tabbing: unknown emoji '%s'\n" "$1"
+      _tabbing_out -v 0 -e "tabbing: use 'tabbing-on --emoji-list' to see available emojis\n"
+      _tabbing_out -v 0 -e "tabbing: use 'tabbing-on -emoji:search' to search emojis\n"
       return 1
       ;;
   esac
@@ -883,8 +949,30 @@ _tabbing_send_title() {
   # Prevent Claude Code from overwriting our title
   export CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1
 
-  printf '\033]0;%s\007' "$title" >/dev/tty 2>/dev/null || \
-    printf '\033]0;%s\007' "$title"
+  _tabbing_tty_printf '\033]0;%s\007' "$title"
+
+  # Push state to bridge pipe(s) if active
+  if [ -n "${TABBING_PIPE:-}" ] && [ -p "${TABBING_PIPE}" ]; then
+    _tabbing_claude_write_pipe
+  fi
+  if [ -n "${TABBING_RUN_WITH_PIPE:-}" ] && [ -p "${TABBING_RUN_WITH_PIPE}" ]; then
+    _tabbing_claude_write_pipe_to "${TABBING_RUN_WITH_PIPE}"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Write current TAB_* state to the Claude Code bridge pipe (non-blocking)
+# Defined here (not claude.sh) because render.sh is the minimal-footprint
+# lib sourced at shell init — avoids requiring claude.sh for every render.
+# ---------------------------------------------------------------------------
+_tabbing_claude_write_pipe() {
+  _tabbing_claude_write_pipe_to "${TABBING_PIPE}"
+}
+
+_tabbing_claude_write_pipe_to() {
+  printf 'title=%s\nstatus=%s\nemoji=%s\nurgency=%s\nhighlight=%s\n---\n' \
+    "${TAB_TITLE:-}" "${TAB_STATUS:-}" "${TAB_EMOJI:-}" \
+    "${TAB_URGENCY:-}" "${TAB_HIGHLIGHT:-}" > "$1" 2>/dev/null &
 }
 
 # ---------------------------------------------------------------------------
@@ -893,8 +981,7 @@ _tabbing_send_title() {
 # Uses OSC 2 (not OSC 0) to specifically target the title without icon name.
 # ---------------------------------------------------------------------------
 _tabbing_clear_title() {
-  printf '\033]2;\007' >/dev/tty 2>/dev/null || \
-    printf '\033]2;\007'
+  _tabbing_tty_printf '\033]2;\007'
 }
 
 # ---------------------------------------------------------------------------
@@ -956,7 +1043,7 @@ _tabbing_marquee_start() {
   # Spawn background marquee loop
   (
     _offset=0
-    trap 'printf "\033]0;\007" >/dev/tty 2>/dev/null; rm -f "'"$pidfile"'"; exit 0' INT TERM
+    trap '_tabbing_tty_printf "\033]0;\007"; rm -f "'"$pidfile"'"; exit 0' INT TERM
 
     while true; do
       # Build visible window by wrapping around the padded status
@@ -969,7 +1056,7 @@ _tabbing_marquee_start() {
         _i=$((_i + 1))
       done
 
-      printf '\033]0;%s%s\007' "$prefix" "$_visible" >/dev/tty 2>/dev/null
+      _tabbing_tty_printf '\033]0;%s%s\007' "$prefix" "$_visible"
 
       _offset=$(( (_offset + 1) % padded_len ))
       sleep "$delay"
@@ -1002,15 +1089,9 @@ _tabbing_send_tab_color() {
 
   case "${TAB_TERMINAL:-unknown}" in
     iterm2)
-      {
-        printf '\033]6;1;bg;red;brightness;%s\007' "$r"
-        printf '\033]6;1;bg;green;brightness;%s\007' "$g"
-        printf '\033]6;1;bg;blue;brightness;%s\007' "$b"
-      } >/dev/tty 2>/dev/null || {
-        printf '\033]6;1;bg;red;brightness;%s\007' "$r"
-        printf '\033]6;1;bg;green;brightness;%s\007' "$g"
-        printf '\033]6;1;bg;blue;brightness;%s\007' "$b"
-      }
+      _tabbing_tty_printf '\033]6;1;bg;red;brightness;%s\007' "$r"
+      _tabbing_tty_printf '\033]6;1;bg;green;brightness;%s\007' "$g"
+      _tabbing_tty_printf '\033]6;1;bg;blue;brightness;%s\007' "$b"
       ;;
     kitty)
       if command -v kitty >/dev/null 2>&1; then

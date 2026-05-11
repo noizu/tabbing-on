@@ -819,10 +819,14 @@ _tabbing_help() {
   printf '  --emoji NAME, -e NAME, -NAME           Set emoji indicator\n'
   printf '  --no-emoji                             Clear emoji\n'
   printf '  -emoji:FILTER                          Search emojis by name/alias\n'
+  printf '  -m, --marquee                          Enable scrolling marquee\n'
+  printf '  --no-marquee                           Disable marquee\n'
   printf '  --record                               Start asciinema recording\n'
   printf '  --continue                             Keep recording across status change\n'
   printf '  --stop-recording                       Stop recording\n'
   printf '  --terminal-info                        Show detected terminal\n'
+  printf '  --claude [ARGS...]                     Start Claude Code status line bridge\n'
+  printf '  --run-with CMD [ARGS...]               Pipe state to a custom command\n'
   printf '\n'
   printf 'Related commands:\n'
   printf '  tabbing-status [flags] "text"           Update status only\n'
@@ -841,6 +845,8 @@ _tabbing_help() {
   printf '  tabbing-status -fire "hotfix"\n'
   printf '  tabbing-todo "Write tests" -e test -m "Cover edge cases"\n'
   printf '  tabbing-on -emoji:fire     # search emojis matching "fire"\n'
+  printf '  tabbing-on "Proj" --claude              # bridge to Claude Code status line\n'
+  printf '  tabbing-on "Proj" --run-with my-tool    # pipe state to custom command\n'
   printf '\n'
 }
 

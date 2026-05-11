@@ -46,8 +46,7 @@ _tabbing_detect_terminal() {
 _tabbing_clear_tab_color() {
   case "${TAB_TERMINAL:-unknown}" in
     iterm2)
-      printf '\033]6;1;bg;*;default\007' >/dev/tty 2>/dev/null || \
-        printf '\033]6;1;bg;*;default\007'
+      _tabbing_tty_printf '\033]6;1;bg;*;default\007'
       ;;
     kitty)
       if command -v kitty >/dev/null 2>&1; then
@@ -71,8 +70,7 @@ _tabbing_send_badge() {
       local encoded
       if command -v base64 >/dev/null 2>&1; then
         encoded="$(printf '%s' "$badge" | base64)"
-        printf '\033]1337;SetBadgeFormat=%s\007' "$encoded" >/dev/tty 2>/dev/null || \
-          printf '\033]1337;SetBadgeFormat=%s\007' "$encoded"
+        _tabbing_tty_printf '\033]1337;SetBadgeFormat=%s\007' "$encoded"
       fi
       ;;
     *)
@@ -86,8 +84,7 @@ _tabbing_send_badge() {
 _tabbing_clear_badge() {
   case "${TAB_TERMINAL:-unknown}" in
     iterm2)
-      printf '\033]1337;SetBadgeFormat=\007' >/dev/tty 2>/dev/null || \
-        printf '\033]1337;SetBadgeFormat=\007'
+      _tabbing_tty_printf '\033]1337;SetBadgeFormat=\007'
       ;;
     *)
       ;;
