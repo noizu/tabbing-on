@@ -7,7 +7,7 @@ Supports Bash 4.0+ and Zsh 5.0+ with a shared POSIX library foundation.
 tabbing-on/
 ├── bin/                            # Entry points & CLI wrappers
 │   ├── tabbing-init                #   Shell bootstrapper — eval "$(tabbing-init bash|zsh)"
-│   ├── demo-runner                #   Typewriter-style interactive demo runner
+│   ├── demo-runner                 #   Typewriter-style interactive demo runner
 │   ├── _tabbing-wrapper            #   Shared setup: sources adapter + all libs, loads session
 │   ├── _tabbing-commit             #   Side-effects helper: history, display, session save
 │   ├── tabbing-on                  #   CLI: set/display tab title & status
@@ -19,15 +19,18 @@ tabbing-on/
 │   ├── tabbing-recordings          #   CLI: manage recordings
 │   ├── tabbing-info                #   CLI: full state dump
 │   ├── tabbing-clear               #   CLI: clear history/todos/recordings
+│   ├── tabbing-claude-statusline   #   CLI: Claude Code IDE statusline bridge
 │   └── tabbing-doctor              #   CLI: check/fix terminal config (Ghostty/Kitty title conflicts)
 ├── lib/                            # POSIX-compatible shared libraries
 │   ├── render.sh                   #   Render pipeline: emoji, color, display, title escape sequences
 │   ├── core.sh                     #   Supplementary: emoji list, color list, help, YAML escape
 │   ├── terminal.sh                 #   Terminal detection, badge, clear (non-render functions)
 │   ├── history.sh                  #   Tab ID generation, YAML history tracking
-│   ├── recording.sh               #   asciinema recording lifecycle
+│   ├── recording.sh                #   asciinema recording lifecycle
 │   ├── session.sh                  #   Per-session state persistence (TAB_SESSION-keyed files)
-│   └── todo.sh                     #   Per-tab todo management (provider pattern)
+│   ├── todo.sh                     #   Per-tab todo management (provider pattern)
+│   ├── claude.sh                   #   Claude Code IDE bridge via named pipes + state files
+│   └── toggl.sh                    #   Toggl time tracking integration
 ├── shell/                          # Shell-specific thin adapters
 │   ├── tabbing.bash                #   Bash: sources render.sh, defines public functions, delegates to bin/
 │   └── tabbing.zsh                 #   Zsh: sources render.sh, defines public functions, delegates to bin/
@@ -39,7 +42,6 @@ tabbing-on/
 │   ├── showcase.demo               #   Interactive feature walkthrough
 │   ├── showcase.cast               #   asciinema recording of demo
 │   └── showcase.gif                #   GIF render of demo
-├── tests/                          # Test suites (empty)
 ├── docs/                           # Documentation
 │   ├── PROJ-ARCH.md                #   Architecture: components, diagrams, design decisions
 │   ├── PROJ-ARCH.summary.md       #   Architecture quick-reference
@@ -47,12 +49,14 @@ tabbing-on/
 │   ├── PROJ-LAYOUT.summary.md     #   Quick-reference tree
 │   └── assets/                     #   Documentation images
 │       └── title-bar.png           #     Screenshot of tab title bar
-├── .envrc                          # direnv — loads environment
 ├── .gitignore                      # Git ignore rules
 ├── CLAUDE.md                       # Claude Code project instructions
 ├── LICENSE                         # MIT (Copyright 2026 Keith Brings)
 ├── README.md                       # Project entry point
 ├── TODO.md                         # Roadmap & known limitations
+├── plan-a.md                       # Planning document — architecture option A
+├── plan-b.md                       # Planning document — architecture option B
+├── plan-c.md                       # Planning document — architecture option C
 ├── script.md                       # Demo command reference
 └── terminal-utils.zshrc            # Legacy shim — prefer tabbing-init
 ```
@@ -71,6 +75,8 @@ After `eval "$(tabbing-init bash|zsh)"`:
 | `tabbing-history` | Search/browse tab history |
 | `tabbing-recordings` | Manage asciinema recordings |
 | `tabbing-info` | Full state dump + file paths |
+| `tabbing-clear` | Clear history, todos, or recordings |
+| `tabbing-claude-statusline` | Claude Code IDE statusline bridge |
 | `tabbing-doctor` | Check/fix terminal config for title conflicts |
 
 ## Data Storage

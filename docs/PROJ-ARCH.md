@@ -19,6 +19,7 @@ graph TB
         TI[tabbing-info]
         TRC[tabbing-recordings]
         TD[tabbing-doctor]
+        TCS[tabbing-claude-statusline]
     end
 
     subgraph "Shell Adapters"
@@ -34,6 +35,8 @@ graph TB
         REC[lib/recording.sh]
         SESS[lib/session.sh]
         TODO[lib/todo.sh]
+        CLAUDE[lib/claude.sh]
+        TOGGL[lib/toggl.sh]
     end
 
     subgraph "External"
@@ -41,15 +44,19 @@ graph TB
         YAML[YAML Files]
         ASC[asciinema]
         ESC[Terminal Escape Sequences]
+        CCIDE[Claude Code IDE]
+        TOGAPI[Toggl Track API]
     end
 
     TO & TS & TM & TT & TR & TH & TC & TI & TRC & TD --> ZSH & BASH
-    ZSH & BASH --> REND & CORE & TERM & HIST & REC & SESS & TODO
+    ZSH & BASH --> REND & CORE & TERM & HIST & REC & SESS & TODO & CLAUDE & TOGGL
     REND & CORE --> ENV
     TERM --> ESC
     HIST & TODO --> YAML
     SESS --> YAML
     REC --> ASC
+    CLAUDE --> CCIDE
+    TOGGL --> TOGAPI
 ```
 
 ## Core Components
@@ -63,6 +70,9 @@ graph TB
 | Recording | `lib/recording.sh` | asciinema recording lifecycle management |
 | Session | `lib/session.sh` | Per-session state persistence via `TAB_SESSION`-keyed env files |
 | Todo | `lib/todo.sh` | Per-tab todo CRUD with provider pattern |
+| Claude Bridge | `lib/claude.sh` | Claude Code IDE statusline bridge via FIFO + state file |
+| Toggl | `lib/toggl.sh` | Toggl Track API integration for time entry lifecycle |
+| Statusline | `bin/tabbing-claude-statusline` | Claude Code statusline script (reads state file) |
 | Zsh Adapter | `shell/tabbing.zsh` | Zsh functions, 1-based arrays, precmd hook |
 | Bash Adapter | `shell/tabbing.bash` | Bash functions, 0-based arrays, PROMPT_COMMAND hook |
 | Init | `bin/tabbing-init` | Outputs shell-appropriate `source` command |
@@ -93,10 +103,13 @@ The codebase has three layers, each with a clear responsibility:
 
 ```
 ~/.local/state/tabbing/
-├── history/{TAB_ID}.yaml       # Timestamped event log
-├── todos/{TAB_ID}.yaml         # Todo items with status
-├── recordings/{TAB_ID}/*.cast  # asciinema recordings
-└── sessions/{TAB_SESSION}.env  # Persisted env state for CLI wrappers
+├── history/{TAB_ID}.yaml              # Timestamped event log
+├── todos/{TAB_ID}.yaml                # Todo items with status
+├── recordings/{TAB_ID}/*.cast         # asciinema recordings
+├── sessions/{TAB_SESSION}.env         # Persisted env state for CLI wrappers
+├── claude-{TAB_SESSION}.pipe          # Named pipe (FIFO) for Claude bridge IPC
+├── claude-{TAB_SESSION}.state         # Flat key=value state read by statusline
+└── claude-bridge-{TAB_SESSION}.pid    # PID of background bridge reader process
 ```
 
 Each tab gets its own files keyed by `TAB_ID` (8-char hex from `/dev/urandom`).
@@ -119,3 +132,5 @@ Detection priority: iTerm2 > Ghostty > Kitty > WezTerm > Apple Terminal > Window
 - **Per-tab isolation**: Each tab gets a unique ID and independent history/todos/recordings
 - **Provider pattern in todos**: `lib/todo.sh` is designed for pluggable backends via `TAB_TODO_PROVIDER`
 - **No external dependencies**: Everything works with standard POSIX utilities; asciinema is optional for recordings
+- **Claude bridge via FIFO**: Named pipe decouples render pipeline from IDE statusline — render writes to pipe, background reader persists to flat file, statusline script reads file. No polling, no coupling
+- **Toggl integration is opt-in**: Requires `TAB_TOGGL_TOKEN`; mirrors task lifecycle to Toggl time entries with idle detection and heartbeat monitoring
