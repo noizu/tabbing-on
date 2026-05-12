@@ -1148,6 +1148,8 @@ EOFR
   stty echo icanon 2>/dev/null
 
   if [ -n "$selected" ] && [ "$action" = "applied" ]; then
+    _tabbing_save_theme_envrc "$selected" "."
+    _tabbing_apply_named_theme "$selected" >/dev/null 2>&1
     printf 'Theme set to "%s"\n' "$selected"
   fi
 }
@@ -1167,6 +1169,8 @@ _tabbing_theme_cmd() {
       [ -z "${2:-}" ] && { echo "Usage: tabbing-theme apply <name>" >&2; return 1; }
       if _tabbing_apply_named_theme "$2"; then
         export TAB_THEME="$2"
+        _tabbing_save_theme_envrc "$2" "."
+        _tabbing_apply_named_theme "$2" >/dev/null 2>&1
         printf 'Theme "%s" applied.\n' "$2"
       else
         printf 'Unknown theme: %s\n' "$2" >&2
@@ -1228,6 +1232,8 @@ _tabbing_theme_cmd() {
       # Try as theme name (shorthand for apply)
       if _tabbing_apply_named_theme "$1" 2>/dev/null; then
         export TAB_THEME="$1"
+        _tabbing_save_theme_envrc "$1" "."
+        _tabbing_apply_named_theme "$1" >/dev/null 2>&1
         printf 'Theme "%s" applied.\n' "$1"
       else
         printf 'Unknown subcommand or theme: %s\n' "$1" >&2
