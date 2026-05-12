@@ -1433,6 +1433,24 @@ _tabbing_apply_named_theme() {
         "#1E66F5" "#EA76CB" "#179299" "#6C6F85"
       ;;
 
+    catppuccin-frappe)
+      _tabbing_send_theme \
+        "#303446" "#C6D0F5" "#F2D5CF" \
+        "#292C3C" "#E78284" "#A6D189" "#E5C890" \
+        "#8CAAEE" "#F4B8E4" "#81C8BE" "#B5BFE2" \
+        "#414559" "#E78284" "#A6D189" "#E5C890" \
+        "#8CAAEE" "#F4B8E4" "#81C8BE" "#A5ADCE"
+      ;;
+
+    catppuccin-macchiato)
+      _tabbing_send_theme \
+        "#24273A" "#CAD3F5" "#F4DBD6" \
+        "#1E2030" "#ED8796" "#A6DA95" "#EED49F" \
+        "#8AADF4" "#F5BDE6" "#8BD5CA" "#B8C0E0" \
+        "#494D64" "#ED8796" "#A6DA95" "#EED49F" \
+        "#8AADF4" "#F5BDE6" "#8BD5CA" "#A5ADCB"
+      ;;
+
     dracula)
       _tabbing_send_theme \
         "#282A36" "#F8F8F2" "#F8F8F2" \
@@ -1451,6 +1469,15 @@ _tabbing_apply_named_theme() {
         "#81A1C1" "#B48EAD" "#8FBCBB" "#ECEFF4"
       ;;
 
+    nord-light)
+      _tabbing_send_theme \
+        "#ECEFF4" "#2E3440" "#4C566A" \
+        "#D8DEE9" "#BF616A" "#A3BE8C" "#EBCB8B" \
+        "#5E81AC" "#B48EAD" "#88C0D0" "#3B4252" \
+        "#E5E9F0" "#BF616A" "#A3BE8C" "#EBCB8B" \
+        "#5E81AC" "#B48EAD" "#8FBCBB" "#2E3440"
+      ;;
+
     tokyo-night)
       _tabbing_send_theme \
         "#1A1B26" "#C0CAF5" "#C0CAF5" \
@@ -1458,6 +1485,15 @@ _tabbing_apply_named_theme() {
         "#7AA2F7" "#BB9AF7" "#7DCFFF" "#A9B1D6" \
         "#414868" "#F7768E" "#9ECE6A" "#E0AF68" \
         "#7AA2F7" "#BB9AF7" "#7DCFFF" "#C0CAF5"
+      ;;
+
+    tokyo-night-light)
+      _tabbing_send_theme \
+        "#D5D6DB" "#343B59" "#343B59" \
+        "#C4C5CB" "#8C4351" "#33635C" "#8F5E15" \
+        "#34548A" "#5A4A78" "#0F4B6E" "#343B59" \
+        "#9699A3" "#8C4351" "#33635C" "#8F5E15" \
+        "#34548A" "#5A4A78" "#0F4B6E" "#343B59"
       ;;
 
     gruvbox|gruvbox-dark)
@@ -1514,6 +1550,15 @@ _tabbing_apply_named_theme() {
         "#61AFEF" "#C678DD" "#56B6C2" "#C8CCD4"
       ;;
 
+    one-light)
+      _tabbing_send_theme \
+        "#FAFAFA" "#383A42" "#526FFF" \
+        "#F0F0F0" "#E45649" "#50A14F" "#C18401" \
+        "#4078F2" "#A626A4" "#0184BC" "#383A42" \
+        "#A0A1A7" "#E45649" "#50A14F" "#C18401" \
+        "#4078F2" "#A626A4" "#0184BC" "#383A42"
+      ;;
+
     rose-pine)
       _tabbing_send_theme \
         "#191724" "#E0DEF4" "#524F67" \
@@ -1532,6 +1577,15 @@ _tabbing_apply_named_theme() {
         "#9CCFD8" "#C4A7E7" "#EA9A97" "#E0DEF4"
       ;;
 
+    rose-pine-dawn)
+      _tabbing_send_theme \
+        "#FAF4ED" "#575279" "#286983" \
+        "#F2E9E1" "#B4637A" "#56949F" "#EA9D34" \
+        "#286983" "#907AA9" "#D7827E" "#575279" \
+        "#9893A5" "#B4637A" "#56949F" "#EA9D34" \
+        "#286983" "#907AA9" "#D7827E" "#575279"
+      ;;
+
     kanagawa)
       _tabbing_send_theme \
         "#1F1F28" "#DCD7BA" "#C8C093" \
@@ -1539,6 +1593,123 @@ _tabbing_apply_named_theme() {
         "#7E9CD8" "#957FB8" "#6A9589" "#C8C093" \
         "#727169" "#E82424" "#98BB6C" "#E6C384" \
         "#7FB4CA" "#938AA9" "#7AA89F" "#DCD7BA"
+      ;;
+
+    kanagawa-lotus)
+      _tabbing_send_theme \
+        "#F2ECBC" "#545464" "#43436C" \
+        "#E7DBA0" "#C84053" "#6F894E" "#77713F" \
+        "#4D699B" "#624C83" "#597B75" "#545464" \
+        "#8A8980" "#E82424" "#98BB6C" "#E6C384" \
+        "#7FB4CA" "#938AA9" "#7AA89F" "#545464"
+      ;;
+
+    everforest-dark)
+      _tabbing_send_theme \
+        "#2D353B" "#D3C6AA" "#D3C6AA" \
+        "#343F44" "#E67E80" "#A7C080" "#DBBC7F" \
+        "#7FBBB3" "#D699B6" "#83C092" "#D3C6AA" \
+        "#475258" "#E67E80" "#A7C080" "#DBBC7F" \
+        "#7FBBB3" "#D699B6" "#83C092" "#D3C6AA"
+      ;;
+
+    everforest-light)
+      _tabbing_send_theme \
+        "#FDF6E3" "#5C6A72" "#5C6A72" \
+        "#F3EAD3" "#F85552" "#8DA101" "#DFA000" \
+        "#3A94C5" "#DF69BA" "#35A77C" "#5C6A72" \
+        "#E0DCC7" "#F85552" "#8DA101" "#DFA000" \
+        "#3A94C5" "#DF69BA" "#35A77C" "#5C6A72"
+      ;;
+
+    github-dark)
+      _tabbing_send_theme \
+        "#0D1117" "#C9D1D9" "#C9D1D9" \
+        "#161B22" "#FF7B72" "#7EE787" "#D29922" \
+        "#79C0FF" "#D2A8FF" "#A5D6FF" "#C9D1D9" \
+        "#21262D" "#FFA198" "#56D364" "#E3B341" \
+        "#79C0FF" "#D2A8FF" "#A5D6FF" "#F0F6FC"
+      ;;
+
+    github-light)
+      _tabbing_send_theme \
+        "#FFFFFF" "#24292F" "#0969DA" \
+        "#F6F8FA" "#CF222E" "#116329" "#4D2D00" \
+        "#0550AE" "#8250DF" "#1B7C83" "#24292F" \
+        "#D0D7DE" "#A40E26" "#1A7F37" "#633C01" \
+        "#0969DA" "#8250DF" "#2AA198" "#24292F"
+      ;;
+
+    ayu-dark)
+      _tabbing_send_theme \
+        "#0B0E14" "#BFBDB6" "#E6B450" \
+        "#11151C" "#F07178" "#AAD94C" "#E6B450" \
+        "#399EE6" "#D2A6FF" "#95E6CB" "#BFBDB6" \
+        "#636A72" "#FF8F40" "#AAD94C" "#FFB454" \
+        "#59C2FF" "#D2A6FF" "#95E6CB" "#C5C5C5"
+      ;;
+
+    ayu-light)
+      _tabbing_send_theme \
+        "#FAFAFA" "#5C6166" "#FF9940" \
+        "#F0F0F0" "#F07178" "#86B300" "#F29718" \
+        "#36A3D9" "#A37ACC" "#4CBF99" "#5C6166" \
+        "#E7E8E9" "#FF3333" "#86B300" "#F29718" \
+        "#36A3D9" "#A37ACC" "#4CBF99" "#5C6166"
+      ;;
+
+    ayu-mirage)
+      _tabbing_send_theme \
+        "#1F2430" "#CBCCC6" "#FFCC66" \
+        "#232834" "#F28779" "#BAE67E" "#FFD580" \
+        "#73D0FF" "#D4BFFF" "#95E6CB" "#CBCCC6" \
+        "#707A8C" "#FF3333" "#BAE67E" "#FFD580" \
+        "#73D0FF" "#D4BFFF" "#95E6CB" "#F3F4F5"
+      ;;
+
+    material-dark)
+      _tabbing_send_theme \
+        "#263238" "#EEFFFF" "#FFCC00" \
+        "#2C3B41" "#FF5370" "#C3E88D" "#FFCB6B" \
+        "#82AAFF" "#C792EA" "#89DDFF" "#EEFFFF" \
+        "#37474F" "#FF5370" "#C3E88D" "#FFCB6B" \
+        "#82AAFF" "#C792EA" "#89DDFF" "#FFFFFF"
+      ;;
+
+    material-light)
+      _tabbing_send_theme \
+        "#FAFAFA" "#546E7A" "#272727" \
+        "#F2F2F2" "#FF5370" "#91B859" "#FFB62C" \
+        "#6182B8" "#7C4DFF" "#39ADB5" "#546E7A" \
+        "#E7E7E8" "#E53935" "#91B859" "#F6A434" \
+        "#6182B8" "#7C4DFF" "#39ADB5" "#272727"
+      ;;
+
+    papercolor-light)
+      _tabbing_send_theme \
+        "#EEEEEE" "#444444" "#444444" \
+        "#E4E4E4" "#AF0000" "#008700" "#D75F00" \
+        "#005FAF" "#AF00AF" "#005F87" "#444444" \
+        "#BCBCBC" "#D70000" "#5FAF00" "#D78700" \
+        "#0087AF" "#D787D7" "#00AFAF" "#005F87"
+      ;;
+
+    pencil-light)
+      _tabbing_send_theme \
+        "#F1F1F1" "#424242" "#20BBFC" \
+        "#E0E0E0" "#C30771" "#10A778" "#A89C14" \
+        "#008EC4" "#523C79" "#20A5BA" "#424242" \
+        "#B8B8B8" "#E32791" "#5FD7A7" "#F3E430" \
+        "#20BBFC" "#6855DE" "#4FB8CC" "#212121"
+      ;;
+
+    alabaster)
+      _tabbing_send_theme \
+        "#F7F7F7" "#434343" "#007ACC" \
+        "#ECECEC" "#AA3731" "#448C27" "#CB9000" \
+        "#325CC0" "#7A3E9D" "#0083B2" "#434343" \
+        "#DCDCDC" "#D91A1A" "#448C27" "#CB9000" \
+        "#325CC0" "#7A3E9D" "#0083B2" "#434343"
       ;;
 
     # --- Semantic / environment themes ---
@@ -1588,6 +1759,255 @@ _tabbing_apply_named_theme() {
         "#D09070" "#E07090" "#D0B090" "#F8E0C8"
       ;;
 
+    ocean-light)
+      _tabbing_send_theme \
+        "#F0F5FA" "#1A3A5C" "#2E6B9E" \
+        "#E0EAF2" "#C04040" "#2E8B57" "#B8860B" \
+        "#2E6B9E" "#7B68AE" "#1A8A8A" "#1A3A5C" \
+        "#CADAE8" "#D04040" "#358B5B" "#C89020" \
+        "#3878B0" "#8878BE" "#2A9A9A" "#0D2040"
+      ;;
+
+    forest-light)
+      _tabbing_send_theme \
+        "#F4F8F0" "#2B4020" "#4A7030" \
+        "#E8F0E0" "#B04040" "#3A7A20" "#9A8020" \
+        "#4070A0" "#7A5A90" "#2A8A6A" "#2B4020" \
+        "#D0DCC8" "#C05050" "#4A8A30" "#AA9030" \
+        "#5080B0" "#8A6AA0" "#3A9A7A" "#1A2A10"
+      ;;
+
+    dawn)
+      _tabbing_send_theme \
+        "#FAF5F0" "#5C4A3A" "#D09050" \
+        "#F0E8E0" "#C05040" "#6A8A40" "#C09030" \
+        "#4A70A0" "#8A5A90" "#3A8A7A" "#5C4A3A" \
+        "#E0D8D0" "#D06050" "#7A9A50" "#D0A040" \
+        "#5A80B0" "#9A6AA0" "#4A9A8A" "#3A2A1A"
+      ;;
+
+    ivory)
+      _tabbing_send_theme \
+        "#FFFFF0" "#3A3A30" "#8A7A60" \
+        "#F5F5E8" "#B84040" "#5A8A30" "#A08A20" \
+        "#4A6AA0" "#7A5090" "#2A7A70" "#3A3A30" \
+        "#E8E8D8" "#C85050" "#6A9A40" "#B09A30" \
+        "#5A7AB0" "#8A60A0" "#3A8A80" "#1A1A10"
+      ;;
+
+    slate)
+      _tabbing_send_theme \
+        "#1E2832" "#C0C8D0" "#88A0B8" \
+        "#283440" "#E07070" "#80B880" "#D0B870" \
+        "#70A0D0" "#A080C0" "#60B0B0" "#C0C8D0" \
+        "#384858" "#F08080" "#90C890" "#E0C880" \
+        "#80B0E0" "#B090D0" "#70C0C0" "#E0E8F0"
+      ;;
+
+    # --- Chromatic themes: colored backgrounds with color-wheel pairings ---
+
+    # Complementary: purple bg ↔ gold accents (270° ↔ 90°)
+    amethyst)
+      _tabbing_send_theme \
+        "#2A1B3D" "#D8D0E8" "#E8C050" \
+        "#1E1030" "#E06070" "#80C070" "#E8C050" \
+        "#8080D0" "#D070B0" "#60B0B8" "#D0C8E0" \
+        "#382850" "#F07080" "#90D080" "#F0D060" \
+        "#9090E0" "#E080C0" "#70C0C8" "#E0D8F0"
+      ;;
+
+    # Complementary: navy bg ↔ amber accents (215° ↔ 35°)
+    cobalt)
+      _tabbing_send_theme \
+        "#0D1B30" "#C8D8E8" "#E8A030" \
+        "#081420" "#E06060" "#60C080" "#E8A030" \
+        "#5090D0" "#B070C0" "#50B0C0" "#C0D0E0" \
+        "#1A2840" "#F07070" "#70D090" "#F0B040" \
+        "#60A0E0" "#C080D0" "#60C0D0" "#D8E0F0"
+      ;;
+
+    # Complementary: wine bg ↔ teal accents (345° ↔ 165°)
+    merlot)
+      _tabbing_send_theme \
+        "#2E1018" "#E8D0D0" "#50C0A0" \
+        "#200810" "#E05050" "#50C0A0" "#D8A050" \
+        "#7090C0" "#C060A0" "#40B0A0" "#E0D0D0" \
+        "#401828" "#F06060" "#60D0B0" "#E8B060" \
+        "#80A0D0" "#D070B0" "#50C0B0" "#F0E0E0"
+      ;;
+
+    # Complementary: forest bg ↔ rose accents (145° ↔ 350°)
+    emerald)
+      _tabbing_send_theme \
+        "#0C2818" "#C0D8C0" "#E07080" \
+        "#061A0F" "#E07080" "#60C060" "#C0B050" \
+        "#5090B0" "#B070A0" "#50B098" "#B8D0B8" \
+        "#183820" "#F08090" "#70D070" "#D0C060" \
+        "#60A0C0" "#C080B0" "#60C0A8" "#D0E8D0"
+      ;;
+
+    # Complementary: bronze bg ↔ azure accents (25° ↔ 205°)
+    copper)
+      _tabbing_send_theme \
+        "#2C1808" "#E8D8C0" "#5098D0" \
+        "#1A1005" "#E06040" "#90B060" "#D8A040" \
+        "#5098D0" "#C070A0" "#50A8B8" "#E0D0B8" \
+        "#402818" "#F07050" "#A0C070" "#E8B050" \
+        "#60A8E0" "#D080B0" "#60B8C8" "#F0E8D0"
+      ;;
+
+    # Split-complementary: indigo bg ↔ coral + chartreuse (250° ↔ 20°/100°)
+    indigo-night)
+      _tabbing_send_theme \
+        "#181038" "#C8C0E0" "#E88060" \
+        "#100828" "#E88060" "#A0C050" "#E0B040" \
+        "#7080D0" "#C068C0" "#60A8C0" "#C0B8D8" \
+        "#281848" "#F89070" "#B0D060" "#F0C050" \
+        "#8090E0" "#D078D0" "#70B8D0" "#D8D0F0"
+      ;;
+
+    # Split-complementary: plum bg ↔ lime + gold (300° ↔ 80°/120°)
+    plum)
+      _tabbing_send_theme \
+        "#281028" "#D8C0D8" "#B0D050" \
+        "#1C081C" "#E06080" "#B0D050" "#D0A840" \
+        "#8080C0" "#D060C0" "#60B0A0" "#D0B8D0" \
+        "#381838" "#F070A0" "#C0E060" "#E0B850" \
+        "#9090D0" "#E070D0" "#70C0B0" "#E8D0E8"
+      ;;
+
+    # Analogous: teal + blue + green (180°–210° range)
+    tundra)
+      _tabbing_send_theme \
+        "#0C2028" "#C0D8E0" "#70C0D0" \
+        "#081820" "#D06868" "#60C0A0" "#C0B060" \
+        "#5898C0" "#A078B0" "#70C0D0" "#B8D0D8" \
+        "#183038" "#E07878" "#70D0B0" "#D0C070" \
+        "#68A8D0" "#B088C0" "#80D0E0" "#D0E8F0"
+      ;;
+
+    # Analogous: red + orange + brown (350°–30° range)
+    mahogany)
+      _tabbing_send_theme \
+        "#2E1510" "#E8D8C8" "#D08050" \
+        "#200E08" "#D85040" "#90A860" "#D08050" \
+        "#7090B0" "#C06090" "#60A090" "#E0D0C0" \
+        "#402820" "#E86050" "#A0B870" "#E09060" \
+        "#80A0C0" "#D070A0" "#70B0A0" "#F0E0D0"
+      ;;
+
+    # Analogous: olive + gold + sage (80°–120° range)
+    olive-dusk)
+      _tabbing_send_theme \
+        "#1A2010" "#D0D8B8" "#C0B060" \
+        "#101808" "#D06860" "#80B050" "#C0B060" \
+        "#6090B0" "#A878A0" "#60A890" "#C8D0B0" \
+        "#283018" "#E07870" "#90C060" "#D0C070" \
+        "#70A0C0" "#B888B0" "#70B8A0" "#E0E8C8"
+      ;;
+
+    # Mid-tone: slate blue-gray bg with gold accent
+    storm)
+      _tabbing_send_theme \
+        "#2E3848" "#D0D8E0" "#E8B050" \
+        "#202830" "#E06868" "#70C080" "#E8B050" \
+        "#6098D0" "#B078C0" "#60B0C0" "#C8D0D8" \
+        "#3E4858" "#F07878" "#80D090" "#F0C060" \
+        "#70A8E0" "#C088D0" "#70C0D0" "#E0E8F0"
+      ;;
+
+    # Warm charcoal: analogous warm (0°–30° range)
+    volcanic)
+      _tabbing_send_theme \
+        "#281818" "#E0D0C0" "#E06040" \
+        "#1A1010" "#E06040" "#90A860" "#D0A040" \
+        "#7090B8" "#C06890" "#60A898" "#D8C8B8" \
+        "#382828" "#F07050" "#A0B870" "#E0B050" \
+        "#80A0C8" "#D078A0" "#70B8A8" "#F0E0D0"
+      ;;
+
+    # --- Light chromatic themes ---
+
+    # Complementary: clay bg ↔ teal accents
+    terracotta)
+      _tabbing_send_theme \
+        "#F2E0D0" "#4A3020" "#1A8080" \
+        "#E0D0C0" "#B83030" "#1A8080" "#A07010" \
+        "#3060A0" "#883880" "#107070" "#4A3020" \
+        "#D0C0B0" "#D04040" "#209090" "#B08020" \
+        "#4070B0" "#984890" "#208080" "#3A2010"
+      ;;
+
+    # Complementary: sage bg ↔ mauve accents
+    sage-mist)
+      _tabbing_send_theme \
+        "#E4EDD8" "#2A3820" "#904880" \
+        "#D4DCC8" "#A83030" "#307030" "#887020" \
+        "#3060A0" "#904880" "#207868" "#2A3820" \
+        "#C4D0B8" "#C04040" "#408040" "#988030" \
+        "#4070B0" "#A05890" "#308878" "#1A2810"
+      ;;
+
+    # Complementary: lavender bg ↔ gold accents
+    lavender-mist)
+      _tabbing_send_theme \
+        "#EAE0F2" "#302840" "#B89020" \
+        "#DAD0E2" "#A83040" "#408030" "#B89020" \
+        "#4060B0" "#804090" "#207888" "#302840" \
+        "#C8C0D8" "#C04050" "#509040" "#C8A030" \
+        "#5070C0" "#9050A0" "#308898" "#201830"
+      ;;
+
+    # Complementary: coral bg ↔ ocean blue accents
+    coral-sand)
+      _tabbing_send_theme \
+        "#F5E2D8" "#3A2820" "#206898" \
+        "#E4D0C8" "#B03030" "#308868" "#A07818" \
+        "#206898" "#883880" "#1A7878" "#3A2820" \
+        "#D4C0B8" "#C84040" "#409878" "#B08828" \
+        "#3078A8" "#984890" "#2A8888" "#2A1810"
+      ;;
+
+    # Complementary: ice blue bg ↔ coral accents
+    arctic)
+      _tabbing_send_theme \
+        "#E2ECF5" "#1A2840" "#C05040" \
+        "#D2DCE4" "#C05040" "#308860" "#A08020" \
+        "#2860A0" "#804090" "#187880" "#1A2840" \
+        "#C0D0E0" "#D06050" "#409870" "#B09030" \
+        "#3870B0" "#9050A0" "#288890" "#0A1830"
+      ;;
+
+    # Complementary: mint bg ↔ rose accents
+    seafoam)
+      _tabbing_send_theme \
+        "#E0F0E8" "#1A3028" "#B84060" \
+        "#D0E0D8" "#B84060" "#208860" "#888820" \
+        "#3068A0" "#884088" "#107868" "#1A3028" \
+        "#C0D4CC" "#C85070" "#309870" "#989830" \
+        "#4078B0" "#985098" "#208878" "#0A2018"
+      ;;
+
+    # Complementary: beige bg ↔ sapphire accents
+    champagne)
+      _tabbing_send_theme \
+        "#F5EDE2" "#302818" "#2858A8" \
+        "#E4DCD0" "#B03030" "#408838" "#A07818" \
+        "#2858A8" "#883088" "#187078" "#302818" \
+        "#D0C8B8" "#C84040" "#509848" "#B08828" \
+        "#3868B8" "#984098" "#288088" "#201808"
+      ;;
+
+    # Complementary: soft pink bg ↔ emerald accents
+    blush)
+      _tabbing_send_theme \
+        "#F5E5E8" "#382030" "#208858" \
+        "#E4D4D8" "#B03040" "#208858" "#907820" \
+        "#3060A0" "#883880" "#187870" "#382030" \
+        "#D4C4C8" "#C84050" "#309868" "#A08830" \
+        "#4070B0" "#984890" "#288880" "#281020"
+      ;;
+
     *)
       return 1
       ;;
@@ -1600,15 +2020,30 @@ _tabbing_apply_named_theme() {
 # ---------------------------------------------------------------------------
 _tabbing_theme_list() {
   printf 'Available themes:\n'
-  printf '\n  Editor/Terminal:\n'
-  printf '    catppuccin (catppuccin-mocha)  catppuccin-latte\n'
-  printf '    dracula        nord             tokyo-night\n'
-  printf '    gruvbox         gruvbox-light    monokai\n'
-  printf '    one-dark        solarized-dark   solarized-light\n'
-  printf '    rose-pine       rose-pine-moon   kanagawa\n'
+  printf '\n  Dark:\n'
+  printf '    catppuccin       catppuccin-frappe   catppuccin-macchiato\n'
+  printf '    dracula          nord                tokyo-night\n'
+  printf '    gruvbox          monokai             one-dark\n'
+  printf '    solarized-dark   rose-pine           rose-pine-moon\n'
+  printf '    kanagawa         everforest-dark      github-dark\n'
+  printf '    ayu-dark         ayu-mirage          material-dark\n'
+  printf '\n  Light:\n'
+  printf '    catppuccin-latte   nord-light          tokyo-night-light\n'
+  printf '    gruvbox-light      one-light           solarized-light\n'
+  printf '    rose-pine-dawn     kanagawa-lotus      everforest-light\n'
+  printf '    github-light       ayu-light           material-light\n'
+  printf '    papercolor-light   pencil-light        alabaster\n'
+  printf '\n  Chromatic Dark (colored backgrounds):\n'
+  printf '    amethyst       cobalt          merlot          emerald\n'
+  printf '    copper         indigo-night    plum            tundra\n'
+  printf '    mahogany       olive-dusk      storm           volcanic\n'
+  printf '\n  Chromatic Light (tinted backgrounds):\n'
+  printf '    terracotta     sage-mist       lavender-mist   coral-sand\n'
+  printf '    arctic         seafoam         champagne       blush\n'
   printf '\n  Semantic:\n'
   printf '    danger (production)  safe (development)\n'
-  printf '    ocean    forest      sunset\n'
+  printf '    ocean    ocean-light   forest    forest-light\n'
+  printf '    sunset   dawn          ivory     slate\n'
 
   # List user themes if any exist
   local theme_dir

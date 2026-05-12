@@ -616,6 +616,10 @@ tabbing-doctor() {
   "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-doctor" "$@"
 }
 
+tabbing-theme() {
+  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-theme" "$@"
+}
+
 # ---------------------------------------------------------------------------
 # tabbing-style — Adjust tab appearance without changing title/status
 # Dedicated command for setting theme, bg, color, emoji, urgency, marquee.
