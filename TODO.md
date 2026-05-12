@@ -53,7 +53,7 @@ For the bin/ wrappers to be callable by name (not full path), users need
 
 - Document: `export PATH="$TABBING_ROOT/bin:$PATH"` in shell rc
 - Have `tabbing-init` output the PATH export automatically
-- Symlink into `/usr/local/bin` or `~/.local/bin`
+- Symlink into `~/.local/bin`
 
 #### Known Limitations
 
