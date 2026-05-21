@@ -10,7 +10,4 @@ test:
 
 install:
 	@mkdir -p $(INSTALL_DIR)
-	cp bin/* $(INSTALL_DIR)/
-	chmod +x $(INSTALL_DIR)/tabbing-*
-	chmod +x $(INSTALL_DIR)/_tabbing-*
-	chmod +x $(INSTALL_DIR)/demo-runner
+	@for f in bin/*; do install -m 755 "$$f" $(INSTALL_DIR)/; done
