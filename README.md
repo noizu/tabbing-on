@@ -24,19 +24,39 @@ https://github.com/user-attachments/assets/b454eecc-3542-472e-a563-99415ce6fbed
 ## Install
 
 ```bash
-# Zsh — add to .zshrc
-eval "$(path/to/tabbing-on/bin/tabbing-init zsh)"
-
-# Bash — add to .bashrc
-eval "$(path/to/tabbing-on/bin/tabbing-init bash)"
+cd tabbing-on
+make install
 ```
 
-Or source the shell file directly:
+This copies commands to `~/.local/bin/` and libraries to `~/.local/share/tabbing-on/`.
+
+Then add to your shell rc:
 
 ```bash
-source path/to/tabbing-on/shell/tabbing.zsh   # zsh
-source path/to/tabbing-on/shell/tabbing.bash   # bash
+# Zsh — add to .zshrc
+eval "$(tabbing-init zsh)"
+
+# Bash — add to .bashrc
+eval "$(tabbing-init bash)"
 ```
+
+### DC Mode (direnv-config integration)
+
+When paired with [direnv-config](https://github.com/the-robot-lives/direnv-config), tab state is stored in a shared key-value store instead of shell env vars. A background daemon polls for changes and updates the tab title automatically. This enables cross-process state sharing and automatic marquee scrolling for long status text.
+
+```bash
+# .zshrc
+export TABBING_ON_DC_MODE=1
+eval "$(tabbing-init zsh --direnv-config-mode)"
+```
+
+**Caveat:** In dc mode, entering a directory that has prior dc state will restore that directory's last tab title/status/emoji. This is by design — dc state is per-directory, not per-tab. Use `tabbing-off` to clear, or set new values with `tabbing-on`.
+
+### Claude Code integration
+
+tabbing-on works inside Claude Code sessions. Add the init to your `.zshrc` as above, and Claude Code terminals will pick up tab titles, status, and emoji. The Claude Code status line bridge is available via `tabbing-on --claude`.
+
+To prevent Claude Code from overwriting tab titles, tabbing-on automatically sets `CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1` when active.
 
 ## Commands
 
@@ -419,11 +439,13 @@ Status key: **Out-of-box** — works with no extra setup | **Requires `tabbing-d
 
 Three-layer design:
 
-1. **POSIX Libraries** (`lib/*.sh`) — Pure POSIX sh. All functions prefixed `_tabbing_*`. No bash/zsh-isms.
-2. **Shell Adapters** (`shell/tabbing.{bash,zsh}`) — Source libraries, define user-facing functions. Handle array indexing and prompt hooks.
-3. **Bootstrap** (`bin/tabbing-init`) — POSIX `/bin/sh`. Resolves `TABBING_ROOT`, outputs `source` command.
+1. **POSIX Libraries** (`lib/*.sh`) — Pure POSIX sh. All functions prefixed `_tabbing_*`. No bash/zsh-isms. Installed to `~/.local/share/tabbing-on/lib/`.
+2. **Shell Adapters** (`shell/tabbing.{bash,zsh}`) — Source libraries, define user-facing functions that run in the current shell (so `TAB_*` env vars persist). Installed to `~/.local/share/tabbing-on/shell/`.
+3. **CLI Commands** (`bin/`) — Thin wrappers and standalone scripts. Installed to `~/.local/bin/`.
+4. **Bootstrap** (`bin/tabbing-init`) — POSIX `/bin/sh`. Resolves `TABBING_ROOT`, emits `source` command for the shell adapter.
+5. **Daemon** (`bin/tabbing-daemon`) — Background process for dc mode. Polls `dc tab last_update` at 200ms intervals, only re-renders on change. Marquees long status text automatically. Responds to SIGUSR1 for instant refresh.
 
-Dependencies: Only POSIX utilities (`sed`, `awk`, `date`, `mkdir`, `printf`). Optional: `asciinema` (recording), `agg` (GIF conversion).
+Dependencies: Only POSIX utilities (`sed`, `awk`, `date`, `mkdir`, `printf`). Optional: `dc` (direnv-config, for dc mode), `asciinema` (recording), `agg` (GIF conversion).
 
 ## License
 
@@ -484,8 +506,7 @@ The `TABBING_DEMO_SPEED` environment variable can also set the default speed.
 
 
 ```zsh
-eval "$(/Volumes/OSX-Extended/Github/noizu/tabbing-on/bin/tabbing-init zsh)"
-#. /etc/terminal-utils.zshrc
+eval "$(tabbing-init zsh)"
 
 # --- direnv → tabbing-on theme sync ---
 # Reacts to TAB_THEME exported by .envrc files.
