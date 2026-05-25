@@ -8,10 +8,17 @@
 # Usage: _tabbing-commit <event_type>
 #   event_type: title, status, todo_add, todo_switch, todo_done, etc.
 
-TABBING_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [ -z "${TABBING_ROOT:-}" ]; then
+  _tabbing_parent="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  if [ -d "$_tabbing_parent/lib" ] && [ -f "$_tabbing_parent/lib/render.sh" ]; then
+    TABBING_ROOT="$_tabbing_parent"
+  else
+    TABBING_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/tabbing-on"
+  fi
+fi
 
 # Source libs needed for side effects (render.sh is also needed for display)
-for _lib in render core terminal history session; do
+for _lib in render core terminal history session dc; do
   . "$TABBING_ROOT/lib/${_lib}.sh"
 done
 

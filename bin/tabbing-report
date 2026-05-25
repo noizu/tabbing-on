@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # bin/tabbing-report — history reporting CLI
 source "$(dirname "${BASH_SOURCE[0]}")/_tabbing-wrapper"
+_tabbing_check_version "$@"
 
 target_tab="${TAB_ID:-}"
 do_mermaid=0 do_all=0 do_list=0

@@ -10,9 +10,29 @@
 # ---------------------------------------------------------------------------
 # Locate root and source minimal render pipeline
 # ---------------------------------------------------------------------------
-_tabbing_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [ -n "${TABBING_ROOT:-}" ]; then
+  _tabbing_root="$TABBING_ROOT"
+else
+  _tabbing_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  if [ ! -f "$_tabbing_root/lib/render.sh" ]; then
+    _tabbing_root="${XDG_DATA_HOME:-$HOME/.local/share}/tabbing-on"
+  fi
+fi
 
 source "${_tabbing_root}/lib/render.sh"
+source "${_tabbing_root}/lib/dc.sh"
+
+# Capture the interactive shell's TTY early so the dc daemon can use it
+if [[ -z "${TABBING_TTY:-}" ]]; then
+  TABBING_TTY="$(tty 2>/dev/null)" || TABBING_TTY="/dev/tty"
+  export TABBING_TTY
+fi
+
+# If dc mode is active, load state and start daemon
+if _tabbing_dc_enabled; then
+  _tabbing_dc_load
+  _tabbing_dc_ensure_daemon
+fi
 
 # ---------------------------------------------------------------------------
 # Inline: detect terminal emulator (runs once at init)
@@ -75,7 +95,7 @@ _tabbing_commit() {
     _tabbing_display
     _tabbing_session_save
   else
-    "${TABBING_ROOT:-$_tabbing_root}/bin/_tabbing-commit" "${1:-status}"
+    "_tabbing-commit" "${1:-status}"
   fi
 }
 
@@ -83,6 +103,8 @@ _tabbing_commit() {
 # tabbing-on [flags in any position] [title] [status]
 # ---------------------------------------------------------------------------
 tabbing-on() {
+  _tabbing_dc_ensure_daemon
+
   local opt_highlight="" opt_urgency="" opt_emoji="" opt_bg="" opt_theme=""
   local has_highlight=0 has_urgency=0 has_emoji=0 has_bg=0 has_theme=0
   local has_record=0 has_continue=0 has_stop_recording=0
@@ -122,7 +144,7 @@ tabbing-on() {
         _tabbing_theme_list; return ;;
       --color-list|--colors)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_color_list
-        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" colors; fi
+        else "tabbing-on" colors; fi
         return ;;
 
       -m|--marquee)    has_marquee=1; shift ;;
@@ -132,25 +154,26 @@ tabbing-on() {
       -emoji:*|--emoji-search=*)
         local _efilter="${1#*[=:]}"
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_search "$_efilter" | _tabbing_pager
-        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-search="$_efilter"; fi
+        else "tabbing-on" --emoji-search="$_efilter"; fi
         return ;;
       --emoji-search)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_search "$2"
-        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-search="$2"; fi
+        else "tabbing-on" --emoji-search="$2"; fi
         return ;;
 
       # Subcommands: use full libs if available, else delegate to bin/
       --emoji-list|--emojis|-emojis)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
-        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
+        else "tabbing-on" --emoji-list; fi
         return ;;
+      --version) _tabbing_print_version; return ;;
       --help)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_help
-        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --help; fi
+        else "tabbing-on" --help; fi
         return ;;
       --terminal-info)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_terminal_info
-        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --terminal-info; fi
+        else "tabbing-on" --terminal-info; fi
         return ;;
 
       --claude)  has_claude=1; shift; claude_args=("$@"); break ;;
@@ -188,7 +211,7 @@ tabbing-on() {
                 case "$answer" in
                   [yY]|[yY][eE][sS])
                     if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
-                    else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
+                    else "tabbing-on" --emoji-list; fi
                     return ;;
                 esac ;;
             esac
@@ -213,17 +236,17 @@ tabbing-on() {
     case "${positional[0]}" in
       emojis|emoji-list)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
-        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
+        else "tabbing-on" --emoji-list; fi
         return ;;
       colors|color-list)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_color_list
-        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" colors; fi
+        else "tabbing-on" colors; fi
         return ;;
       themes|theme-list)
         _tabbing_theme_list; return ;;
       help)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_help
-        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --help; fi
+        else "tabbing-on" --help; fi
         return ;;
       emoji|emjois|emojsi|emojs|emojies|emoj|eomjis|emjis|emois|emoij|emojii|emoijis|emojss|ejmois)
         printf 'tabbing: did you mean "emojis"? [y/N] '
@@ -232,7 +255,7 @@ tabbing-on() {
         case "$answer" in
           [yY]|[yY][eE][sS])
             if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
-            else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
+            else "tabbing-on" --emoji-list; fi
             return ;;
         esac
         ;;
@@ -245,7 +268,7 @@ tabbing-on() {
       _tabbing_color_code "$opt_highlight"
       return 1
     fi
-    export TAB_HIGHLIGHT="$opt_highlight"
+    _tabbing_set highlight "$opt_highlight"
   fi
 
   if [[ $has_urgency -eq 1 ]]; then
@@ -253,7 +276,7 @@ tabbing-on() {
       _tabbing_out -v 0 -e 'tabbing: urgency must be 0-5 (0=critical, 5=nominal)\n'
       return 1
     fi
-    export TAB_URGENCY="$opt_urgency"
+    _tabbing_set urgency "$opt_urgency"
   fi
 
   if [[ $has_emoji -eq 1 ]]; then
@@ -261,11 +284,11 @@ tabbing-on() {
       _tabbing_emoji_lookup "$opt_emoji"
       return 1
     fi
-    export TAB_EMOJI="$opt_emoji"
+    _tabbing_set emoji "$opt_emoji"
   fi
 
   if [[ $no_emoji -eq 1 ]]; then
-    unset TAB_EMOJI
+    _tabbing_set emoji ""
   fi
 
   if [[ $has_bg -eq 1 ]]; then
@@ -286,11 +309,11 @@ tabbing-on() {
       _tabbing_theme_list >&2
       return 1
     fi
-    export TAB_THEME="$opt_theme"
+    _tabbing_set theme "$opt_theme"
   fi
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
-    unset TAB_THEME
+    _tabbing_set theme ""
   fi
 
   if [[ $has_marquee -eq 1 ]]; then
@@ -303,11 +326,11 @@ tabbing-on() {
 
   # Positional args: bash arrays are 0-based
   if [[ ${#positional[@]} -ge 1 ]]; then
-    export TAB_TITLE="${positional[0]}"
+    _tabbing_set title "${positional[0]}"
     if [[ ${#positional[@]} -ge 2 ]]; then
-      export TAB_STATUS="${positional[1]}"
+      _tabbing_set status "${positional[1]}"
     else
-      unset TAB_STATUS
+      _tabbing_set status ""
     fi
   fi
 
@@ -429,7 +452,7 @@ tabbing-status() {
       _tabbing_out -v 0 -e 'tabbing: urgency must be 0-5 (0=critical, 5=nominal)\n'
       return 1
     fi
-    export TAB_URGENCY="$opt_urgency"
+    _tabbing_set urgency "$opt_urgency"
   fi
 
   if [[ $has_emoji -eq 1 ]]; then
@@ -437,11 +460,11 @@ tabbing-status() {
       _tabbing_emoji_lookup "$opt_emoji"
       return 1
     fi
-    export TAB_EMOJI="$opt_emoji"
+    _tabbing_set emoji "$opt_emoji"
   fi
 
   if [[ $no_emoji -eq 1 ]]; then
-    unset TAB_EMOJI
+    _tabbing_set emoji ""
   fi
 
   if [[ $has_bg -eq 1 ]]; then
@@ -462,11 +485,11 @@ tabbing-status() {
       _tabbing_theme_list >&2
       return 1
     fi
-    export TAB_THEME="$opt_theme"
+    _tabbing_set theme "$opt_theme"
   fi
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
-    unset TAB_THEME
+    _tabbing_set theme ""
   fi
 
   if [[ $has_marquee -eq 1 ]]; then
@@ -479,7 +502,7 @@ tabbing-status() {
 
   # Bash: 0-based arrays
   if [[ ${#positional[@]} -ge 1 ]]; then
-    export TAB_STATUS="${positional[0]}"
+    _tabbing_set status "${positional[0]}"
   fi
 
   _tabbing_render
@@ -593,31 +616,31 @@ tabbing-todo() {
 # Read-only commands — pure delegation to bin/ scripts
 # ---------------------------------------------------------------------------
 tabbing-report() {
-  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-report" "$@"
+  "tabbing-report" "$@"
 }
 
 tabbing-history() {
-  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-history" "$@"
+  "tabbing-history" "$@"
 }
 
 tabbing-recordings() {
-  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-recordings" "$@"
+  "tabbing-recordings" "$@"
 }
 
 tabbing-clear() {
-  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-clear" "$@"
+  "tabbing-clear" "$@"
 }
 
 tabbing-info() {
-  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-info" "$@"
+  "tabbing-info" "$@"
 }
 
 tabbing-doctor() {
-  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-doctor" "$@"
+  "tabbing-doctor" "$@"
 }
 
 tabbing-theme() {
-  "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-theme" "$@"
+  "tabbing-theme" "$@"
 }
 
 # ---------------------------------------------------------------------------
@@ -664,11 +687,11 @@ tabbing-style() {
       --theme-list|--themes) _tabbing_theme_list; return ;;
       --color-list|--colors)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_color_list
-        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" colors; fi
+        else "tabbing-on" colors; fi
         return ;;
       --emoji-list|--emojis|-emojis)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
-        else "${TABBING_ROOT:-$_tabbing_root}/bin/tabbing-on" --emoji-list; fi
+        else "tabbing-on" --emoji-list; fi
         return ;;
 
       # -COLOR or -EMOJI shorthand
@@ -719,7 +742,7 @@ tabbing-style() {
       _tabbing_color_code "$opt_highlight"
       return 1
     fi
-    export TAB_HIGHLIGHT="$opt_highlight"
+    _tabbing_set highlight "$opt_highlight"
   fi
 
   if [[ $has_urgency -eq 1 ]]; then
@@ -727,7 +750,7 @@ tabbing-style() {
       echo "tabbing: urgency must be 0-5 (0=critical, 5=nominal)" >&2
       return 1
     fi
-    export TAB_URGENCY="$opt_urgency"
+    _tabbing_set urgency "$opt_urgency"
   fi
 
   if [[ $has_emoji -eq 1 ]]; then
@@ -735,10 +758,10 @@ tabbing-style() {
       _tabbing_emoji_lookup "$opt_emoji"
       return 1
     fi
-    export TAB_EMOJI="$opt_emoji"
+    _tabbing_set emoji "$opt_emoji"
   fi
   if [[ $no_emoji -eq 1 ]]; then
-    unset TAB_EMOJI
+    _tabbing_set emoji ""
   fi
 
   if [[ $has_bg -eq 1 ]]; then
@@ -759,11 +782,11 @@ tabbing-style() {
       _tabbing_theme_list >&2
       return 1
     fi
-    export TAB_THEME="$opt_theme"
+    _tabbing_set theme "$opt_theme"
   fi
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
-    unset TAB_THEME
+    _tabbing_set theme ""
   fi
 
   if [[ $has_marquee -eq 1 ]]; then

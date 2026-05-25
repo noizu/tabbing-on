@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # bin/tabbing-recordings — list/manage recordings CLI
 source "$(dirname "${BASH_SOURCE[0]}")/_tabbing-wrapper"
+_tabbing_check_version "$@"
 
 target_tab="${TAB_ID:-}"
 

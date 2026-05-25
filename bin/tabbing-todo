@@ -7,6 +7,7 @@
 #   --export-switch   Do file mutation, output export statements
 
 source "$(dirname "${BASH_SOURCE[0]}")/_tabbing-wrapper"
+_tabbing_check_version "$@"
 
 # Internal flags (used by adapter, short-circuit before arg parsing)
 case "${1:-}" in

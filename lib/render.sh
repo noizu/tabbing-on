@@ -9,6 +9,12 @@
 # Sourced by shell adapters at init time. All other functions
 # remain in core.sh/terminal.sh and are only loaded by bin/ scripts.
 
+TABBING_VERSION="0.2.0"
+
+_tabbing_print_version() {
+  printf 'tabbing-on %s\n' "$TABBING_VERSION"
+}
+
 # ---------------------------------------------------------------------------
 # State directory — lightweight copy for render.sh standalone use.
 # If history.sh is loaded later its definition takes precedence (same body).

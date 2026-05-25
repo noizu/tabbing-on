@@ -6,6 +6,12 @@
 
 set -e
 
+case "${1:-}" in --version|-V)
+  _dr="$(cd "$(dirname "$0")/.." && pwd)"
+  [ ! -f "$_dr/lib/render.sh" ] && _dr="${XDG_DATA_HOME:-$HOME/.local/share}/tabbing-on"
+  . "$_dr/lib/render.sh"; _tabbing_print_version; exit 0 ;;
+esac
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

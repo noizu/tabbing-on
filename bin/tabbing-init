@@ -9,8 +9,31 @@
 
 set -e
 
-# Resolve the tabbing-on root directory (parent of bin/)
-TABBING_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Resolve the tabbing-on root directory
+# Source tree: bin/ is sibling to lib/ and shell/
+# Installed:   bin/ is ~/.local/bin, libs are in ~/.local/share/tabbing-on
+_tabbing_parent="$(cd "$(dirname "$0")/.." && pwd)"
+if [ -d "$_tabbing_parent/lib" ] && [ -f "$_tabbing_parent/lib/render.sh" ]; then
+  TABBING_ROOT="$_tabbing_parent"
+else
+  TABBING_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/tabbing-on"
+fi
+if [ ! -f "$TABBING_ROOT/lib/render.sh" ]; then
+  printf 'tabbing-init: cannot find lib/render.sh in %s\n' "$TABBING_ROOT" >&2
+  printf 'Run "make install" from the tabbing-on source tree.\n' >&2
+  exit 1
+fi
+
+# Parse flags
+_dc_mode=0
+_positional=""
+for _arg in "$@"; do
+  case "$_arg" in
+    --direnv-config-mode) _dc_mode=1 ;;
+    *) _positional="${_positional:+$_positional }$_arg" ;;
+  esac
+done
+set -- $_positional
 
 _emit_checks() {
   _shell="$1"
@@ -78,18 +101,37 @@ fi
 CHECKS
 }
 
+_emit_dc_init() {
+  _shell="$1"
+  cat <<DCINIT
+# tabbing-on: direnv-config mode — load dc tab state
+source "$TABBING_ROOT/lib/dc.sh"
+_tabbing_dc_init
+DCINIT
+}
+
 case "${1:-}" in
   bash)
     printf 'export TABBING_ROOT="%s"\n' "$TABBING_ROOT"
-    printf 'export PATH="%s/bin:$PATH"\n' "$TABBING_ROOT"
+    if [ "$_dc_mode" = "1" ]; then
+      printf 'export TABBING_ON_DC_MODE=1\n'
+    fi
     printf 'source "%s/shell/tabbing.bash"\n' "$TABBING_ROOT"
     _emit_checks bash
+    if [ "$_dc_mode" = "1" ]; then
+      _emit_dc_init bash
+    fi
     ;;
   zsh)
     printf 'export TABBING_ROOT="%s"\n' "$TABBING_ROOT"
-    printf 'export PATH="%s/bin:$PATH"\n' "$TABBING_ROOT"
+    if [ "$_dc_mode" = "1" ]; then
+      printf 'export TABBING_ON_DC_MODE=1\n'
+    fi
     printf 'source "%s/shell/tabbing.zsh"\n' "$TABBING_ROOT"
     _emit_checks zsh
+    if [ "$_dc_mode" = "1" ]; then
+      _emit_dc_init zsh
+    fi
     ;;
   bat|cmd|windows)
     printf '@echo off\n'

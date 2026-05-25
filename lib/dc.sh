@@ -1,0 +1,153 @@
+#!/bin/sh
+# lib/dc.sh — direnv-config (dc) integration layer for tabbing-on
+#
+# When TABBING_ON_DC_MODE=1 (or --direnv-config-mode), tab state is
+# read from and written to the dc "tab" named config. Changes bump
+# the dc store version, which notifies other watchers (precmd hook,
+# tabbing-daemon) to pick up the new state.
+
+# ---------------------------------------------------------------------------
+# Guard: dc mode active?
+# ---------------------------------------------------------------------------
+_tabbing_dc_enabled() {
+  [ "${TABBING_ON_DC_MODE:-0}" = "1" ] && command -v dc >/dev/null 2>&1
+}
+
+# ---------------------------------------------------------------------------
+# Read all tab state from dc into TAB_* env vars
+# ---------------------------------------------------------------------------
+_tabbing_dc_load() {
+  _tabbing_dc_enabled || return 0
+
+  _val="$(dc get tab title --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_TITLE="$_val"
+  _val="$(dc get tab status --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_STATUS="$_val"
+  _val="$(dc get tab highlight --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_HIGHLIGHT="$_val"
+  _val="$(dc get tab urgency --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_URGENCY="$_val"
+  _val="$(dc get tab emoji --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_EMOJI="$_val"
+  _val="$(dc get tab theme --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_THEME="$_val"
+
+  export TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_THEME
+  unset _val
+}
+
+# ---------------------------------------------------------------------------
+# Write a single tab key to dc (bumps version, triggering watchers)
+# ---------------------------------------------------------------------------
+_tabbing_dc_set() {
+  _tabbing_dc_enabled || return 0
+  _key="$1"
+  _value="$2"
+  dc set tab "$_key" "$_value" 2>/dev/null
+  _tabbing_dc_bump_timestamp
+  _tabbing_dc_notify_daemon
+}
+
+# ---------------------------------------------------------------------------
+# Send SIGUSR1 to the daemon to trigger an immediate refresh.
+# Falls back silently if no daemon is running.
+# ---------------------------------------------------------------------------
+_tabbing_dc_notify_daemon() {
+  if [ -n "${TABBING_DC_DAEMON_PID:-}" ] && kill -0 "$TABBING_DC_DAEMON_PID" 2>/dev/null; then
+    kill -USR1 "$TABBING_DC_DAEMON_PID" 2>/dev/null || true
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Bump the last_update timestamp (millisecond epoch) so the daemon can
+# detect changes by checking a single value.
+# ---------------------------------------------------------------------------
+_tabbing_dc_bump_timestamp() {
+  _tabbing_dc_enabled || return 0
+  if command -v gdate >/dev/null 2>&1; then
+    _ts="$(gdate +%s%3N)"
+  elif date +%s%3N >/dev/null 2>&1; then
+    _ts="$(date +%s%3N)"
+  else
+    _ts="$(date +%s)000"
+  fi
+  dc set tab last_update "$_ts" 2>/dev/null
+}
+
+# ---------------------------------------------------------------------------
+# Set a TAB_* variable and write-through to dc if dc mode is active.
+# Usage: _tabbing_set <key> <value>
+#   key: lowercase dc key name (title, status, highlight, urgency, emoji, theme)
+# Sets the corresponding TAB_* env var AND calls dc set immediately.
+# ---------------------------------------------------------------------------
+_tabbing_set() {
+  _key="$1"
+  _value="$2"
+  case "$_key" in
+    title)     export TAB_TITLE="$_value" ;;
+    status)    export TAB_STATUS="$_value" ;;
+    highlight) export TAB_HIGHLIGHT="$_value" ;;
+    urgency)   export TAB_URGENCY="$_value" ;;
+    emoji)     export TAB_EMOJI="$_value" ;;
+    theme)     export TAB_THEME="$_value" ;;
+  esac
+  _tabbing_dc_set "$_key" "$_value"
+}
+
+# ---------------------------------------------------------------------------
+# Write all current TAB_* state to dc in one shot
+# Uses dc yaml to merge a YAML blob into the tab config
+# ---------------------------------------------------------------------------
+_tabbing_dc_save() {
+  _tabbing_dc_enabled || return 0
+  _tabbing_dc_bump_timestamp
+  _ts="$(dc get tab last_update --raw 2>/dev/null)"
+  printf 'title: %s\nstatus: %s\nhighlight: %s\nurgency: %s\nemoji: %s\ntheme: %s\nlast_update: %s\n' \
+    "${TAB_TITLE:-}" "${TAB_STATUS:-}" "${TAB_HIGHLIGHT:-}" \
+    "${TAB_URGENCY:-}" "${TAB_EMOJI:-}" "${TAB_THEME:-}" "${_ts:-0}" \
+    | dc yaml tab --replace 2>/dev/null
+  _tabbing_dc_notify_daemon
+}
+
+# ---------------------------------------------------------------------------
+# Get the current dc store version (for daemon polling)
+# ---------------------------------------------------------------------------
+_tabbing_dc_version() {
+  if [ -n "${DC_ROOT:-}" ] && [ -f "${DC_ROOT}/.version" ]; then
+    cat "${DC_ROOT}/.version" 2>/dev/null
+  else
+    printf '0'
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Initialize dc tab config if it doesn't exist
+# Seeds with current TAB_* state so dc has something to serve
+# ---------------------------------------------------------------------------
+_tabbing_dc_init() {
+  _tabbing_dc_enabled || return 1
+  _existing="$(dc get tab title --raw 2>/dev/null)"
+  if [ -z "$_existing" ]; then
+    _tabbing_dc_save
+  else
+    _tabbing_dc_load
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Ensure daemon is running for this session. Uses TABBING_DC_DAEMON_PID
+# env var as a fast check — only hits the pidfile/start path if unset or stale.
+# ---------------------------------------------------------------------------
+_tabbing_dc_ensure_daemon() {
+  _tabbing_dc_enabled || return 0
+  if [ -n "${TABBING_DC_DAEMON_PID:-}" ] && kill -0 "$TABBING_DC_DAEMON_PID" 2>/dev/null; then
+    return 0
+  fi
+  # Find tabbing-daemon: on PATH first, then relative to TABBING_ROOT
+  if command -v tabbing-daemon >/dev/null 2>&1; then
+    tabbing-daemon start 2>/dev/null || true
+  else
+    _dr="${TABBING_ROOT:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)}"
+    [ -z "$_dr" ] && return 0
+    "$_dr/bin/tabbing-daemon" start 2>/dev/null || true
+  fi
+  _pf="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/tabbing-daemon.${TAB_SESSION:-$$}.pid"
+  if [ -f "$_pf" ]; then
+    TABBING_DC_DAEMON_PID="$(cat "$_pf")"
+    export TABBING_DC_DAEMON_PID
+  fi
+}

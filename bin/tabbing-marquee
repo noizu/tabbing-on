@@ -16,6 +16,12 @@
 
 set -e
 
+case "${1:-}" in --version|-V)
+  _dr="$(cd "$(dirname "$0")/.." && pwd)"
+  [ ! -f "$_dr/lib/render.sh" ] && _dr="${XDG_DATA_HOME:-$HOME/.local/share}/tabbing-on"
+  . "$_dr/lib/render.sh"; _tabbing_print_version; exit 0 ;;
+esac
+
 # Output helper — use stdout when inside Claude Code, /dev/tty otherwise
 _tabbing_tty_printf() {
   if [[ "${CLAUDECODE}" == "1" ]; then
