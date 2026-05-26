@@ -52,6 +52,10 @@ _daemon_loop() {
   local marquee_offset=0
   local force_refresh=0
 
+  # Session-scoped dc namespace
+  local dc_ns="tab"
+  [ -n "${TAB_SESSION:-}" ] && dc_ns="tab-${TAB_SESSION}"
+
   # Cached dc values
   local c_title="" c_status="" c_highlight="" c_urgency="" c_emoji=""
 
@@ -66,7 +70,7 @@ _daemon_loop() {
 
     # Fast check: has anything changed?
     local cur_update=""
-    cur_update="$(dc get tab last_update --raw 2>/dev/null || true)"
+    cur_update="$(dc get "$dc_ns" last_update --raw 2>/dev/null || true)"
     [ -z "$cur_update" ] && continue
 
     if [ "$force_refresh" -eq 1 ]; then
@@ -85,11 +89,11 @@ _daemon_loop() {
     last_seen_update="$cur_update"
     marquee_offset=0
 
-    c_title="$(dc get tab title --raw 2>/dev/null)" || true
-    c_status="$(dc get tab status --raw 2>/dev/null)" || true
-    c_highlight="$(dc get tab highlight --raw 2>/dev/null)" || true
-    c_urgency="$(dc get tab urgency --raw 2>/dev/null)" || true
-    c_emoji="$(dc get tab emoji --raw 2>/dev/null)" || true
+    c_title="$(dc get "$dc_ns" title --raw 2>/dev/null)" || true
+    c_status="$(dc get "$dc_ns" status --raw 2>/dev/null)" || true
+    c_highlight="$(dc get "$dc_ns" highlight --raw 2>/dev/null)" || true
+    c_urgency="$(dc get "$dc_ns" urgency --raw 2>/dev/null)" || true
+    c_emoji="$(dc get "$dc_ns" emoji --raw 2>/dev/null)" || true
 
     export TAB_TITLE="$c_title" TAB_STATUS="$c_status" TAB_HIGHLIGHT="$c_highlight"
     export TAB_URGENCY="$c_urgency" TAB_EMOJI="$c_emoji"

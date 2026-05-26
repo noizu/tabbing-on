@@ -144,7 +144,7 @@ tabbing-on() {
         _tabbing_theme_list; return ;;
       --color-list|--colors)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_color_list
-        else "tabbing-on" colors; fi
+        else command tabbing-on colors; fi
         return ;;
 
       -m|--marquee)    has_marquee=1; shift ;;
@@ -154,26 +154,26 @@ tabbing-on() {
       -emoji:*|--emoji-search=*)
         local _efilter="${1#*[=:]}"
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_search "$_efilter" | _tabbing_pager
-        else "tabbing-on" --emoji-search="$_efilter"; fi
+        else command tabbing-on --emoji-search="$_efilter"; fi
         return ;;
       --emoji-search)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_search "$2"
-        else "tabbing-on" --emoji-search="$2"; fi
+        else command tabbing-on --emoji-search="$2"; fi
         return ;;
 
       # Subcommands: use full libs if available, else delegate to bin/
       --emoji-list|--emojis|-emojis)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
-        else "tabbing-on" --emoji-list; fi
+        else command tabbing-on --emoji-list; fi
         return ;;
       --version) _tabbing_print_version; return ;;
       --help)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_help
-        else "tabbing-on" --help; fi
+        else command tabbing-on --help; fi
         return ;;
       --terminal-info)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_terminal_info
-        else "tabbing-on" --terminal-info; fi
+        else command tabbing-on --terminal-info; fi
         return ;;
 
       --claude)  has_claude=1; shift; claude_args=("$@"); break ;;
@@ -211,7 +211,7 @@ tabbing-on() {
                 case "$answer" in
                   [yY]|[yY][eE][sS])
                     if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
-                    else "tabbing-on" --emoji-list; fi
+                    else command tabbing-on --emoji-list; fi
                     return ;;
                 esac ;;
             esac
@@ -236,17 +236,17 @@ tabbing-on() {
     case "${positional[0]}" in
       emojis|emoji-list)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
-        else "tabbing-on" --emoji-list; fi
+        else command tabbing-on --emoji-list; fi
         return ;;
       colors|color-list)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_color_list
-        else "tabbing-on" colors; fi
+        else command tabbing-on colors; fi
         return ;;
       themes|theme-list)
         _tabbing_theme_list; return ;;
       help)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_help
-        else "tabbing-on" --help; fi
+        else command tabbing-on --help; fi
         return ;;
       emoji|emjois|emojsi|emojs|emojies|emoj|eomjis|emjis|emois|emoij|emojii|emoijis|emojss|ejmois)
         printf 'tabbing: did you mean "emojis"? [y/N] '
@@ -255,7 +255,7 @@ tabbing-on() {
         case "$answer" in
           [yY]|[yY][eE][sS])
             if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
-            else "tabbing-on" --emoji-list; fi
+            else command tabbing-on --emoji-list; fi
             return ;;
         esac
         ;;
@@ -616,31 +616,31 @@ tabbing-todo() {
 # Read-only commands — pure delegation to bin/ scripts
 # ---------------------------------------------------------------------------
 tabbing-report() {
-  "tabbing-report" "$@"
+  command tabbing-report "$@"
 }
 
 tabbing-history() {
-  "tabbing-history" "$@"
+  command tabbing-history "$@"
 }
 
 tabbing-recordings() {
-  "tabbing-recordings" "$@"
+  command tabbing-recordings "$@"
 }
 
 tabbing-clear() {
-  "tabbing-clear" "$@"
+  command tabbing-clear "$@"
 }
 
 tabbing-info() {
-  "tabbing-info" "$@"
+  command tabbing-info "$@"
 }
 
 tabbing-doctor() {
-  "tabbing-doctor" "$@"
+  command tabbing-doctor "$@"
 }
 
 tabbing-theme() {
-  "tabbing-theme" "$@"
+  command tabbing-theme "$@"
 }
 
 # ---------------------------------------------------------------------------
@@ -687,11 +687,11 @@ tabbing-style() {
       --theme-list|--themes) _tabbing_theme_list; return ;;
       --color-list|--colors)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_color_list
-        else "tabbing-on" colors; fi
+        else command tabbing-on colors; fi
         return ;;
       --emoji-list|--emojis|-emojis)
         if [ -n "${_TABBING_FULL_LIBS:-}" ]; then _tabbing_emoji_list | _tabbing_pager
-        else "tabbing-on" --emoji-list; fi
+        else command tabbing-on --emoji-list; fi
         return ;;
 
       # -COLOR or -EMOJI shorthand

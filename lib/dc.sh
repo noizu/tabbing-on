@@ -14,20 +14,35 @@ _tabbing_dc_enabled() {
 }
 
 # ---------------------------------------------------------------------------
+# Session-scoped dc namespace.
+# Returns "tab-{TAB_SESSION}" so multiple tabs in the same directory
+# each get their own dc keyspace. Child processes inherit TAB_SESSION
+# and share the parent's namespace.
+# ---------------------------------------------------------------------------
+_tabbing_dc_ns() {
+  if [ -n "${TAB_SESSION:-}" ]; then
+    printf 'tab-%s' "$TAB_SESSION"
+  else
+    printf 'tab'
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Read all tab state from dc into TAB_* env vars
 # ---------------------------------------------------------------------------
 _tabbing_dc_load() {
   _tabbing_dc_enabled || return 0
+  _ns="$(_tabbing_dc_ns)"
 
-  _val="$(dc get tab title --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_TITLE="$_val"
-  _val="$(dc get tab status --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_STATUS="$_val"
-  _val="$(dc get tab highlight --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_HIGHLIGHT="$_val"
-  _val="$(dc get tab urgency --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_URGENCY="$_val"
-  _val="$(dc get tab emoji --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_EMOJI="$_val"
-  _val="$(dc get tab theme --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_THEME="$_val"
+  _val="$(dc get "$_ns" title --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_TITLE="$_val"
+  _val="$(dc get "$_ns" status --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_STATUS="$_val"
+  _val="$(dc get "$_ns" highlight --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_HIGHLIGHT="$_val"
+  _val="$(dc get "$_ns" urgency --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_URGENCY="$_val"
+  _val="$(dc get "$_ns" emoji --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_EMOJI="$_val"
+  _val="$(dc get "$_ns" theme --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_THEME="$_val"
 
   export TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_THEME
-  unset _val
+  unset _val _ns
 }
 
 # ---------------------------------------------------------------------------
@@ -37,7 +52,7 @@ _tabbing_dc_set() {
   _tabbing_dc_enabled || return 0
   _key="$1"
   _value="$2"
-  dc set tab "$_key" "$_value" 2>/dev/null
+  dc set "$(_tabbing_dc_ns)" "$_key" "$_value" 2>/dev/null
   _tabbing_dc_bump_timestamp
   _tabbing_dc_notify_daemon
 }
@@ -65,7 +80,7 @@ _tabbing_dc_bump_timestamp() {
   else
     _ts="$(date +%s)000"
   fi
-  dc set tab last_update "$_ts" 2>/dev/null
+  dc set "$(_tabbing_dc_ns)" last_update "$_ts" 2>/dev/null
 }
 
 # ---------------------------------------------------------------------------
@@ -94,12 +109,13 @@ _tabbing_set() {
 # ---------------------------------------------------------------------------
 _tabbing_dc_save() {
   _tabbing_dc_enabled || return 0
+  _ns="$(_tabbing_dc_ns)"
   _tabbing_dc_bump_timestamp
-  _ts="$(dc get tab last_update --raw 2>/dev/null)"
+  _ts="$(dc get "$_ns" last_update --raw 2>/dev/null)"
   printf 'title: %s\nstatus: %s\nhighlight: %s\nurgency: %s\nemoji: %s\ntheme: %s\nlast_update: %s\n' \
     "${TAB_TITLE:-}" "${TAB_STATUS:-}" "${TAB_HIGHLIGHT:-}" \
     "${TAB_URGENCY:-}" "${TAB_EMOJI:-}" "${TAB_THEME:-}" "${_ts:-0}" \
-    | dc yaml tab --replace 2>/dev/null
+    | dc yaml "$_ns" --replace 2>/dev/null
   _tabbing_dc_notify_daemon
 }
 
@@ -120,7 +136,7 @@ _tabbing_dc_version() {
 # ---------------------------------------------------------------------------
 _tabbing_dc_init() {
   _tabbing_dc_enabled || return 1
-  _existing="$(dc get tab title --raw 2>/dev/null)"
+  _existing="$(dc get "$(_tabbing_dc_ns)" title --raw 2>/dev/null)"
   if [ -z "$_existing" ]; then
     _tabbing_dc_save
   else
