@@ -957,6 +957,12 @@ _tabbing_send_title() {
 
   _tabbing_tty_printf '\033]0;%s\007' "$title"
 
+  # Set Zellij tab name when running inside a Zellij session
+  # Run in a subshell to suppress zsh job-control "done" notifications
+  if [ -n "${ZELLIJ:-}" ] && command -v zellij >/dev/null 2>&1; then
+    (zellij action rename-tab "$title" 2>/dev/null &)
+  fi
+
   # Push state to bridge pipe(s) if active
   if [ -n "${TABBING_PIPE:-}" ] && [ -p "${TABBING_PIPE}" ]; then
     _tabbing_claude_write_pipe
@@ -988,6 +994,9 @@ _tabbing_claude_write_pipe_to() {
 # ---------------------------------------------------------------------------
 _tabbing_clear_title() {
   _tabbing_tty_printf '\033]2;\007'
+  if [ -n "${ZELLIJ:-}" ] && command -v zellij >/dev/null 2>&1; then
+    (zellij action rename-tab "" 2>/dev/null &)
+  fi
 }
 
 # ---------------------------------------------------------------------------

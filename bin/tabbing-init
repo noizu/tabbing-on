@@ -112,6 +112,14 @@ DCINIT
 
 case "${1:-}" in
   bash)
+    # Purge inherited TAB_*/TABBING_* env vars from parent sessions
+    cat <<'PURGE'
+unset TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_THEME
+unset TAB_TERMINAL TAB_SESSION TAB_ID TAB_COLOR_SUPPORT
+unset TABBING_TTY TABBING_DC_DAEMON_PID
+unset TABBING_PIPE TABBING_RUN_WITH_PIPE
+unset CLAUDE_CODE_DISABLE_TERMINAL_TITLE
+PURGE
     printf 'export TABBING_ROOT="%s"\n' "$TABBING_ROOT"
     if [ "$_dc_mode" = "1" ]; then
       printf 'export TABBING_ON_DC_MODE=1\n'
@@ -123,6 +131,14 @@ case "${1:-}" in
     fi
     ;;
   zsh)
+    # Purge inherited TAB_*/TABBING_* env vars from parent sessions
+    cat <<'PURGE'
+unset TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_THEME
+unset TAB_TERMINAL TAB_SESSION TAB_ID TAB_COLOR_SUPPORT
+unset TABBING_TTY TABBING_DC_DAEMON_PID
+unset TABBING_PIPE TABBING_RUN_WITH_PIPE
+unset CLAUDE_CODE_DISABLE_TERMINAL_TITLE
+PURGE
     printf 'export TABBING_ROOT="%s"\n' "$TABBING_ROOT"
     if [ "$_dc_mode" = "1" ]; then
       printf 'export TABBING_ON_DC_MODE=1\n'

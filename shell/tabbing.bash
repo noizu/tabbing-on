@@ -28,11 +28,7 @@ if [[ -z "${TABBING_TTY:-}" ]]; then
   export TABBING_TTY
 fi
 
-# If dc mode is active, load state and start daemon
-if _tabbing_dc_enabled; then
-  _tabbing_dc_load
-  _tabbing_dc_ensure_daemon
-fi
+# dc state and daemon are deferred until tabbing-on is explicitly called
 
 # ---------------------------------------------------------------------------
 # Inline: detect terminal emulator (runs once at init)

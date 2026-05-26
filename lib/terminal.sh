@@ -32,6 +32,8 @@ _tabbing_detect_terminal() {
     TAB_TERMINAL="gnome-terminal"
   elif [ -n "${TMUX:-}" ]; then
     TAB_TERMINAL="tmux"
+  elif [ -n "${ZELLIJ:-}" ]; then
+    TAB_TERMINAL="zellij"
   elif [ "${TERM:-}" = "xterm" ] || [ "${TERM:-}" = "xterm-256color" ]; then
     TAB_TERMINAL="xterm"
   else
@@ -96,6 +98,9 @@ _tabbing_clear_badge() {
 # ---------------------------------------------------------------------------
 _tabbing_terminal_info() {
   printf 'Terminal: %s\n' "${TAB_TERMINAL:-unknown}"
+  if [ -n "${ZELLIJ:-}" ]; then
+    printf 'Zellij:   yes (tab rename via zellij action)\n'
+  fi
   printf 'Features:\n'
   printf '  Title (OSC 0):  yes (universal)\n'
   case "${TAB_TERMINAL:-unknown}" in
@@ -113,6 +118,12 @@ _tabbing_terminal_info() {
       printf '  Tab Color:      yes (kitty remote control)\n'
       printf '  Background:     yes (OSC 11)\n'
       printf '  Badge:          no\n'
+      ;;
+    zellij)
+      printf '  Tab Color:      no\n'
+      printf '  Background:     yes (OSC 11, passthrough)\n'
+      printf '  Badge:          no\n'
+      printf '  Zellij Tab:     yes (zellij action rename-tab)\n'
       ;;
     wezterm|xterm)
       printf '  Tab Color:      no\n'
