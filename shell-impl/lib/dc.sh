@@ -15,16 +15,32 @@ _tabbing_dc_enabled() {
 
 # ---------------------------------------------------------------------------
 # Session-scoped dc namespace.
-# Returns "tab-{TAB_SESSION}" so multiple tabs in the same directory
-# each get their own dc keyspace. Child processes inherit TAB_SESSION
-# and share the parent's namespace.
+# Returns "tab-{TABBING_DC_UUID}" so each terminal tab/pane gets its
+# own dc keyspace. The UUID is generated once at shell init time,
+# preventing stale dc values from previous sessions or other tabs
+# from leaking in. Regenerated for new Zellij panes to avoid cloned
+# UUIDs from pane splits. Child processes inherit TABBING_DC_UUID.
 # ---------------------------------------------------------------------------
 _tabbing_dc_ns() {
-  if [ -n "${TAB_SESSION:-}" ]; then
-    printf 'tab-%s' "$TAB_SESSION"
+  if [ -n "${TABBING_DC_UUID:-}" ]; then
+    printf 'tab-%s' "$TABBING_DC_UUID"
   else
     printf 'tab'
   fi
+}
+
+# ---------------------------------------------------------------------------
+# Generate a dc UUID for this terminal session. Called once at shell init
+# (by tabbing.zsh/tabbing.bash) to establish the session's dc scope.
+# ---------------------------------------------------------------------------
+_tabbing_dc_gen_uuid() {
+  if [ -r /dev/urandom ]; then
+    TABBING_DC_UUID="$(od -An -tx1 -N8 /dev/urandom 2>/dev/null | tr -d ' \n')"
+  fi
+  if [ -z "${TABBING_DC_UUID:-}" ]; then
+    TABBING_DC_UUID="$(printf '%04x%04x%04x%04x' $$ "$(date +%s)" $RANDOM $RANDOM | cut -c1-16)"
+  fi
+  export TABBING_DC_UUID
 }
 
 # ---------------------------------------------------------------------------
@@ -136,12 +152,9 @@ _tabbing_dc_version() {
 # ---------------------------------------------------------------------------
 _tabbing_dc_init() {
   _tabbing_dc_enabled || return 1
-  _existing="$(dc get "$(_tabbing_dc_ns)" title --raw 2>/dev/null)"
-  if [ -z "$_existing" ]; then
-    _tabbing_dc_save
-  else
-    _tabbing_dc_load
-  fi
+  # With UUID-scoped namespaces, a fresh UUID always means fresh state.
+  # Seed dc with current TAB_* env vars.
+  _tabbing_dc_save
 }
 
 # ---------------------------------------------------------------------------

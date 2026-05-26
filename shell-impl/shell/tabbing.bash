@@ -73,6 +73,26 @@ if [ -z "${TAB_SESSION:-}" ]; then
   export TAB_SESSION
 fi
 
+# ---------------------------------------------------------------------------
+# Inline: generate dc UUID once per terminal session
+# Scopes dc keys to this tab/pane so daemons don't cross-read state from
+# other tabs. Regenerated in new Zellij panes (ZELLIJ_PANE_ID changes)
+# to avoid cloned UUIDs from pane splits.
+# ---------------------------------------------------------------------------
+if _tabbing_dc_enabled; then
+  _tabbing_need_uuid=0
+  if [ -z "${TABBING_DC_UUID:-}" ]; then
+    _tabbing_need_uuid=1
+  elif [ -n "${ZELLIJ_PANE_ID:-}" ] && [ "${_TABBING_DC_ZELLIJ_PANE:-}" != "${ZELLIJ_PANE_ID}" ]; then
+    _tabbing_need_uuid=1
+  fi
+  if [ "$_tabbing_need_uuid" -eq 1 ]; then
+    _tabbing_dc_gen_uuid
+    _TABBING_DC_ZELLIJ_PANE="${ZELLIJ_PANE_ID:-}"
+  fi
+  unset _tabbing_need_uuid
+fi
+
 # Known color names for -color shorthand matching (bash array)
 _tabbing_known_colors=(
   black red green yellow blue magenta cyan white
@@ -827,17 +847,36 @@ tabbing-off() {
   . "${_tabbing_root}/lib/terminal.sh"
   _tabbing_clear_tab_color
   _tabbing_clear_badge
+  # Remove session file so precmd doesn't resurrect state
+  if [[ -n "${TAB_SESSION:-}" ]]; then
+    rm -f "${XDG_STATE_HOME:-$HOME/.local/state}/tabbing/sessions/${TAB_SESSION}.env"
+  fi
   unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_BG TAB_THEME TAB_ID TAB_RECORDING
-  unset _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE
+  unset TABBING_DC_UUID TABBING_DC_DAEMON_PID _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE
   _tabbing_out 'tabbing: off\n'
 }
 
 # ---------------------------------------------------------------------------
 # Prompt hook: tab title re-render + optional inline prompt prefix
 # Auto-registered — lightweight no-op when tabbing is not active.
-# Set TABBING_PROMPT=1 to prepend [indicator Title: Status] to your prompt.
+#
+# Direnv guard: if tabbing-on was previously active (_TABBING_WAS_ACTIVE)
+# but TAB_TITLE is now empty (direnv clobbered it on cd), restore from
+# the session file. The session file is the source of truth for
+# interactively-set state.
 # ---------------------------------------------------------------------------
 _tabbing_precmd() {
+  if [[ -n "${_TABBING_WAS_ACTIVE:-}" && -z "${TAB_TITLE:-}" && -n "${TAB_SESSION:-}" ]]; then
+    local _sf="${XDG_STATE_HOME:-$HOME/.local/state}/tabbing/sessions/${TAB_SESSION}.env"
+    if [[ -f "$_sf" ]]; then
+      . "$_sf"
+      export TAB_ID TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_THEME TAB_TERMINAL TABBING_DC_UUID
+      if [[ -n "${TAB_THEME:-}" ]]; then
+        _tabbing_apply_named_theme "$TAB_THEME" 2>/dev/null
+      fi
+    fi
+  fi
+
   if [[ -n "${TAB_TITLE:-}" ]]; then
     _tabbing_render
     _TABBING_WAS_ACTIVE=1
@@ -845,9 +884,6 @@ _tabbing_precmd() {
     _tabbing_clear_title
     unset _TABBING_WAS_ACTIVE
   fi
-
-  # TODO: TABBING_PROMPT — inline prompt prefix is disabled pending fix
-  # for escape sequence / cursor corruption on Ghostty and Kitty.
 }
 
 # Register hook — append so we run LAST,

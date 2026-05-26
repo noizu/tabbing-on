@@ -52,9 +52,11 @@ _daemon_loop() {
   local marquee_offset=0
   local force_refresh=0
 
-  # Session-scoped dc namespace
+  # Session-scoped dc namespace (matches _tabbing_dc_ns in dc.sh)
   local dc_ns="tab"
-  [ -n "${TAB_SESSION:-}" ] && dc_ns="tab-${TAB_SESSION}"
+  if [ -n "${TABBING_DC_UUID:-}" ]; then
+    dc_ns="tab-${TABBING_DC_UUID}"
+  fi
 
   # Cached dc values
   local c_title="" c_status="" c_highlight="" c_urgency="" c_emoji=""
