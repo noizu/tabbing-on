@@ -6,9 +6,10 @@ SHELL_DIR   := shell-impl
 INK_PLAN_DIR := ink-plan
 DIRENV_LIB  := $(HOME)/.config/direnv/lib
 
-SYMLINKS := tabbing-status tabbing-info tabbing-clear tabbing-todo tabbing-report \
+SYMLINKS := tabbing-off tabbing-status tabbing-info tabbing-clear tabbing-todo tabbing-report \
             tabbing-history tabbing-recordings tabbing-doctor tabbing-marquee \
-            tabbing-init tabbing-theme tabbing-claude-statusline tabbing-plan task-memo
+            tabbing-init tabbing-theme tabbing-style tabbing-claude-statusline tabbing-plan task-memo \
+            demo-runner tabbing-daemon
 
 .PHONY: compile test install install-shell install-ink uninstall uninstall-shell uninstall-ink clean
 

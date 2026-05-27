@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::{self, Write};
 use std::path::PathBuf;
 
 use crate::state::state_dir;
@@ -95,10 +96,7 @@ pub fn todo_add(tab_id: &str, tab_title: &str, title: &str, description: &str, e
     let _ = fs::OpenOptions::new()
         .append(true)
         .open(&path)
-        .and_then(|mut f| {
-            use std::io::Write;
-            f.write_all(entry.as_bytes())
-        });
+        .and_then(|mut f| f.write_all(entry.as_bytes()));
 
     bump_next_id(&path);
 
@@ -427,6 +425,112 @@ todos:
         assert!(result.contains("    status: \"pending\""));
         // Second should be activated
         assert!(result.contains("    status: \"active\""));
+    }
+}
+
+/// Interactive picker for pending todos.
+/// Displays a navigable list; Enter switches to the selected todo.
+pub fn todo_pick(tab_id: &str) {
+    use crossterm::event::{self, Event, KeyCode};
+    use crossterm::terminal::{enable_raw_mode, disable_raw_mode};
+
+    let path = todo_file(tab_id);
+    let content = match fs::read_to_string(&path) {
+        Ok(c) => c,
+        Err(_) => {
+            println!("No todos for this tab.");
+            return;
+        }
+    };
+
+    let items = parse_todos(&content);
+    let pending: Vec<&TodoItem> = items.iter().filter(|i| i.status == "pending").collect();
+
+    if pending.is_empty() {
+        println!("No pending todos.");
+        return;
+    }
+
+    let mut cursor: usize = 0;
+    let mut stdout = io::stdout();
+
+    if enable_raw_mode().is_err() {
+        eprintln!("tabbing: failed to enter raw mode");
+        return;
+    }
+
+    // Hide cursor and draw initial list
+    let _ = write!(stdout, "\x1b[?25l");
+    draw_pick_list(&mut stdout, &pending, cursor);
+
+    loop {
+        if let Ok(Event::Key(key)) = event::read() {
+            match key.code {
+                KeyCode::Up | KeyCode::Char('k') => {
+                    if cursor > 0 {
+                        cursor -= 1;
+                    }
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    if cursor + 1 < pending.len() {
+                        cursor += 1;
+                    }
+                }
+                KeyCode::Enter => {
+                    let _ = disable_raw_mode();
+                    // Show cursor, clear the picker lines
+                    let _ = write!(stdout, "\x1b[?25h");
+                    clear_pick_list(&mut stdout, pending.len());
+                    let _ = stdout.flush();
+                    todo_switch(tab_id, &pending[cursor].id);
+                    return;
+                }
+                KeyCode::Char('q') | KeyCode::Esc => {
+                    let _ = disable_raw_mode();
+                    let _ = write!(stdout, "\x1b[?25h");
+                    clear_pick_list(&mut stdout, pending.len());
+                    let _ = stdout.flush();
+                    eprintln!("tabbing: cancelled");
+                    return;
+                }
+                _ => {}
+            }
+            draw_pick_list(&mut stdout, &pending, cursor);
+        }
+    }
+}
+
+/// Render the pick list to stdout, moving the cursor back to overwrite.
+fn draw_pick_list(stdout: &mut (impl io::Write + ?Sized), items: &[&TodoItem], cursor: usize) {
+    for i in 0..items.len() {
+        let marker = if i == cursor { "\u{25b8}" } else { " " };
+        let emoji_part = if items[i].emoji.is_empty() {
+            String::new()
+        } else {
+            format!(" [{}]", items[i].emoji)
+        };
+        let _ = write!(
+            stdout,
+            "\r\x1b[K  {} #{:<3} {}{}\n",
+            marker, items[i].id, items[i].title, emoji_part
+        );
+    }
+    // Move cursor back up to top of list
+    if items.len() > 1 {
+        let _ = write!(stdout, "\x1b[{}A", items.len());
+    } else if !items.is_empty() {
+        let _ = write!(stdout, "\x1b[1A");
+    }
+    let _ = stdout.flush();
+}
+
+/// Clear the picker lines from the terminal.
+fn clear_pick_list(stdout: &mut impl io::Write, count: usize) {
+    for _ in 0..count {
+        let _ = write!(stdout, "\r\x1b[K\n");
+    }
+    if count > 0 {
+        let _ = write!(stdout, "\x1b[{}A", count);
     }
 }
 

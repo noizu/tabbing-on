@@ -13,7 +13,7 @@ use std::path::PathBuf;
 // ============================================================================
 
 /// Each entry is (name, &[bg, fg, cursor, c0..c15]).
-const BUILTIN_THEMES: &[(&str, &[&str; 19])] = &[
+pub const BUILTIN_THEMES: &[(&str, &[&str; 19])] = &[
     // --- Editor Dark ---
     ("catppuccin", &[
         "#1E1E2E", "#CDD6F4", "#F5E0DC",
@@ -473,14 +473,14 @@ const THEME_ALIASES: &[(&str, &str)] = &[
 ];
 
 /// Theme category metadata for `theme_list()`.
-struct ThemeCategory {
-    label: &'static str,
-    kind: &'static str,   // "editor", "chromatic", "semantic"
-    variant: &'static str, // "dark", "light"
+pub struct ThemeCategory {
+    pub label: &'static str,
+    pub kind: &'static str,   // "editor", "chromatic", "semantic"
+    pub variant: &'static str, // "dark", "light"
 }
 
 /// Map each built-in theme to its category. Order matches BUILTIN_THEMES.
-const THEME_META: &[ThemeCategory] = &[
+pub const THEME_META: &[ThemeCategory] = &[
     // Editor Dark
     ThemeCategory { label: "catppuccin",          kind: "editor",    variant: "dark" },
     ThemeCategory { label: "catppuccin-latte",    kind: "editor",    variant: "light" },
@@ -814,6 +814,11 @@ pub fn theme_dir() -> PathBuf {
 // ============================================================================
 // Internal helpers
 // ============================================================================
+
+/// Resolve a theme alias to its canonical name (public for theme_picker).
+pub fn resolve_alias_pub(name: &str) -> &str {
+    resolve_alias(name)
+}
 
 /// Resolve a theme alias to its canonical name.
 fn resolve_alias(name: &str) -> &str {

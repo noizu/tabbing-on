@@ -171,15 +171,83 @@ struct HistoryEntry {
     status: String,
 }
 
+/// Detect whether a history file uses the shell-compatible format (with
+/// `entries:` header and `event:` keys) or the legacy Rust flat format
+/// (with `- type:` entries and `type:` keys).
+///
+/// Returns `true` for shell format, `false` for legacy Rust format.
+fn is_shell_format(content: &str) -> bool {
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("tab_id:") || trimmed == "entries:" {
+            return true;
+        }
+        if trimmed.starts_with("- type:") {
+            return false;
+        }
+    }
+    // Default to shell format for empty/ambiguous files
+    true
+}
+
 /// Parse history entries from file content.
+/// Handles both the shell-compatible format (`entries:` header, `event:` keys,
+/// 2-space-indented list items) and the legacy Rust flat format (`- type:` at
+/// column 0, `  timestamp:` / `  status:` at 2-space indent).
 fn parse_entries(content: &str) -> Vec<HistoryEntry> {
+    if is_shell_format(content) {
+        parse_entries_shell(content)
+    } else {
+        parse_entries_legacy(content)
+    }
+}
+
+/// Parse the shell-compatible format:
+/// ```yaml
+/// tab_id: "abc"
+/// terminal: "ghostty"
+/// started: "2026-05-27T12:00:00Z"
+/// entries:
+///   - timestamp: "..."
+///     event: "title"
+///     title: "My App"
+///     status: "deploying"
+/// ```
+fn parse_entries_shell(content: &str) -> Vec<HistoryEntry> {
     let mut entries: Vec<HistoryEntry> = Vec::new();
     let mut current_ts = String::new();
 
     for line in content.lines() {
+        // Match "  - timestamp: " (shell format entry start)
         if let Some(rest) = line.strip_prefix("  - timestamp: ") {
+            // Push previous entry if we have a pending timestamp with no status yet
+            // (this handles entries that lack a status field)
             current_ts = strip_quotes(rest);
         } else if let Some(rest) = line.strip_prefix("    status: ") {
+            entries.push(HistoryEntry {
+                timestamp: current_ts.clone(),
+                status: strip_quotes(rest),
+            });
+        }
+    }
+    entries
+}
+
+/// Parse the legacy Rust flat format:
+/// ```yaml
+/// - type: title
+///   timestamp: "2025-01-15T10:00:00+0000"
+///   title: "MyApp"
+///   status: "building"
+/// ```
+fn parse_entries_legacy(content: &str) -> Vec<HistoryEntry> {
+    let mut entries: Vec<HistoryEntry> = Vec::new();
+    let mut current_ts = String::new();
+
+    for line in content.lines() {
+        if let Some(rest) = line.strip_prefix("  timestamp: ") {
+            current_ts = strip_quotes(rest);
+        } else if let Some(rest) = line.strip_prefix("  status: ") {
             entries.push(HistoryEntry {
                 timestamp: current_ts.clone(),
                 status: strip_quotes(rest),
@@ -351,20 +419,61 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_entries() {
+    fn test_parse_entries_legacy_format() {
         let content = r#"- type: title
-  - timestamp: "2025-01-15T10:00:00+0000"
-    title: "MyApp"
-    status: "building"
+  timestamp: "2025-01-15T10:00:00+0000"
+  title: "MyApp"
+  status: "building"
 - type: status
-  - timestamp: "2025-01-15T11:00:00+0000"
-    title: "MyApp"
-    status: "testing"
+  timestamp: "2025-01-15T11:00:00+0000"
+  title: "MyApp"
+  status: "testing"
 "#;
         let entries = parse_entries(content);
         assert_eq!(entries.len(), 2);
         assert_eq!(entries[0].status, "building");
+        assert_eq!(entries[0].timestamp, "2025-01-15T10:00:00+0000");
         assert_eq!(entries[1].status, "testing");
+        assert_eq!(entries[1].timestamp, "2025-01-15T11:00:00+0000");
+    }
+
+    #[test]
+    fn test_parse_entries_shell_format() {
+        let content = r#"tab_id: "abc12345"
+terminal: "ghostty"
+started: "2026-05-27T12:00:00Z"
+entries:
+  - timestamp: "2026-05-27T12:00:00Z"
+    event: "title"
+    title: "My App"
+    status: "deploying"
+  - timestamp: "2026-05-27T12:05:00Z"
+    event: "status"
+    title: "My App"
+    status: "testing"
+  - timestamp: "2026-05-27T12:30:00Z"
+    event: "status"
+    title: "My App"
+    status: "done"
+"#;
+        let entries = parse_entries(content);
+        assert_eq!(entries.len(), 3);
+        assert_eq!(entries[0].status, "deploying");
+        assert_eq!(entries[0].timestamp, "2026-05-27T12:00:00Z");
+        assert_eq!(entries[1].status, "testing");
+        assert_eq!(entries[2].status, "done");
+    }
+
+    #[test]
+    fn test_is_shell_format_detection() {
+        let shell = "tab_id: \"abc\"\nterminal: \"ghostty\"\nstarted: \"2026-05-27\"\nentries:\n";
+        assert!(is_shell_format(shell));
+
+        let legacy = "- type: title\n  timestamp: \"2025-01-15\"\n  status: \"building\"\n";
+        assert!(!is_shell_format(legacy));
+
+        // Empty content defaults to shell format
+        assert!(is_shell_format(""));
     }
 
     #[test]

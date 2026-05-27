@@ -283,17 +283,30 @@ pub fn record_event(state: &TabState, event_type: &str) {
     let _ = fs::create_dir_all(&dir);
     let path = dir.join(format!("{}.yaml", state.tab_id));
     let ts = chrono::Local::now().format("%Y-%m-%dT%H:%M:%S%z");
+
+    // Write shell-compatible header if the file is new or empty
+    let needs_header = !path.exists() || fs::metadata(&path).map(|m| m.len() == 0).unwrap_or(true);
+    if needs_header {
+        let header = format!(
+            "tab_id: \"{}\"\nterminal: \"{}\"\nstarted: \"{}\"\nentries:\n",
+            state.tab_id.replace('"', "\\\""),
+            state.terminal.replace('"', "\\\""),
+            ts
+        );
+        let _ = fs::write(&path, header);
+    }
+
+    // Append entry in shell-compatible format (indented under entries:, event: instead of type:)
     let entry = format!(
-        "- type: {}\n  timestamp: \"{}\"\n  title: \"{}\"\n  status: \"{}\"\n  emoji: \"{}\"\n  urgency: \"{}\"\n  highlight: \"{}\"\n",
-        event_type, ts,
+        "  - timestamp: \"{}\"\n    event: \"{}\"\n    title: \"{}\"\n    status: \"{}\"\n    emoji: \"{}\"\n    urgency: \"{}\"\n    highlight: \"{}\"\n",
+        ts, event_type,
         state.title.replace('"', "\\\""),
         state.status.replace('"', "\\\""),
         state.emoji, state.urgency, state.highlight
     );
     let _ = fs::OpenOptions::new()
-        .create(true)
         .append(true)
-        .open(path)
+        .open(&path)
         .and_then(|mut f| {
             use std::io::Write;
             f.write_all(entry.as_bytes())

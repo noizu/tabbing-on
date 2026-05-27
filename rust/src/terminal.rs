@@ -107,7 +107,6 @@ pub fn send_title(title: &str) {
     }
 }
 
-#[allow(dead_code)]
 pub fn clear_title() {
     let tty = std::fs::OpenOptions::new().write(true).open("/dev/tty");
     if let Ok(mut tty) = tty {
@@ -157,6 +156,39 @@ pub fn clear_bg_color() {
     } else {
         print!("\x1b]111\x07");
         let _ = io::stdout().flush();
+    }
+}
+
+pub fn clear_tab_color() {
+    let terminal = detect();
+    match terminal {
+        Terminal::ITerm2 => {
+            let tty = std::fs::OpenOptions::new().write(true).open("/dev/tty");
+            if let Ok(mut tty) = tty {
+                let _ = write!(tty, "\x1b]6;1;bg;*;default\x07");
+            }
+        }
+        Terminal::Kitty => {
+            let _ = std::process::Command::new("kitty")
+                .args(["@", "set-tab-color", "--reset"])
+                .stderr(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .spawn();
+        }
+        _ => {} // No-op for terminals without tab color support
+    }
+}
+
+pub fn clear_badge() {
+    let terminal = detect();
+    match terminal {
+        Terminal::ITerm2 => {
+            let tty = std::fs::OpenOptions::new().write(true).open("/dev/tty");
+            if let Ok(mut tty) = tty {
+                let _ = write!(tty, "\x1b]1337;SetBadgeFormat=\x07");
+            }
+        }
+        _ => {} // No-op for terminals without badge support
     }
 }
 
