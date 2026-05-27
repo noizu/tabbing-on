@@ -121,6 +121,7 @@ impl Region {
         }
     }
 
+    #[allow(dead_code)]
     fn style(self) -> Style {
         match self {
             Region::EditorDark | Region::EditorLight => Style::default().fg(Color::Yellow).bold(),
@@ -193,6 +194,7 @@ struct PickerState {
     selected: Option<String>,
     quit: bool,
     flash: Option<(String, Instant)>,
+    ui: UiColors,
 }
 
 impl PickerState {
@@ -396,6 +398,93 @@ fn is_valid_hex(s: &str) -> bool {
 }
 
 // ============================================================================
+// Theme-adaptive UI colors
+// ============================================================================
+
+struct UiColors {
+    text: Color,
+    text_dim: Color,
+    text_muted: Color,
+    accent: Color,
+    accent_text: Color,
+    border: Color,
+    cat_a: Color,
+    cat_b: Color,
+    cat_c: Color,
+    cat_d: Color,
+}
+
+fn blend_rgb(bg: (u8, u8, u8), fg: (u8, u8, u8), t: f32) -> Color {
+    Color::Rgb(
+        (bg.0 as f32 + (fg.0 as f32 - bg.0 as f32) * t) as u8,
+        (bg.1 as f32 + (fg.1 as f32 - bg.1 as f32) * t) as u8,
+        (bg.2 as f32 + (fg.2 as f32 - bg.2 as f32) * t) as u8,
+    )
+}
+
+fn compute_ui_colors(colors: &Option<[String; 19]>) -> UiColors {
+    let (bg, fg) = match colors {
+        Some(c) => (
+            hex_to_rgb(&c[0]).unwrap_or((30, 30, 46)),
+            hex_to_rgb(&c[1]).unwrap_or((205, 214, 244)),
+        ),
+        None => ((30, 30, 46), (205, 214, 244)),
+    };
+
+    let bg_lum = 0.299 * bg.0 as f32 + 0.587 * bg.1 as f32 + 0.114 * bg.2 as f32;
+
+    let ensure_contrast = |color: (u8, u8, u8)| -> Color {
+        let delta = ((color.0 as i32 - bg.0 as i32).abs()
+            + (color.1 as i32 - bg.1 as i32).abs()
+            + (color.2 as i32 - bg.2 as i32).abs()) as f32
+            / 3.0;
+        if delta < 55.0 {
+            blend_rgb(bg, fg, 0.75)
+        } else {
+            Color::Rgb(color.0, color.1, color.2)
+        }
+    };
+
+    let palette_rgb = |idx: usize, fallback: (u8, u8, u8)| -> (u8, u8, u8) {
+        match colors {
+            Some(c) => hex_to_rgb(&c[idx]).unwrap_or(fallback),
+            None => fallback,
+        }
+    };
+
+    let accent_rgb = palette_rgb(6, if bg_lum > 128.0 { (180, 130, 10) } else { (249, 226, 175) });
+    let accent_lum =
+        0.299 * accent_rgb.0 as f32 + 0.587 * accent_rgb.1 as f32 + 0.114 * accent_rgb.2 as f32;
+    let accent_text = if accent_lum > 128.0 {
+        Color::Rgb(20, 20, 30)
+    } else {
+        Color::Rgb(240, 240, 245)
+    };
+
+    UiColors {
+        text: Color::Rgb(fg.0, fg.1, fg.2),
+        text_dim: blend_rgb(bg, fg, 0.7),
+        text_muted: blend_rgb(bg, fg, 0.4),
+        accent: ensure_contrast(accent_rgb),
+        accent_text,
+        border: blend_rgb(bg, fg, 0.2),
+        cat_a: ensure_contrast(palette_rgb(6, (249, 226, 175))),
+        cat_b: ensure_contrast(palette_rgb(8, (245, 194, 231))),
+        cat_c: ensure_contrast(palette_rgb(9, (148, 226, 213))),
+        cat_d: ensure_contrast(palette_rgb(5, (166, 227, 161))),
+    }
+}
+
+fn region_ui_color(region: Region, ui: &UiColors) -> Color {
+    match region {
+        Region::EditorDark | Region::EditorLight => ui.cat_a,
+        Region::ChromaticDark | Region::ChromaticLight => ui.cat_b,
+        Region::Semantic => ui.cat_c,
+        Region::User => ui.cat_d,
+    }
+}
+
+// ============================================================================
 // Main loop
 // ============================================================================
 
@@ -431,6 +520,7 @@ pub fn run_picker() {
         selected: None,
         quit: false,
         flash: None,
+        ui: compute_ui_colors(&None),
     };
 
     install_panic_hook();
@@ -453,6 +543,10 @@ pub fn run_picker() {
     };
 
     theme::apply_named_theme(state.current_name());
+    {
+        let idx = state.current_theme_idx();
+        state.ui = compute_ui_colors(&state.entries[idx].colors);
+    }
 
     loop {
         let _ = terminal.draw(|f| ui(f, &state));
@@ -471,6 +565,8 @@ pub fn run_picker() {
 
         if state.mode != ViewMode::Edit {
             theme::apply_named_theme(state.current_name());
+            let idx = state.current_theme_idx();
+            state.ui = compute_ui_colors(&state.entries[idx].colors);
         }
     }
 
@@ -894,7 +990,7 @@ fn ui(f: &mut Frame, state: &PickerState) {
     let area = f.area();
 
     if state.mode == ViewMode::Help {
-        render_help_overlay(f, area);
+        render_help_overlay(f, area, state);
         return;
     }
 
@@ -938,14 +1034,14 @@ fn render_header(f: &mut Frame, area: Rect, state: &PickerState) {
             Span::styled(
                 format!(" {} ", label),
                 Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Yellow)
+                    .fg(state.ui.accent_text)
+                    .bg(state.ui.accent)
                     .bold(),
             )
         } else {
             Span::styled(
                 format!(" {} ", label),
-                Style::default().fg(Color::DarkGray),
+                Style::default().fg(state.ui.text_muted),
             )
         }
     })
@@ -959,13 +1055,13 @@ fn render_header(f: &mut Frame, area: Rect, state: &PickerState) {
 
     let mut spans = mode_tabs;
     spans.push(Span::raw("  "));
-    spans.push(Span::styled(count, Style::default().fg(Color::DarkGray)));
+    spans.push(Span::styled(count, Style::default().fg(state.ui.text_muted)));
 
     if let Some(msg) = state.active_flash() {
         spans.push(Span::raw("  "));
         spans.push(Span::styled(
             msg.to_string(),
-            Style::default().fg(Color::Yellow).italic(),
+            Style::default().fg(state.ui.accent).italic(),
         ));
     }
 
@@ -974,10 +1070,10 @@ fn render_header(f: &mut Frame, area: Rect, state: &PickerState) {
             Block::default()
                 .title(Span::styled(
                     " tabbing-theme ",
-                    Style::default().fg(Color::White).bold(),
+                    Style::default().fg(state.ui.text).bold(),
                 ))
                 .borders(Borders::BOTTOM)
-                .border_style(Style::default().fg(Color::DarkGray)),
+                .border_style(Style::default().fg(state.ui.border)),
         );
 
     f.render_widget(header, area);
@@ -1010,11 +1106,11 @@ fn render_browse(f: &mut Frame, area: Rect, state: &PickerState) {
                 let line = Line::from(vec![
                     Span::styled(
                         format!(" {} {} ", region.icon(), region.label()),
-                        region.style(),
+                        Style::default().fg(region_ui_color(*region, &state.ui)).bold(),
                     ),
                     Span::styled(
                         "─".repeat(area.width.saturating_sub(region.label().len() as u16 + 5) as usize),
-                        Style::default().fg(Color::DarkGray),
+                        Style::default().fg(state.ui.border),
                     ),
                 ]);
                 items.push(ListItem::new(line));
@@ -1026,13 +1122,13 @@ fn render_browse(f: &mut Frame, area: Rect, state: &PickerState) {
 
                 let marker = if is_cursor { " ▸ " } else { "   " };
                 let name_style = if is_cursor {
-                    Style::default().fg(Color::White).bold()
+                    Style::default().fg(state.ui.text).bold()
                 } else {
-                    Style::default().fg(Color::Gray)
+                    Style::default().fg(state.ui.text_dim)
                 };
 
                 let mut spans: Vec<Span> = vec![
-                    Span::styled(marker.to_string(), Style::default().fg(Color::Yellow)),
+                    Span::styled(marker.to_string(), Style::default().fg(state.ui.accent)),
                     Span::styled(format!("{:<width$}", entry.name, width = name_width), name_style),
                     Span::raw(" "),
                 ];
@@ -1043,7 +1139,7 @@ fn render_browse(f: &mut Frame, area: Rect, state: &PickerState) {
                 if wide {
                     spans.push(Span::styled(
                         desc.to_string(),
-                        Style::default().fg(Color::DarkGray),
+                        Style::default().fg(state.ui.text_muted),
                     ));
                 }
 
@@ -1063,21 +1159,21 @@ fn render_search(f: &mut Frame, area: Rect, state: &PickerState) {
         .split(area);
 
     let search_line = Line::from(vec![
-        Span::styled(" / ", Style::default().fg(Color::Yellow).bold()),
+        Span::styled(" / ", Style::default().fg(state.ui.accent).bold()),
         Span::styled(
             format!("{}▏", state.search_text),
-            Style::default().fg(Color::White),
+            Style::default().fg(state.ui.text),
         ),
         Span::raw("  "),
         Span::styled(
             format!("{} results", state.search_results.len()),
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(state.ui.text_muted),
         ),
     ]);
     let search_bar = Paragraph::new(search_line).block(
         Block::default()
             .borders(Borders::BOTTOM)
-            .border_style(Style::default().fg(Color::DarkGray)),
+            .border_style(Style::default().fg(state.ui.border)),
     );
     f.render_widget(search_bar, chunks[0]);
 
@@ -1103,26 +1199,26 @@ fn render_search(f: &mut Frame, area: Rect, state: &PickerState) {
 
             let marker = if is_cur { " ▸ " } else { "   " };
             let name_style = if is_cur {
-                Style::default().fg(Color::White).bold()
+                Style::default().fg(state.ui.text).bold()
             } else {
-                Style::default().fg(Color::Gray)
+                Style::default().fg(state.ui.text_dim)
             };
             let tag = format!("[{}]", entry.region.label());
 
             let mut spans = vec![
-                Span::styled(marker.to_string(), Style::default().fg(Color::Yellow)),
+                Span::styled(marker.to_string(), Style::default().fg(state.ui.accent)),
                 Span::styled(format!("{:<width$}", entry.name, width = name_width), name_style),
                 Span::raw(" "),
             ];
             spans.extend(swatch_spans(&entry.colors, swatch_width));
             spans.push(Span::styled(
                 format!(" {:<18}", tag),
-                Style::default().fg(Color::DarkGray),
+                Style::default().fg(state.ui.text_muted),
             ));
             if wide {
                 spans.push(Span::styled(
                     desc.to_string(),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(state.ui.text_muted),
                 ));
             }
             ListItem::new(Line::from(spans))
@@ -1132,7 +1228,7 @@ fn render_search(f: &mut Frame, area: Rect, state: &PickerState) {
     if items.is_empty() {
         let empty = Paragraph::new(Span::styled(
             "   No themes match your search",
-            Style::default().fg(Color::DarkGray).italic(),
+            Style::default().fg(state.ui.text_muted).italic(),
         ));
         f.render_widget(empty, chunks[1]);
     } else {
@@ -1153,15 +1249,15 @@ fn render_edit(f: &mut Frame, area: Rect, state: &PickerState) {
 
     let meta_lines = vec![
         Line::from(vec![
-            Span::styled("   bg       ", Style::default().fg(Color::DarkGray)),
+            Span::styled("   bg       ", Style::default().fg(state.ui.text_muted)),
             render_edit_slot(state, 0),
         ]),
         Line::from(vec![
-            Span::styled("   fg       ", Style::default().fg(Color::DarkGray)),
+            Span::styled("   fg       ", Style::default().fg(state.ui.text_muted)),
             render_edit_slot(state, 1),
         ]),
         Line::from(vec![
-            Span::styled("   cursor   ", Style::default().fg(Color::DarkGray)),
+            Span::styled("   cursor   ", Style::default().fg(state.ui.text_muted)),
             render_edit_slot(state, 2),
         ]),
     ];
@@ -1169,10 +1265,10 @@ fn render_edit(f: &mut Frame, area: Rect, state: &PickerState) {
         Block::default()
             .title(Span::styled(
                 " Core ",
-                Style::default().fg(Color::Yellow).bold(),
+                Style::default().fg(state.ui.accent).bold(),
             ))
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::DarkGray)),
+            .border_style(Style::default().fg(state.ui.border)),
     );
     f.render_widget(meta, left_chunks[0]);
 
@@ -1183,13 +1279,13 @@ fn render_edit(f: &mut Frame, area: Rect, state: &PickerState) {
         palette_lines.push(Line::from(vec![
             Span::styled(
                 format!("   {:<10}", SLOT_NAMES[normal_slot]),
-                Style::default().fg(Color::DarkGray),
+                Style::default().fg(state.ui.text_muted),
             ),
             render_edit_slot(state, normal_slot),
             Span::raw("   "),
             Span::styled(
                 format!("{:<14}", SLOT_NAMES[bright_slot]),
-                Style::default().fg(Color::DarkGray),
+                Style::default().fg(state.ui.text_muted),
             ),
             render_edit_slot(state, bright_slot),
         ]));
@@ -1198,10 +1294,10 @@ fn render_edit(f: &mut Frame, area: Rect, state: &PickerState) {
         Block::default()
             .title(Span::styled(
                 " Palette ",
-                Style::default().fg(Color::Magenta).bold(),
+                Style::default().fg(state.ui.cat_b).bold(),
             ))
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::DarkGray)),
+            .border_style(Style::default().fg(state.ui.border)),
     );
     f.render_widget(palette, left_chunks[1]);
 
@@ -1216,21 +1312,21 @@ fn render_edit_slot<'a>(state: &PickerState, slot: usize) -> Span<'a> {
         Span::styled(
             format!("{:<7}▏ ", state.edit_input),
             Style::default()
-                .fg(Color::Yellow)
-                .bg(Color::DarkGray)
+                .fg(state.ui.accent)
+                .bg(state.ui.text_muted)
                 .bold(),
         )
     } else if is_selected {
         let swatch_bg = hex_to_color(hex);
         Span::styled(
             format!("  {} ◀", hex),
-            Style::default().fg(Color::White).bg(swatch_bg).bold(),
+            Style::default().fg(state.ui.text).bg(swatch_bg).bold(),
         )
     } else {
         let swatch_bg = hex_to_color(hex);
         Span::styled(
             format!("  {}  ", hex),
-            Style::default().fg(Color::Gray).bg(swatch_bg),
+            Style::default().fg(state.ui.text_dim).bg(swatch_bg),
         )
     }
 }
@@ -1314,10 +1410,10 @@ fn render_code_preview(f: &mut Frame, area: Rect, state: &PickerState) {
     let block = Block::default()
         .title(Span::styled(
             " Preview ",
-            Style::default().fg(Color::Cyan).bold(),
+            Style::default().fg(state.ui.cat_c).bold(),
         ))
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::DarkGray));
+        .border_style(Style::default().fg(state.ui.border));
 
     let para = Paragraph::new(code_lines).block(block).style(base);
     f.render_widget(para, area);
@@ -1344,20 +1440,20 @@ fn render_preview(f: &mut Frame, area: Rect, state: &PickerState) {
         Span::styled("  ", Style::default()),
         Span::styled(
             entry.name.clone(),
-            Style::default().fg(Color::White).bold(),
+            Style::default().fg(state.ui.text).bold(),
         ),
         Span::styled(
             format!("  [{}]  ", entry.region.label()),
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(state.ui.text_muted),
         ),
     ];
     line1_spans.extend(swatch_spans(&colors, 14));
 
     let line2_spans = vec![
         Span::styled("  ", Style::default()),
-        Span::styled(desc.to_string(), Style::default().fg(Color::Gray)),
+        Span::styled(desc.to_string(), Style::default().fg(state.ui.text_dim)),
         Span::raw("  "),
-        Span::styled(tag_str, Style::default().fg(Color::DarkGray)),
+        Span::styled(tag_str, Style::default().fg(state.ui.text_muted)),
     ];
 
     let code_preview = if let Some(ref c) = colors {
@@ -1384,7 +1480,7 @@ fn render_preview(f: &mut Frame, area: Rect, state: &PickerState) {
 
     let block = Block::default()
         .borders(Borders::TOP)
-        .border_style(Style::default().fg(Color::DarkGray));
+        .border_style(Style::default().fg(state.ui.border));
 
     let para = Paragraph::new(vec![
         Line::from(line1_spans),
@@ -1440,11 +1536,11 @@ fn render_footer(f: &mut Frame, area: Rect, state: &PickerState) {
                 Span::styled(
                     format!(" {} ", k),
                     Style::default()
-                        .fg(Color::Black)
-                        .bg(Color::DarkGray)
+                        .fg(state.ui.accent_text)
+                        .bg(state.ui.text_muted)
                         .bold(),
                 ),
-                Span::styled(format!(" {} ", desc), Style::default().fg(Color::Gray)),
+                Span::styled(format!(" {} ", desc), Style::default().fg(state.ui.text_dim)),
             ]
         })
         .collect();
@@ -1462,11 +1558,11 @@ fn render_create_modal(f: &mut Frame, area: Rect, state: &PickerState) {
     let block = Block::default()
         .title(Span::styled(
             " New Theme ",
-            Style::default().fg(Color::Yellow).bold(),
+            Style::default().fg(state.ui.accent).bold(),
         ))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Yellow));
+        .border_style(Style::default().fg(state.ui.accent));
 
     f.render_widget(Clear, modal_area);
 
@@ -1476,16 +1572,16 @@ fn render_create_modal(f: &mut Frame, area: Rect, state: &PickerState) {
     let base_name = state.entries[state.current_theme_idx()].name.clone();
     let lines = vec![
         Line::from(vec![
-            Span::styled(" Name: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(" Name: ", Style::default().fg(state.ui.text_muted)),
             Span::styled(
                 format!("{}▏", state.create_name),
-                Style::default().fg(Color::White).bold(),
+                Style::default().fg(state.ui.text).bold(),
             ),
         ]),
         Line::from(vec![
             Span::styled(
                 format!(" Based on: {}", base_name),
-                Style::default().fg(Color::DarkGray),
+                Style::default().fg(state.ui.text_muted),
             ),
         ]),
     ];
@@ -1493,7 +1589,7 @@ fn render_create_modal(f: &mut Frame, area: Rect, state: &PickerState) {
     f.render_widget(Paragraph::new(lines), inner);
 }
 
-fn render_help_overlay(f: &mut Frame, area: Rect) {
+fn render_help_overlay(f: &mut Frame, area: Rect, state: &PickerState) {
     let width = 56u16.min(area.width.saturating_sub(4));
     let height = 22u16.min(area.height.saturating_sub(2));
     let x = area.x + (area.width.saturating_sub(width)) / 2;
@@ -1505,26 +1601,29 @@ fn render_help_overlay(f: &mut Frame, area: Rect) {
     let block = Block::default()
         .title(Span::styled(
             " Keyboard Shortcuts ",
-            Style::default().fg(Color::Yellow).bold(),
+            Style::default().fg(state.ui.accent).bold(),
         ))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Yellow));
+        .border_style(Style::default().fg(state.ui.accent));
 
     let inner = block.inner(modal_area);
     f.render_widget(block, modal_area);
 
-    let h = |k: &str, d: &str| -> Line {
+    let accent = state.ui.accent;
+    let key_color = state.ui.cat_c;
+    let desc_color = state.ui.text_dim;
+    let h = move |k: &str, d: &str| -> Line {
         Line::from(vec![
-            Span::styled(format!("   {:<14}", k), Style::default().fg(Color::Cyan)),
-            Span::styled(d.to_string(), Style::default().fg(Color::Gray)),
+            Span::styled(format!("   {:<14}", k), Style::default().fg(key_color)),
+            Span::styled(d.to_string(), Style::default().fg(desc_color)),
         ])
     };
 
     let lines = vec![
         Line::from(Span::styled(
             " Navigation",
-            Style::default().fg(Color::Yellow).bold(),
+            Style::default().fg(accent).bold(),
         )),
         h("↑/k  ↓/j", "Move up / down"),
         h("←/h  →/l", "Switch column / group"),
@@ -1534,7 +1633,7 @@ fn render_help_overlay(f: &mut Frame, area: Rect) {
         Line::from(""),
         Line::from(Span::styled(
             " Actions",
-            Style::default().fg(Color::Yellow).bold(),
+            Style::default().fg(accent).bold(),
         )),
         h("Enter", "Apply selected theme"),
         h("/", "Search (name, desc, tags)"),
@@ -1549,7 +1648,7 @@ fn render_help_overlay(f: &mut Frame, area: Rect) {
         Line::from(""),
         Line::from(Span::styled(
             "       Press ? or Esc to close",
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(state.ui.text_muted),
         )),
     ];
 
