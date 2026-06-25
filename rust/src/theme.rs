@@ -333,6 +333,64 @@ pub const BUILTIN_THEMES: &[(&str, &[&str; 19])] = &[
         "#80A0C8", "#D078A0", "#70B8A8", "#F0E0D0",
     ]),
 
+    // --- Chromatic Dark · by color (every major hue) ---
+    ("crimson", &[
+        "#2E0E12", "#F0D0D4", "#50C0A0",
+        "#200810", "#E06070", "#80C070", "#E8C050",
+        "#8080D0", "#D070B0", "#60B0B8", "#E0C8CC",
+        "#401824", "#F07080", "#90D080", "#F0D060",
+        "#9090E0", "#E080C0", "#70C0C8", "#FFE8EC",
+    ]),
+    ("tangerine", &[
+        "#2E1A08", "#F0DCC8", "#50A0D0",
+        "#200F04", "#E06070", "#80C070", "#E8C050",
+        "#8080D0", "#D070B0", "#60B0B8", "#E0D0C0",
+        "#402616", "#F07080", "#90D080", "#F0D060",
+        "#9090E0", "#E080C0", "#70C0C8", "#FFECD8",
+    ]),
+    ("amber", &[
+        "#2A2408", "#ECE6C0", "#8080D0",
+        "#1C1804", "#E06070", "#80C070", "#E8C050",
+        "#8080D0", "#D070B0", "#60B0B8", "#DCD8B8",
+        "#3C3414", "#F07080", "#90D080", "#F0D060",
+        "#9090E0", "#E080C0", "#70C0C8", "#FAF4D8",
+    ]),
+    ("lime", &[
+        "#182808", "#D8ECC0", "#D070B0",
+        "#0F1A04", "#E06070", "#80C070", "#E8C050",
+        "#8080D0", "#D070B0", "#60B0B8", "#CCD8B8",
+        "#243C16", "#F07080", "#90D080", "#F0D060",
+        "#9090E0", "#E080C0", "#70C0C8", "#ECFAD8",
+    ]),
+    ("teal", &[
+        "#082826", "#C0ECE6", "#E08060",
+        "#041A18", "#E06070", "#80C070", "#E8C050",
+        "#8080D0", "#D070B0", "#60B0B8", "#B8D8D4",
+        "#163C38", "#F07080", "#90D080", "#F0D060",
+        "#9090E0", "#E080C0", "#70C0C8", "#D8FAF4",
+    ]),
+    ("azure", &[
+        "#0C1E32", "#C8DCF0", "#E8A030",
+        "#08131F", "#E06070", "#80C070", "#E8C050",
+        "#8080D0", "#D070B0", "#60B0B8", "#C0D0E0",
+        "#182E48", "#F07080", "#90D080", "#F0D060",
+        "#9090E0", "#E080C0", "#70C0C8", "#D8ECFF",
+    ]),
+    ("violet", &[
+        "#1E1038", "#D8C8F0", "#B0D050",
+        "#140A28", "#E06070", "#80C070", "#E8C050",
+        "#8080D0", "#D070B0", "#60B0B8", "#C8C0E0",
+        "#2C1A50", "#F07080", "#90D080", "#F0D060",
+        "#9090E0", "#E080C0", "#70C0C8", "#ECDCFF",
+    ]),
+    ("magenta", &[
+        "#2E1028", "#F0C8E4", "#70C0A0",
+        "#1F081C", "#E06070", "#80C070", "#E8C050",
+        "#8080D0", "#D070B0", "#60B0B8", "#E0C0D8",
+        "#401838", "#F07080", "#90D080", "#F0D060",
+        "#9090E0", "#E080C0", "#70C0C8", "#FFD8F2",
+    ]),
+
     // --- Chromatic Light ---
     ("terracotta", &[
         "#F2E0D0", "#4A3020", "#1A8080",
@@ -389,6 +447,64 @@ pub const BUILTIN_THEMES: &[(&str, &[&str; 19])] = &[
         "#3060A0", "#883880", "#187870", "#382030",
         "#D4C4C8", "#C84050", "#309868", "#A08830",
         "#4070B0", "#984890", "#288880", "#281020",
+    ]),
+
+    // --- Chromatic Light · by color (every major hue) ---
+    ("crimson-light", &[
+        "#F8E2E4", "#3A1418", "#1A8080",
+        "#ECD2D4", "#B83030", "#308040", "#A07010",
+        "#3060A0", "#883880", "#107878", "#3A1418",
+        "#D8C0C2", "#D04040", "#409850", "#B08820",
+        "#4070B0", "#984890", "#208888", "#200A0C",
+    ]),
+    ("tangerine-light", &[
+        "#F8E8D8", "#3A2410", "#2060A0",
+        "#ECD8C4", "#B83030", "#308040", "#A07010",
+        "#3060A0", "#883880", "#107878", "#3A2410",
+        "#D8C4B0", "#D04040", "#409850", "#B08820",
+        "#4070B0", "#984890", "#208888", "#201306",
+    ]),
+    ("amber-light", &[
+        "#F8F2D8", "#3A3210", "#5050A0",
+        "#ECE4C4", "#B83030", "#308040", "#A07010",
+        "#3060A0", "#883880", "#107878", "#3A3210",
+        "#D8D0AC", "#D04040", "#409850", "#B08820",
+        "#4070B0", "#984890", "#208888", "#201B06",
+    ]),
+    ("lime-light", &[
+        "#E8F4D8", "#243410", "#983888",
+        "#D8E8C4", "#B83030", "#308040", "#A07010",
+        "#3060A0", "#883880", "#107878", "#243410",
+        "#C4D4AC", "#D04040", "#409850", "#B08820",
+        "#4070B0", "#984890", "#208888", "#121B06",
+    ]),
+    ("teal-light", &[
+        "#D8F2EE", "#103430", "#B05030",
+        "#C4E4DE", "#B83030", "#308040", "#A07010",
+        "#3060A0", "#883880", "#107878", "#103430",
+        "#ACD0CA", "#D04040", "#409850", "#B08820",
+        "#4070B0", "#984890", "#208888", "#061B18",
+    ]),
+    ("azure-light", &[
+        "#DCEAF8", "#102840", "#B07020",
+        "#C8DAEC", "#B83030", "#308040", "#A07010",
+        "#3060A0", "#883880", "#107878", "#102840",
+        "#B0C6D8", "#D04040", "#409850", "#B08820",
+        "#4070B0", "#984890", "#208888", "#061320",
+    ]),
+    ("violet-light", &[
+        "#ECE0F8", "#281040", "#809020",
+        "#DCD0EC", "#B83030", "#308040", "#A07010",
+        "#3060A0", "#883880", "#107878", "#281040",
+        "#C6B8D8", "#D04040", "#409850", "#B08820",
+        "#4070B0", "#984890", "#208888", "#130620",
+    ]),
+    ("magenta-light", &[
+        "#F8E2F2", "#3A1430", "#20A070",
+        "#ECD2E4", "#B83030", "#308040", "#A07010",
+        "#3060A0", "#883880", "#107878", "#3A1430",
+        "#D8C0D0", "#D04040", "#409850", "#B08820",
+        "#4070B0", "#984890", "#208888", "#200A1A",
     ]),
 
     // --- Semantic ---
@@ -528,6 +644,15 @@ pub const THEME_META: &[ThemeCategory] = &[
     ThemeCategory { label: "olive-dusk",          kind: "chromatic", variant: "dark" },
     ThemeCategory { label: "storm",               kind: "chromatic", variant: "dark" },
     ThemeCategory { label: "volcanic",            kind: "chromatic", variant: "dark" },
+    // Chromatic Dark · by color
+    ThemeCategory { label: "crimson",             kind: "chromatic", variant: "dark" },
+    ThemeCategory { label: "tangerine",           kind: "chromatic", variant: "dark" },
+    ThemeCategory { label: "amber",               kind: "chromatic", variant: "dark" },
+    ThemeCategory { label: "lime",                kind: "chromatic", variant: "dark" },
+    ThemeCategory { label: "teal",                kind: "chromatic", variant: "dark" },
+    ThemeCategory { label: "azure",               kind: "chromatic", variant: "dark" },
+    ThemeCategory { label: "violet",              kind: "chromatic", variant: "dark" },
+    ThemeCategory { label: "magenta",             kind: "chromatic", variant: "dark" },
     // Chromatic Light
     ThemeCategory { label: "terracotta",          kind: "chromatic", variant: "light" },
     ThemeCategory { label: "sage-mist",           kind: "chromatic", variant: "light" },
@@ -537,6 +662,15 @@ pub const THEME_META: &[ThemeCategory] = &[
     ThemeCategory { label: "seafoam",             kind: "chromatic", variant: "light" },
     ThemeCategory { label: "champagne",           kind: "chromatic", variant: "light" },
     ThemeCategory { label: "blush",               kind: "chromatic", variant: "light" },
+    // Chromatic Light · by color
+    ThemeCategory { label: "crimson-light",       kind: "chromatic", variant: "light" },
+    ThemeCategory { label: "tangerine-light",     kind: "chromatic", variant: "light" },
+    ThemeCategory { label: "amber-light",         kind: "chromatic", variant: "light" },
+    ThemeCategory { label: "lime-light",          kind: "chromatic", variant: "light" },
+    ThemeCategory { label: "teal-light",          kind: "chromatic", variant: "light" },
+    ThemeCategory { label: "azure-light",         kind: "chromatic", variant: "light" },
+    ThemeCategory { label: "violet-light",        kind: "chromatic", variant: "light" },
+    ThemeCategory { label: "magenta-light",       kind: "chromatic", variant: "light" },
     // Semantic
     ThemeCategory { label: "danger",              kind: "semantic",  variant: "dark" },
     ThemeCategory { label: "safe",                kind: "semantic",  variant: "dark" },
@@ -665,13 +799,19 @@ pub fn load_user_theme(name: &str) -> Option<[String; 19]> {
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        // Strip inline comments
-        let line = line.split('#').next().unwrap_or(line).trim();
         let Some((key, val)) = line.split_once('=') else {
             continue;
         };
         let key = key.trim();
-        let val = val.trim().trim_matches(|c| c == '"' || c == '\'');
+        // Take the first whitespace-delimited token as the value, dropping any
+        // trailing inline comment (e.g. `bg=#1E1E2E  # primary`). Hex values
+        // legitimately begin with '#', so the whole line must NOT be split on
+        // '#' — doing so erased the value and broke loading of saved themes.
+        let val = val
+            .split_whitespace()
+            .next()
+            .unwrap_or("")
+            .trim_matches(|c| c == '"' || c == '\'');
 
         match key {
             "bg" | "background" => bg = val.to_string(),

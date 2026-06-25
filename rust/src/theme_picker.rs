@@ -64,6 +64,15 @@ fn theme_meta(name: &str) -> (&'static str, &'static [&'static str]) {
         "olive-dusk" => ("Muted olive and sage at dusk", &["warm", "muted"]),
         "storm" => ("Steel grey thundercloud palette", &["cool", "muted"]),
         "volcanic" => ("Dark ember and ash tones", &["warm", "earth"]),
+        // Chromatic Dark · by color
+        "crimson" => ("Deep red background — bold and warm", &["red", "warm", "vibrant"]),
+        "tangerine" => ("Dark orange background — warm citrus", &["orange", "warm", "vibrant"]),
+        "amber" => ("Dark yellow-gold background — warm glow", &["yellow", "warm", "vibrant"]),
+        "lime" => ("Dark green background — fresh and vivid", &["green", "cool", "vibrant"]),
+        "teal" => ("Dark cyan background — deep aquamarine", &["cyan", "cool", "vibrant"]),
+        "azure" => ("Dark blue background — clear sky depths", &["blue", "cool", "vibrant"]),
+        "violet" => ("Dark purple background — rich and regal", &["purple", "cool", "vibrant"]),
+        "magenta" => ("Dark pink background — vivid berry", &["pink", "warm", "vibrant"]),
         // Chromatic Light
         "terracotta" => ("Warm clay and earth on cream", &["warm", "earth"]),
         "sage-mist" => ("Soft sage green morning mist", &["cool", "muted"]),
@@ -73,6 +82,15 @@ fn theme_meta(name: &str) -> (&'static str, &'static [&'static str]) {
         "seafoam" => ("Cool ocean foam on mint", &["cool", "pastel"]),
         "champagne" => ("Warm golden bubbly tones", &["warm", "pastel"]),
         "blush" => ("Soft pink warmth on cream", &["warm", "pastel"]),
+        // Chromatic Light · by color
+        "crimson-light" => ("Soft red tint on pale rose", &["red", "warm", "pastel"]),
+        "tangerine-light" => ("Soft orange tint on warm cream", &["orange", "warm", "pastel"]),
+        "amber-light" => ("Soft yellow tint on pale gold", &["yellow", "warm", "pastel"]),
+        "lime-light" => ("Soft green tint on pale leaf", &["green", "cool", "pastel"]),
+        "teal-light" => ("Soft cyan tint on pale mint", &["cyan", "cool", "pastel"]),
+        "azure-light" => ("Soft blue tint on pale sky", &["blue", "cool", "pastel"]),
+        "violet-light" => ("Soft purple tint on pale lilac", &["purple", "cool", "pastel"]),
+        "magenta-light" => ("Soft pink tint on pale blossom", &["pink", "warm", "pastel"]),
         // Semantic
         "danger" => ("Red alert — production / critical", &["warm", "high-contrast"]),
         "safe" => ("Green all-clear — development", &["cool", "high-contrast"]),
@@ -150,6 +168,7 @@ enum ViewMode {
     Browse,
     Search,
     Edit,
+    Wheel,
     CreateName,
     Help,
 }
@@ -160,15 +179,32 @@ struct ThemeEntry {
     colors: Option<[String; 19]>,
 }
 
-enum DisplayRow {
+/// One rendered row of the browse grid: a full-width section header, or a row
+/// of up to `cols` theme cells. Theme values are indices into `order`.
+enum VRow {
     Header(Region),
-    Theme(usize),
+    Themes(Vec<usize>),
 }
+
+const REGIONS: [Region; 6] = [
+    Region::EditorDark,
+    Region::EditorLight,
+    Region::ChromaticDark,
+    Region::ChromaticLight,
+    Region::Semantic,
+    Region::User,
+];
 
 struct PickerState {
     entries: Vec<ThemeEntry>,
-    display: Vec<DisplayRow>,
-    theme_positions: Vec<usize>,
+    /// entries indices, themes only, in region/display order. `cursor` indexes here.
+    order: Vec<usize>,
+    /// Browse grid rows for rendering + scrolling.
+    vrows: Vec<VRow>,
+    /// order-index -> (vrow index, column).
+    pos: Vec<(usize, usize)>,
+    /// Current column count for the browse grid.
+    cols: usize,
 
     mode: ViewMode,
     cursor: usize,
@@ -189,6 +225,12 @@ struct PickerState {
 
     create_name: String,
 
+    // Color-wheel picker (HSV). Live-applies to edit_colors[edit_slot].
+    wheel_h: f32,
+    wheel_s: f32,
+    wheel_v: f32,
+    wheel_orig: String,
+
     #[allow(dead_code)]
     original_theme: Option<String>,
     selected: Option<String>,
@@ -208,16 +250,10 @@ impl PickerState {
                 }
             }
             _ => {
-                if self.theme_positions.is_empty() {
+                if self.order.is_empty() {
                     0
                 } else {
-                    let display_idx =
-                        self.theme_positions[self.cursor.min(self.theme_positions.len() - 1)];
-                    if let DisplayRow::Theme(idx) = &self.display[display_idx] {
-                        *idx
-                    } else {
-                        0
-                    }
+                    self.order[self.cursor.min(self.order.len() - 1)]
                 }
             }
         }
@@ -260,11 +296,24 @@ impl PickerState {
     }
 
     fn browse_len(&self) -> usize {
-        self.theme_positions.len()
+        self.order.len()
     }
 
     fn search_len(&self) -> usize {
         self.search_results.len()
+    }
+
+    /// Recompute `order`, `vrows`, and `pos` from the current entries + cols.
+    fn rebuild_grid(&mut self) {
+        self.order = build_order(&self.entries);
+        let (vrows, pos) = build_grid(&self.entries, &self.order, self.cols);
+        self.vrows = vrows;
+        self.pos = pos;
+        if !self.order.is_empty() {
+            self.cursor = self.cursor.min(self.order.len() - 1);
+        } else {
+            self.cursor = 0;
+        }
     }
 }
 
@@ -321,36 +370,65 @@ fn build_entries() -> Vec<ThemeEntry> {
     entries
 }
 
-fn build_display(entries: &[ThemeEntry]) -> (Vec<DisplayRow>, Vec<usize>) {
-    let mut display = Vec::new();
-    let mut theme_positions = Vec::new();
-    let regions = [
-        Region::EditorDark,
-        Region::EditorLight,
-        Region::ChromaticDark,
-        Region::ChromaticLight,
-        Region::Semantic,
-        Region::User,
-    ];
+/// entries indices for every theme, grouped by region in display order.
+fn build_order(entries: &[ThemeEntry]) -> Vec<usize> {
+    let mut order = Vec::new();
+    for region in REGIONS {
+        for (i, e) in entries.iter().enumerate() {
+            if e.region == region {
+                order.push(i);
+            }
+        }
+    }
+    order
+}
 
-    for region in regions {
-        let items: Vec<usize> = entries
-            .iter()
-            .enumerate()
-            .filter(|(_, e)| e.region == region)
-            .map(|(i, _)| i)
-            .collect();
-        if items.is_empty() {
+/// Lay `order` out into a column grid: a full-width header per region, then
+/// rows of up to `cols` themes. Returns the visual rows and an order-index ->
+/// (vrow, col) map for grid navigation.
+fn build_grid(
+    entries: &[ThemeEntry],
+    order: &[usize],
+    cols: usize,
+) -> (Vec<VRow>, Vec<(usize, usize)>) {
+    let cols = cols.max(1);
+    let mut vrows: Vec<VRow> = Vec::new();
+    let mut pos = vec![(0usize, 0usize); order.len()];
+
+    let mut oi = 0;
+    for region in REGIONS {
+        let start = oi;
+        while oi < order.len() && entries[order[oi]].region == region {
+            oi += 1;
+        }
+        let end = oi;
+        if start == end {
             continue;
         }
-        display.push(DisplayRow::Header(region));
-        for idx in items {
-            theme_positions.push(display.len());
-            display.push(DisplayRow::Theme(idx));
+        vrows.push(VRow::Header(region));
+        let mut k = start;
+        while k < end {
+            // The row we're about to fill will land at index `vrows.len()`.
+            let vr = vrows.len();
+            let mut row = Vec::new();
+            for c in 0..cols {
+                if k < end {
+                    pos[k] = (vr, c);
+                    row.push(k);
+                    k += 1;
+                }
+            }
+            vrows.push(VRow::Themes(row));
         }
     }
 
-    (display, theme_positions)
+    (vrows, pos)
+}
+
+/// How many theme columns fit in the given total width. Capped for readability.
+fn compute_cols(width: u16) -> usize {
+    const CELL_MIN: u16 = 30;
+    ((width / CELL_MIN) as usize).clamp(1, 2)
 }
 
 // ============================================================================
@@ -495,13 +573,16 @@ pub fn run_picker() {
         return;
     }
 
-    let (display, theme_positions) = build_display(&entries);
+    let order = build_order(&entries);
+    let (vrows, pos) = build_grid(&entries, &order, 1);
     let original_theme = std::env::var("TAB_THEME").ok().filter(|s| !s.is_empty());
 
     let mut state = PickerState {
         entries,
-        display,
-        theme_positions,
+        order,
+        vrows,
+        pos,
+        cols: 1,
         mode: ViewMode::Browse,
         cursor: 0,
         scroll_offset: 0,
@@ -516,6 +597,10 @@ pub fn run_picker() {
         edit_name: String::new(),
         edit_modified: false,
         create_name: String::new(),
+        wheel_h: 0.0,
+        wheel_s: 0.0,
+        wheel_v: 0.0,
+        wheel_orig: String::new(),
         original_theme: original_theme.clone(),
         selected: None,
         quit: false,
@@ -549,6 +634,15 @@ pub fn run_picker() {
     }
 
     loop {
+        let cols = terminal
+            .size()
+            .map(|s| compute_cols(s.width))
+            .unwrap_or(1);
+        if cols != state.cols {
+            state.cols = cols;
+            state.rebuild_grid();
+        }
+
         let _ = terminal.draw(|f| ui(f, &state));
 
         if event::poll(Duration::from_millis(50)).unwrap_or(false) {
@@ -563,7 +657,7 @@ pub fn run_picker() {
             break;
         }
 
-        if state.mode != ViewMode::Edit {
+        if state.mode != ViewMode::Edit && state.mode != ViewMode::Wheel {
             theme::apply_named_theme(state.current_name());
             let idx = state.current_theme_idx();
             state.ui = compute_ui_colors(&state.entries[idx].colors);
@@ -609,6 +703,7 @@ fn handle_key(state: &mut PickerState, key: KeyEvent) {
         ViewMode::Browse => handle_browse(state, key),
         ViewMode::Search => handle_search(state, key),
         ViewMode::Edit => handle_edit(state, key),
+        ViewMode::Wheel => handle_wheel(state, key),
         ViewMode::CreateName => handle_create(state, key),
         ViewMode::Help => handle_help(state, key),
     }
@@ -632,17 +727,41 @@ fn handle_browse(state: &mut PickerState, key: KeyEvent) {
             state.search_text.clear();
             state.update_search();
         }
+        KeyCode::Left | KeyCode::Char('h') => {
+            // Step back through themes in display order, wrapping to the last
+            // entry from the first. Since `order` is contiguous per section,
+            // this also steps back into the previous section at a boundary.
+            state.cursor = if state.cursor == 0 {
+                len - 1
+            } else {
+                state.cursor - 1
+            };
+        }
+        KeyCode::Right | KeyCode::Char('l') => {
+            // Step forward through themes in display order. At the end of a
+            // section this lands on the first entry of the next section; at the
+            // very end it wraps back to the first entry.
+            state.cursor = if state.cursor + 1 >= len {
+                0
+            } else {
+                state.cursor + 1
+            };
+        }
         KeyCode::Up | KeyCode::Char('k') => {
-            state.cursor = state.cursor.saturating_sub(1);
+            move_grid_vertical(state, -1);
         }
         KeyCode::Down | KeyCode::Char('j') => {
-            state.cursor = (state.cursor + 1).min(len - 1);
+            move_grid_vertical(state, 1);
         }
         KeyCode::PageUp => {
-            state.cursor = state.cursor.saturating_sub(15);
+            for _ in 0..6 {
+                move_grid_vertical(state, -1);
+            }
         }
         KeyCode::PageDown => {
-            state.cursor = (state.cursor + 15).min(len - 1);
+            for _ in 0..6 {
+                move_grid_vertical(state, 1);
+            }
         }
         KeyCode::Home | KeyCode::Char('g') => {
             state.cursor = 0;
@@ -765,7 +884,10 @@ fn handle_edit(state: &mut PickerState, key: KeyEvent) {
             }
             state.mode = ViewMode::Browse;
         }
-        KeyCode::Enter => {
+        KeyCode::Enter | KeyCode::Char('w') | KeyCode::Char('W') | KeyCode::Char(' ') => {
+            open_wheel(state);
+        }
+        KeyCode::Char('x') | KeyCode::Char('X') => {
             state.edit_typing = true;
             state.edit_input = state.edit_colors[state.edit_slot].clone();
         }
@@ -787,6 +909,143 @@ fn handle_edit(state: &mut PickerState, key: KeyEvent) {
         }
         KeyCode::Char('s') | KeyCode::Char('S') => {
             save_edit(state);
+        }
+        _ => {}
+    }
+}
+
+fn open_wheel(state: &mut PickerState) {
+    let slot = state.edit_slot;
+    let hex = state.edit_colors[slot].clone();
+    let rgb = crate::color::hex_to_rgb(&hex).unwrap_or((128, 128, 128));
+    let (h, s, v) = crate::color::rgb_to_hsv(rgb);
+    state.wheel_h = h;
+    state.wheel_s = s;
+    // A pure-black slot has value 0; nudge so the wheel is visible and editable.
+    state.wheel_v = if v < 0.04 { 0.04 } else { v };
+    state.wheel_orig = hex;
+    state.edit_typing = false;
+    state.edit_input.clear();
+    state.mode = ViewMode::Wheel;
+}
+
+/// Current wheel HSV as a #RRGGBB string.
+fn wheel_hex(state: &PickerState) -> String {
+    crate::color::rgb_to_hex(crate::color::hsv_to_rgb(
+        state.wheel_h,
+        state.wheel_s,
+        state.wheel_v,
+    ))
+}
+
+/// Push the current wheel color into the edited slot and apply it live.
+fn wheel_apply_live(state: &mut PickerState) {
+    let slot = state.edit_slot;
+    state.edit_colors[slot] = wheel_hex(state);
+    state.edit_modified = true;
+    apply_edit_colors(state);
+}
+
+/// Nudge the reticle in cartesian space (hue = angle, saturation = radius).
+fn wheel_move(state: &mut PickerState, dx: f32, dy: f32) {
+    let rad = state.wheel_h.to_radians();
+    let mut x = state.wheel_s * rad.cos();
+    let mut y = state.wheel_s * rad.sin();
+    x = (x + dx).clamp(-1.0, 1.0);
+    y = (y + dy).clamp(-1.0, 1.0);
+    let mut s = (x * x + y * y).sqrt();
+    if s > 1.0 {
+        s = 1.0;
+    }
+    state.wheel_s = s;
+    if s > 1e-4 {
+        state.wheel_h = y.atan2(x).to_degrees().rem_euclid(360.0);
+    }
+}
+
+fn handle_wheel(state: &mut PickerState, key: KeyEvent) {
+    // Hex sub-entry: type an exact #RRGGBB without leaving the wheel.
+    if state.edit_typing {
+        match key.code {
+            KeyCode::Esc => {
+                state.edit_typing = false;
+                state.edit_input.clear();
+            }
+            KeyCode::Enter => {
+                if let Some(rgb) = crate::color::hex_to_rgb(&state.edit_input) {
+                    let (h, s, v) = crate::color::rgb_to_hsv(rgb);
+                    state.wheel_h = h;
+                    state.wheel_s = s;
+                    state.wheel_v = v;
+                    state.edit_typing = false;
+                    wheel_apply_live(state);
+                } else {
+                    state.flash_msg("Invalid hex — use #RRGGBB format");
+                }
+            }
+            KeyCode::Backspace => {
+                state.edit_input.pop();
+            }
+            KeyCode::Char(c) if state.edit_input.len() < 7 => {
+                if state.edit_input.is_empty() && c != '#' {
+                    state.edit_input.push('#');
+                }
+                state.edit_input.push(c.to_ascii_uppercase());
+                if let Some(rgb) = crate::color::hex_to_rgb(&state.edit_input) {
+                    let (h, s, v) = crate::color::rgb_to_hsv(rgb);
+                    state.wheel_h = h;
+                    state.wheel_s = s;
+                    state.wheel_v = v;
+                    wheel_apply_live(state);
+                }
+            }
+            _ => {}
+        }
+        return;
+    }
+
+    const STEP: f32 = 0.07;
+    const VSTEP: f32 = 0.04;
+    match key.code {
+        KeyCode::Esc | KeyCode::Char('q') => {
+            // Cancel: restore the slot to its pre-wheel value.
+            let slot = state.edit_slot;
+            state.edit_colors[slot] = state.wheel_orig.clone();
+            apply_edit_colors(state);
+            state.mode = ViewMode::Edit;
+        }
+        KeyCode::Enter => {
+            wheel_apply_live(state);
+            state.mode = ViewMode::Edit;
+            state.flash_msg("Color set — press s to save theme");
+        }
+        KeyCode::Up | KeyCode::Char('k') => {
+            wheel_move(state, 0.0, -STEP);
+            wheel_apply_live(state);
+        }
+        KeyCode::Down | KeyCode::Char('j') => {
+            wheel_move(state, 0.0, STEP);
+            wheel_apply_live(state);
+        }
+        KeyCode::Left | KeyCode::Char('h') => {
+            wheel_move(state, -STEP, 0.0);
+            wheel_apply_live(state);
+        }
+        KeyCode::Right | KeyCode::Char('l') => {
+            wheel_move(state, STEP, 0.0);
+            wheel_apply_live(state);
+        }
+        KeyCode::Char('+') | KeyCode::Char('=') | KeyCode::PageUp => {
+            state.wheel_v = (state.wheel_v + VSTEP).min(1.0);
+            wheel_apply_live(state);
+        }
+        KeyCode::Char('-') | KeyCode::Char('_') | KeyCode::PageDown => {
+            state.wheel_v = (state.wheel_v - VSTEP).max(0.0);
+            wheel_apply_live(state);
+        }
+        KeyCode::Char('x') | KeyCode::Char('X') => {
+            state.edit_typing = true;
+            state.edit_input = wheel_hex(state);
         }
         _ => {}
     }
@@ -836,9 +1095,7 @@ fn handle_create(state: &mut PickerState, key: KeyEvent) {
                 region: Region::User,
                 colors: Some(base_colors.clone()),
             });
-            let (display, positions) = build_display(&state.entries);
-            state.display = display;
-            state.theme_positions = positions;
+            state.rebuild_grid();
 
             state.edit_colors = base_colors;
             state.edit_name = name;
@@ -931,43 +1188,62 @@ fn try_delete_theme(state: &mut PickerState) {
     if file.exists() {
         let _ = std::fs::remove_file(&file);
         state.entries.remove(idx);
-        let (display, positions) = build_display(&state.entries);
-        state.display = display;
-        state.theme_positions = positions;
-        if state.cursor >= state.browse_len() && state.cursor > 0 {
-            state.cursor -= 1;
-        }
+        state.rebuild_grid();
         state.flash_msg(format!("Deleted '{}'", name));
     }
 }
 
-fn jump_to_next_category(state: &mut PickerState, direction: i32) {
-    if state.theme_positions.is_empty() {
+/// Move the cursor one grid row up (-1) or down (+1), keeping the column where
+/// possible and skipping full-width section headers.
+fn move_grid_vertical(state: &mut PickerState, dir: isize) {
+    if state.order.is_empty() {
         return;
     }
-    let cur_disp = state.theme_positions[state.cursor];
-    let cur_region = match &state.display[cur_disp] {
-        DisplayRow::Theme(idx) => state.entries[*idx].region,
-        _ => return,
-    };
+    let cur = state.cursor.min(state.order.len() - 1);
+    let (vr, col) = state.pos[cur];
+    let mut tv = vr as isize;
+    loop {
+        tv += dir;
+        if tv < 0 {
+            // Past the top: loop to the very last theme.
+            state.cursor = state.order.len() - 1;
+            return;
+        }
+        if tv as usize >= state.vrows.len() {
+            // Past the bottom: loop back to the first theme.
+            state.cursor = 0;
+            return;
+        }
+        if let VRow::Themes(row) = &state.vrows[tv as usize] {
+            if row.is_empty() {
+                continue;
+            }
+            let c = col.min(row.len() - 1);
+            state.cursor = row[c];
+            return;
+        }
+    }
+}
+
+fn jump_to_next_category(state: &mut PickerState, direction: i32) {
+    if state.order.is_empty() {
+        return;
+    }
+    let cur = state.cursor.min(state.order.len() - 1);
+    let cur_region = state.entries[state.order[cur]].region;
 
     if direction > 0 {
-        for (i, &pos) in state.theme_positions.iter().enumerate().skip(state.cursor + 1) {
-            if let DisplayRow::Theme(idx) = &state.display[pos] {
-                if state.entries[*idx].region != cur_region {
-                    state.cursor = i;
-                    return;
-                }
+        for j in (cur + 1)..state.order.len() {
+            if state.entries[state.order[j]].region != cur_region {
+                state.cursor = j;
+                return;
             }
         }
     } else {
-        for i in (0..state.cursor).rev() {
-            let pos = state.theme_positions[i];
-            if let DisplayRow::Theme(idx) = &state.display[pos] {
-                if state.entries[*idx].region != cur_region {
-                    state.cursor = i;
-                    return;
-                }
+        for j in (0..cur).rev() {
+            if state.entries[state.order[j]].region != cur_region {
+                state.cursor = j;
+                return;
             }
         }
     }
@@ -1010,6 +1286,10 @@ fn ui(f: &mut Frame, state: &PickerState) {
         ViewMode::Browse => render_browse(f, chunks[1], state),
         ViewMode::Search => render_search(f, chunks[1], state),
         ViewMode::Edit => render_edit(f, chunks[1], state),
+        ViewMode::Wheel => {
+            render_edit(f, chunks[1], state);
+            render_wheel(f, area, state);
+        }
         ViewMode::CreateName => {
             render_browse(f, chunks[1], state);
             render_create_modal(f, area, state);
@@ -1029,7 +1309,9 @@ fn render_header(f: &mut Frame, area: Rect, state: &PickerState) {
     ]
     .iter()
     .map(|(label, mode)| {
-        if state.mode == *mode || (state.mode == ViewMode::CreateName && *mode == ViewMode::Browse)
+        if state.mode == *mode
+            || (state.mode == ViewMode::CreateName && *mode == ViewMode::Browse)
+            || (state.mode == ViewMode::Wheel && *mode == ViewMode::Edit)
         {
             Span::styled(
                 format!(" {} ", label),
@@ -1049,7 +1331,7 @@ fn render_header(f: &mut Frame, area: Rect, state: &PickerState) {
 
     let count = match state.mode {
         ViewMode::Search => format!("{} matches", state.search_len()),
-        ViewMode::Edit => format!("editing: {}", state.edit_name),
+        ViewMode::Edit | ViewMode::Wheel => format!("editing: {}", state.edit_name),
         _ => format!("{} themes", state.entries.len()),
     };
 
@@ -1081,75 +1363,78 @@ fn render_header(f: &mut Frame, area: Rect, state: &PickerState) {
 
 fn render_browse(f: &mut Frame, area: Rect, state: &PickerState) {
     let visible = area.height as usize;
-    let len = state.browse_len();
+    if state.order.is_empty() || visible == 0 {
+        return;
+    }
 
-    let cur_pos = if len > 0 {
-        state.cursor.min(len - 1)
-    } else {
-        0
-    };
+    let cur = state.cursor.min(state.order.len() - 1);
+    let cur_vrow = state.pos[cur].0;
+    let scroll = compute_scroll(cur_vrow, visible, state.vrows.len());
 
-    let scroll = compute_scroll(cur_pos, visible, len, &state.display, &state.theme_positions);
-
-    let wide = area.width > 80;
-    let name_width = if wide { 22 } else { 18 };
-    let swatch_width = if wide { 14 } else { 10 };
+    let cols = state.cols.max(1);
+    let cell_w = (area.width as usize / cols).max(16);
+    let swatch_w = if cell_w >= 34 { 12 } else { 8 };
+    let name_w = cell_w.saturating_sub(3 + 1 + swatch_w + 1).max(6);
 
     let mut items: Vec<ListItem> = Vec::new();
-    for (di, row) in state.display.iter().enumerate().skip(scroll) {
+    for vrow in state.vrows.iter().skip(scroll) {
         if items.len() >= visible {
             break;
         }
-
-        match row {
-            DisplayRow::Header(region) => {
+        match vrow {
+            VRow::Header(region) => {
+                let label = format!(" {} {} ", region.icon(), region.label());
+                let dashes = area
+                    .width
+                    .saturating_sub(label.chars().count() as u16 + 1) as usize;
                 let line = Line::from(vec![
                     Span::styled(
-                        format!(" {} {} ", region.icon(), region.label()),
-                        Style::default().fg(region_ui_color(*region, &state.ui)).bold(),
+                        label,
+                        Style::default()
+                            .fg(region_ui_color(*region, &state.ui))
+                            .bold(),
                     ),
-                    Span::styled(
-                        "─".repeat(area.width.saturating_sub(region.label().len() as u16 + 5) as usize),
-                        Style::default().fg(state.ui.border),
-                    ),
+                    Span::styled("─".repeat(dashes), Style::default().fg(state.ui.border)),
                 ]);
                 items.push(ListItem::new(line));
             }
-            DisplayRow::Theme(idx) => {
-                let is_cursor = state.theme_positions.get(cur_pos) == Some(&di);
-                let entry = &state.entries[*idx];
-                let (desc, _tags) = theme_meta(&entry.name);
+            VRow::Themes(row) => {
+                let mut spans: Vec<Span> = Vec::new();
+                for &oi in row {
+                    let entry = &state.entries[state.order[oi]];
+                    let is_cursor = oi == cur;
 
-                let marker = if is_cursor { " ▸ " } else { "   " };
-                let name_style = if is_cursor {
-                    Style::default().fg(state.ui.text).bold()
-                } else {
-                    Style::default().fg(state.ui.text_dim)
-                };
+                    let marker = if is_cursor { " ▸ " } else { "   " };
+                    let name_style = if is_cursor {
+                        Style::default().fg(state.ui.text).bold()
+                    } else {
+                        Style::default().fg(state.ui.text_dim)
+                    };
 
-                let mut spans: Vec<Span> = vec![
-                    Span::styled(marker.to_string(), Style::default().fg(state.ui.accent)),
-                    Span::styled(format!("{:<width$}", entry.name, width = name_width), name_style),
-                    Span::raw(" "),
-                ];
+                    let mut name = entry.name.clone();
+                    if name.chars().count() > name_w {
+                        name.truncate(name_w.saturating_sub(1));
+                        name.push('…');
+                    }
 
-                spans.extend(swatch_spans(&entry.colors, swatch_width));
-                spans.push(Span::raw(" "));
-
-                if wide {
                     spans.push(Span::styled(
-                        desc.to_string(),
-                        Style::default().fg(state.ui.text_muted),
+                        marker.to_string(),
+                        Style::default().fg(state.ui.accent),
                     ));
+                    spans.push(Span::styled(
+                        format!("{:<width$}", name, width = name_w),
+                        name_style,
+                    ));
+                    spans.push(Span::raw(" "));
+                    spans.extend(swatch_spans(&entry.colors, swatch_w));
+                    spans.push(Span::raw(" "));
                 }
-
                 items.push(ListItem::new(Line::from(spans)));
             }
         }
     }
 
-    let list = List::new(items);
-    f.render_widget(list, area);
+    f.render_widget(List::new(items), area);
 }
 
 fn render_search(f: &mut Frame, area: Rect, state: &PickerState) {
@@ -1430,7 +1715,7 @@ fn render_preview(f: &mut Frame, area: Rect, state: &PickerState) {
         .collect::<Vec<_>>()
         .join(" ");
 
-    let colors = if state.mode == ViewMode::Edit {
+    let colors = if matches!(state.mode, ViewMode::Edit | ViewMode::Wheel) {
         Some(state.edit_colors.clone())
     } else {
         entry.colors.clone()
@@ -1517,8 +1802,21 @@ fn render_footer(f: &mut Frame, area: Rect, state: &PickerState) {
         ],
         ViewMode::Edit => vec![
             ("↑↓←→", "slots"),
-            ("Enter", "edit hex"),
+            ("Enter", "wheel"),
+            ("x", "hex"),
             ("s", "save"),
+            ("Esc", "cancel"),
+        ],
+        ViewMode::Wheel if state.edit_typing => vec![
+            ("type", "#RRGGBB"),
+            ("Enter", "confirm"),
+            ("Esc", "cancel"),
+        ],
+        ViewMode::Wheel => vec![
+            ("↑↓←→", "move"),
+            ("+/-", "value"),
+            ("x", "hex"),
+            ("Enter", "apply"),
             ("Esc", "cancel"),
         ],
         ViewMode::CreateName => vec![
@@ -1589,6 +1887,148 @@ fn render_create_modal(f: &mut Frame, area: Rect, state: &PickerState) {
     f.render_widget(Paragraph::new(lines), inner);
 }
 
+fn render_wheel(f: &mut Frame, area: Rect, state: &PickerState) {
+    let ui = &state.ui;
+    let slot_name = SLOT_NAMES.get(state.edit_slot).copied().unwrap_or("color");
+
+    let width = 60u16.min(area.width.saturating_sub(2));
+    let height = 22u16.min(area.height.saturating_sub(1));
+    let x = area.x + (area.width.saturating_sub(width)) / 2;
+    let y = area.y + (area.height.saturating_sub(height)) / 2;
+    let modal = Rect::new(x, y, width, height);
+
+    f.render_widget(Clear, modal);
+
+    let block = Block::default()
+        .title(Span::styled(
+            format!(" Color Wheel · {} ", slot_name),
+            Style::default().fg(ui.accent).bold(),
+        ))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(ui.accent));
+    let inner = block.inner(modal);
+    f.render_widget(block, modal);
+
+    // Disc geometry: C = 2R so a unit circle renders round (cells are ~2:1).
+    let slider_w: i32 = 11;
+    let avail_w = inner.width as i32;
+    let avail_h = inner.height as i32;
+    let mut r = (avail_h - 6).clamp(5, 11);
+    let mut c = r * 2;
+    if c + slider_w > avail_w {
+        c = (avail_w - slider_w).max(6);
+        r = (c / 2).clamp(4, 11);
+        c = r * 2;
+    }
+    if r < 2 || c < 2 {
+        return;
+    }
+
+    let value = state.wheel_v;
+    let rad = state.wheel_h.to_radians();
+    let rx = state.wheel_s * rad.cos();
+    let ry = state.wheel_s * rad.sin();
+    let ret_col = ((rx * (c as f32 / 2.0) + c as f32 / 2.0 - 0.5).round() as i32).clamp(0, c - 1);
+    let ret_row = ((ry * (r as f32 / 2.0) + r as f32 / 2.0 - 0.5).round() as i32).clamp(0, r - 1);
+    let slider_marker = ((1.0 - value) * (r - 1) as f32).round() as i32;
+
+    let mut lines: Vec<Line> = Vec::new();
+    for row in 0..r {
+        let mut spans: Vec<Span> = Vec::new();
+        for col in 0..c {
+            let nx = (col as f32 + 0.5 - c as f32 / 2.0) / (c as f32 / 2.0);
+            let ny = (row as f32 + 0.5 - r as f32 / 2.0) / (r as f32 / 2.0);
+            let dist = (nx * nx + ny * ny).sqrt();
+            if dist <= 1.0 {
+                let hue = ny.atan2(nx).to_degrees().rem_euclid(360.0);
+                let (cr, cg, cb) = crate::color::hsv_to_rgb(hue, dist, value);
+                if col == ret_col && row == ret_row {
+                    let lum = 0.299 * cr as f32 + 0.587 * cg as f32 + 0.114 * cb as f32;
+                    let fg = if lum > 140.0 { Color::Black } else { Color::White };
+                    spans.push(Span::styled(
+                        "◉",
+                        Style::default().fg(fg).bg(Color::Rgb(cr, cg, cb)),
+                    ));
+                } else {
+                    spans.push(Span::styled(" ", Style::default().bg(Color::Rgb(cr, cg, cb))));
+                }
+            } else {
+                spans.push(Span::raw(" "));
+            }
+        }
+
+        // Value slider (top = brightest).
+        spans.push(Span::raw(" "));
+        let v_level = 1.0 - row as f32 / (r - 1) as f32;
+        let (sr, sg, sb) =
+            crate::color::hsv_to_rgb(state.wheel_h, state.wheel_s.max(0.0001), v_level);
+        if row == slider_marker {
+            spans.push(Span::styled("◀", Style::default().fg(ui.accent).bold()));
+        } else {
+            spans.push(Span::raw(" "));
+        }
+        spans.push(Span::styled("    ", Style::default().bg(Color::Rgb(sr, sg, sb))));
+        if row == 0 {
+            spans.push(Span::styled(" Val", Style::default().fg(ui.text_muted)));
+        } else if row == 1 {
+            spans.push(Span::styled(
+                format!(" {:>3}%", (value * 100.0).round() as i32),
+                Style::default().fg(ui.text_dim),
+            ));
+        }
+
+        lines.push(Line::from(spans));
+    }
+
+    // Readout: live swatch + hex + H/S/V.
+    let hex = wheel_hex(state);
+    let (rr, rg, rb) = crate::color::hsv_to_rgb(state.wheel_h, state.wheel_s, state.wheel_v);
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![
+        Span::raw("  "),
+        Span::styled("    ", Style::default().bg(Color::Rgb(rr, rg, rb))),
+        Span::styled(format!("  {}   ", hex), Style::default().fg(ui.text).bold()),
+        Span::styled(
+            format!(
+                "H {:>3}°  S {:>3}%  V {:>3}%",
+                state.wheel_h.round() as i32,
+                (state.wheel_s * 100.0).round() as i32,
+                (state.wheel_v * 100.0).round() as i32
+            ),
+            Style::default().fg(ui.text_muted),
+        ),
+    ]));
+
+    if state.edit_typing {
+        lines.push(Line::from(vec![
+            Span::styled("  hex ", Style::default().fg(ui.text_muted)),
+            Span::styled(
+                format!("{}▏", state.edit_input),
+                Style::default().fg(ui.accent).bold(),
+            ),
+        ]));
+    } else {
+        // Palette context: 16 ANSI swatches, current slot marked.
+        let mut pspans = vec![Span::raw("  ")];
+        for i in 0..16usize {
+            let slot = 3 + i;
+            let col = crate::color::hex_to_rgb(&state.edit_colors[slot]).unwrap_or((0, 0, 0));
+            pspans.push(Span::styled(
+                if slot == state.edit_slot { "▼" } else { " " },
+                Style::default().fg(ui.accent),
+            ));
+            pspans.push(Span::styled(
+                " ",
+                Style::default().bg(Color::Rgb(col.0, col.1, col.2)),
+            ));
+        }
+        lines.push(Line::from(pspans));
+    }
+
+    f.render_widget(Paragraph::new(lines), inner);
+}
+
 fn render_help_overlay(f: &mut Frame, area: Rect, state: &PickerState) {
     let width = 56u16.min(area.width.saturating_sub(4));
     let height = 22u16.min(area.height.saturating_sub(2));
@@ -1625,8 +2065,8 @@ fn render_help_overlay(f: &mut Frame, area: Rect, state: &PickerState) {
             " Navigation",
             Style::default().fg(accent).bold(),
         )),
-        h("↑/k  ↓/j", "Move up / down"),
-        h("←/h  →/l", "Switch column / group"),
+        h("↑/k  ↓/j", "Move up / down a row"),
+        h("←/h  →/l", "Move left / right a column"),
         h("Tab/S-Tab", "Next / previous category"),
         h("PgUp/PgDn", "Page up / down"),
         h("Home/End", "First / last theme"),
@@ -1638,7 +2078,7 @@ fn render_help_overlay(f: &mut Frame, area: Rect, state: &PickerState) {
         h("Enter", "Apply selected theme"),
         h("/", "Search (name, desc, tags)"),
         h("n", "New theme (clone + edit)"),
-        h("e", "Edit theme colors inline"),
+        h("e", "Edit colors (⏎ opens color wheel)"),
         h("c", "Clone to user themes"),
         h("d", "Delete user theme"),
         h("s", "Apply & save to .envrc"),
@@ -1655,24 +2095,19 @@ fn render_help_overlay(f: &mut Frame, area: Rect, state: &PickerState) {
     f.render_widget(Paragraph::new(lines), inner);
 }
 
-fn compute_scroll(
-    cursor: usize,
-    visible: usize,
-    _total: usize,
-    display: &[DisplayRow],
-    theme_positions: &[usize],
-) -> usize {
-    if theme_positions.is_empty() || visible == 0 {
+/// Top vrow index to render so that `cursor_vrow` stays visible with a little
+/// context above it.
+fn compute_scroll(cursor_vrow: usize, visible: usize, total_vrows: usize) -> usize {
+    if visible == 0 || total_vrows <= visible {
         return 0;
     }
-    let target_display_idx = theme_positions[cursor.min(theme_positions.len() - 1)];
-    let context = 3usize;
-
-    let start = target_display_idx.saturating_sub(context);
-    if target_display_idx < visible {
+    let context = 2usize;
+    if cursor_vrow < visible {
         0
     } else {
-        start.min(display.len().saturating_sub(visible))
+        cursor_vrow
+            .saturating_sub(context)
+            .min(total_vrows - visible)
     }
 }
 
@@ -1881,4 +2316,108 @@ fn find_builtin_colors(name: &str) -> Option<Vec<String>> {
         .iter()
         .find(|(n, _)| *n == canonical)
         .map(|(_, c)| c.iter().map(|s| s.to_string()).collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn grid_places_every_theme_exactly_once() {
+        let entries = build_entries();
+        let order = build_order(&entries);
+        assert!(!order.is_empty());
+
+        for cols in 1..=4usize {
+            let (vrows, pos) = build_grid(&entries, &order, cols);
+            assert_eq!(pos.len(), order.len());
+
+            // Collect every order-index that appears in a Themes row.
+            let mut seen = vec![false; order.len()];
+            let mut header_count = 0usize;
+            for (vi, vrow) in vrows.iter().enumerate() {
+                match vrow {
+                    VRow::Header(_) => header_count += 1,
+                    VRow::Themes(row) => {
+                        assert!(row.len() <= cols, "row wider than {cols} cols");
+                        for (c, &oi) in row.iter().enumerate() {
+                            assert!(!seen[oi], "order idx {oi} placed twice");
+                            seen[oi] = true;
+                            // pos must point back to this exact cell.
+                            assert_eq!(pos[oi], (vi, c));
+                        }
+                    }
+                }
+            }
+            assert!(seen.iter().all(|&b| b), "some theme not placed at cols={cols}");
+            assert!(header_count >= 5, "expected a header per populated region");
+        }
+    }
+
+    #[test]
+    fn compute_cols_scales_and_clamps() {
+        assert_eq!(compute_cols(20), 1);
+        assert_eq!(compute_cols(60), 2);
+        assert_eq!(compute_cols(95), 3);
+        assert_eq!(compute_cols(400), 4); // capped
+    }
+
+    fn test_state(mode: ViewMode, cols: usize) -> PickerState {
+        let entries = build_entries();
+        let order = build_order(&entries);
+        let (vrows, pos) = build_grid(&entries, &order, cols);
+        PickerState {
+            entries,
+            order,
+            vrows,
+            pos,
+            cols,
+            mode,
+            cursor: 5,
+            scroll_offset: 0,
+            search_text: "blue".into(),
+            search_results: vec![0, 1, 2],
+            search_cursor: 1,
+            edit_entry_idx: 0,
+            edit_colors: default_colors(),
+            edit_slot: 6,
+            edit_typing: false,
+            edit_input: String::new(),
+            edit_name: "test".into(),
+            edit_modified: false,
+            create_name: String::new(),
+            wheel_h: 36.0,
+            wheel_s: 0.74,
+            wheel_v: 0.91,
+            wheel_orig: "#1E1E2E".into(),
+            original_theme: None,
+            selected: None,
+            quit: false,
+            flash: None,
+            ui: compute_ui_colors(&None),
+        }
+    }
+
+    #[test]
+    fn renders_every_mode_without_panic() {
+        use ratatui::backend::TestBackend;
+        use ratatui::Terminal;
+
+        for &(mode, cols) in &[
+            (ViewMode::Browse, 3),
+            (ViewMode::Browse, 1),
+            (ViewMode::Search, 3),
+            (ViewMode::Edit, 3),
+            (ViewMode::Wheel, 3),
+            (ViewMode::Help, 3),
+        ] {
+            let state = test_state(mode, cols);
+            // A small terminal also exercises the saturating/clamp paths.
+            for (w, h) in [(100u16, 30u16), (40, 14)] {
+                let backend = TestBackend::new(w, h);
+                let mut term = Terminal::new(backend).unwrap();
+                term.draw(|f| ui(f, &state)).unwrap();
+            }
+        }
+    }
 }

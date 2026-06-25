@@ -1152,7 +1152,7 @@ fn cmd_tabbing_theme() {
             println!("  /            Search/filter themes by name");
             println!("  Enter        Apply selected theme");
             println!("  c            Clone selected theme");
-            println!("  e            Edit selected theme (user themes only)");
+            println!("  e            Edit colors — Enter opens the HSV color wheel");
             println!("  d            Delete selected theme (user themes only)");
             println!("  r            Reset to terminal defaults");
             println!("  q/Esc        Quit (restore original theme)");
