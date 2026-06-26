@@ -84,6 +84,9 @@ CHECKS
   case "${TERM:-}" in
     xterm-kitty|xterm-ghostty)
       if [ -n "${TERM_FOR_SSHD:-}" ]; then
+        if [ -n "${TABBING_SSH_SHIM:-}" ]; then
+          :
+        else
 CHECKS
   printf '        if [ -f "$HOME/%s" ] && ! grep -v '"'"'^ *#'"'"' "$HOME/%s" | grep -qE '"'"'(ssh\\s*\\(\\)|function ssh)'"'"' 2>/dev/null; then\n' "$_rcfile" "$_rcfile"
   cat <<'CHECKS'
@@ -91,6 +94,7 @@ CHECKS
 CHECKS
   printf '          _tabbing_init_warn "Fix: add ssh() { TERM=\\\"\\$TERM_FOR_SSHD\\\" command ssh \\\"\\$@\\\"; } to %s"\n' "$_rcfile"
   cat <<'CHECKS'
+        fi
         fi
       fi
       ;;

@@ -79,10 +79,7 @@ pub fn create_pipe(session: &str) -> Option<PathBuf> {
         let _ = fs::remove_file(&pipe_path);
     }
 
-    let status = Command::new("mkfifo")
-        .arg(&pipe_path)
-        .status()
-        .ok()?;
+    let status = Command::new("mkfifo").arg(&pipe_path).status().ok()?;
 
     if status.success() {
         Some(pipe_path)

@@ -185,13 +185,7 @@ fn render_static(state: &TabState, max_title: usize, tty: &str) {
     write_title_to_tty(&output, tty);
 }
 
-fn render_marquee(
-    state: &TabState,
-    offset: usize,
-    max_title: usize,
-    width: usize,
-    tty: &str,
-) {
+fn render_marquee(state: &TabState, offset: usize, max_title: usize, width: usize, tty: &str) {
     let t_title = truncate_title(&state.title, max_title);
     let dot = render::get_indicator(state);
     let prefix = if dot.is_empty() {
@@ -259,7 +253,10 @@ fn cmd_start(session: &str) {
     // Simpler approach: use the real binary path and pass a hidden
     // flag so main.rs can route it. But the task spec says to use
     // argv0 dispatch. Let's find the tabbing-daemon symlink.
-    let daemon_link = exe.parent().unwrap_or(std::path::Path::new(".")).join("tabbing-daemon");
+    let daemon_link = exe
+        .parent()
+        .unwrap_or(std::path::Path::new("."))
+        .join("tabbing-daemon");
     let spawn_exe = if daemon_link.exists() {
         daemon_link
     } else {

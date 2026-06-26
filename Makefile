@@ -3,52 +3,38 @@ SHARE_DIR   := $(HOME)/.local/share/tabbing-on
 
 RUST_DIR    := rust
 SHELL_DIR   := shell-impl
-INK_PLAN_DIR := ink-plan
 DIRENV_LIB  := $(HOME)/.config/direnv/lib
 
 SYMLINKS := tabbing-off tabbing-status tabbing-info tabbing-clear tabbing-todo tabbing-report \
             tabbing-history tabbing-recordings tabbing-doctor tabbing-marquee \
-            tabbing-init tabbing-theme tabbing-style tabbing-claude-statusline tabbing-plan task-memo \
+            tabbing-init tabbing-theme tabbing-style tabbing-claude-statusline tabbing-ssh-shim tabbing-plan task-memo \
             demo-runner tabbing-daemon
 
-.PHONY: compile test install install-shell install-ink uninstall uninstall-shell uninstall-ink clean
+.PHONY: compile test install install-shell uninstall uninstall-shell clean
 
 # --- Rust (default) ---
 
 compile:
-	@if ! command -v cargo >/dev/null 2>&1; then \
-		echo "tabbing-on: cargo not found; skipping Rust build."; \
-	else \
-		cd $(RUST_DIR) && cargo build --release; \
-	fi
+	cd $(RUST_DIR) && cargo build --release
 
 test:
-	@if ! command -v cargo >/dev/null 2>&1; then \
-		echo "tabbing-on: cargo not found; skipping tests."; \
-	else \
-		cd $(RUST_DIR) && cargo test; \
-	fi
+	cd $(RUST_DIR) && cargo test
 
 install: compile
-	@if ! command -v cargo >/dev/null 2>&1; then \
-		echo "tabbing-on: cargo not found; using shell fallback install."; \
-		$(MAKE) install-shell; \
-	else \
-		mkdir -p $(INSTALL_DIR); \
-		install -m 755 $(RUST_DIR)/target/release/tabbing-on $(INSTALL_DIR)/tabbing-on; \
-		for link in $(SYMLINKS); do \
-			ln -sf $(INSTALL_DIR)/tabbing-on $(INSTALL_DIR)/$$link; \
-		done; \
-		mkdir -p $(SHARE_DIR)/lib $(SHARE_DIR)/shell; \
-		install -m 644 $(SHELL_DIR)/lib/*.sh $(SHARE_DIR)/lib/; \
-		install -m 644 $(SHELL_DIR)/shell/tabbing.bash $(SHELL_DIR)/shell/tabbing.zsh $(SHARE_DIR)/shell/; \
-		mkdir -p $(DIRENV_LIB); \
-		install -m 644 $(SHELL_DIR)/direnv/tabbing.sh $(DIRENV_LIB)/tabbing.sh; \
-		echo "Installed: tabbing-on (rust) → $(INSTALL_DIR)"; \
-		echo "  Symlinks: $(SYMLINKS)"; \
-		echo "  Shell libs → $(SHARE_DIR)"; \
-		echo "  direnv helper → $(DIRENV_LIB)/tabbing.sh"; \
-	fi
+	@mkdir -p $(INSTALL_DIR)
+	@install -m 755 $(RUST_DIR)/target/release/tabbing-on $(INSTALL_DIR)/tabbing-on
+	@for link in $(SYMLINKS); do \
+		ln -sf $(INSTALL_DIR)/tabbing-on $(INSTALL_DIR)/$$link; \
+	done
+	@mkdir -p $(SHARE_DIR)/lib $(SHARE_DIR)/shell
+	@install -m 644 $(SHELL_DIR)/lib/*.sh $(SHARE_DIR)/lib/
+	@install -m 644 $(SHELL_DIR)/shell/tabbing.bash $(SHELL_DIR)/shell/tabbing.zsh $(SHARE_DIR)/shell/
+	@mkdir -p $(DIRENV_LIB)
+	@install -m 644 $(SHELL_DIR)/direnv/tabbing.sh $(DIRENV_LIB)/tabbing.sh
+	@echo "Installed: tabbing-on (rust) → $(INSTALL_DIR)"
+	@echo "  Symlinks: $(SYMLINKS)"
+	@echo "  Shell libs → $(SHARE_DIR)"
+	@echo "  direnv helper → $(DIRENV_LIB)/tabbing.sh"
 
 uninstall:
 	@rm -f $(INSTALL_DIR)/tabbing-on
@@ -58,16 +44,6 @@ uninstall:
 
 clean:
 	cd $(RUST_DIR) && cargo clean
-	-$(MAKE) -C $(INK_PLAN_DIR) clean 2>/dev/null
-
-# --- Ink Plan (tabbing-plan / task-memo via Node.js) ---
-
-install-ink:
-	$(MAKE) -C $(INK_PLAN_DIR) install
-
-uninstall-ink:
-	@rm -f $(INSTALL_DIR)/tabbing-plan $(INSTALL_DIR)/task-memo
-	@echo "Removed tabbing-plan + task-memo (ink) from $(INSTALL_DIR)"
 
 # --- Shell (legacy) ---
 

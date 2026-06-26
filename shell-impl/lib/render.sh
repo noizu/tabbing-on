@@ -1339,6 +1339,33 @@ _tabbing_send_theme() {
     printf '\033]12;%s\007' "$cursor"
 }
 
+_tabbing_cursor_style_code() {
+  local style="${1:-}" blink="${2:-}"
+  style="$(printf '%s' "$style" | tr '_' '-' | tr '[:upper:]' '[:lower:]')"
+  blink="$(printf '%s' "$blink" | tr '[:upper:]' '[:lower:]')"
+  case "$style" in
+    "" ) return 1 ;;
+    default) echo 0 ;;
+    blinking-block) echo 1 ;;
+    block) case "$blink" in false|0|no|off) echo 2 ;; *) echo 1 ;; esac ;;
+    steady-block) echo 2 ;;
+    blinking-underline) echo 3 ;;
+    underline) case "$blink" in false|0|no|off) echo 4 ;; *) echo 3 ;; esac ;;
+    steady-underline) echo 4 ;;
+    blinking-bar|blinking-beam) echo 5 ;;
+    bar|beam) case "$blink" in false|0|no|off) echo 6 ;; *) echo 5 ;; esac ;;
+    steady-bar|steady-beam) echo 6 ;;
+    *) return 1 ;;
+  esac
+}
+
+_tabbing_send_cursor_style() {
+  local code
+  code="$(_tabbing_cursor_style_code "${1:-}" "${2:-}")" || return 0
+  printf '\033[%s q' "$code" >/dev/tty 2>/dev/null || \
+    printf '\033[%s q' "$code"
+}
+
 # ---------------------------------------------------------------------------
 # Reset terminal to default colors (undo theme)
 # OSC 104 = reset palette, 110 = reset fg, 111 = reset bg, 112 = reset cursor
@@ -1349,11 +1376,13 @@ _tabbing_clear_theme() {
     printf '\033]110\007'
     printf '\033]111\007'
     printf '\033]112\007'
+    printf '\033[0 q'
   } >/dev/tty 2>/dev/null || {
     printf '\033]104\007'
     printf '\033]110\007'
     printf '\033]111\007'
     printf '\033]112\007'
+    printf '\033[0 q'
   }
 }
 
@@ -1392,7 +1421,9 @@ _tabbing_load_user_theme() {
   local c0="" c1="" c2="" c3="" c4="" c5="" c6="" c7=""
   local c8="" c9="" c10="" c11="" c12="" c13="" c14="" c15=""
   local title_style="" status_style=""
+  local cursor_style="" cursor_blink=""
   local u0="" u1="" u2="" u3="" u4="" u5=""
+  local semantic_val=""
 
   while IFS= read -r line || [ -n "$line" ]; do
     # Skip comments and blank lines
@@ -1407,16 +1438,17 @@ _tabbing_load_user_theme() {
     # Trim whitespace from key and val
     key="$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
     val="$(echo "$val" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^["'"'"']//;s/["'"'"']$//')"
-    local semantic_val
-    semantic_val="$(echo "${val%%#*}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    semantic_val="$(printf '%s\n' "$val" | sed 's/[[:space:]][[:space:]]*#.*$//;s/^[[:space:]]*//;s/[[:space:]]*$//')"
     # Keep hex values like #1E1E2E intact; drop trailing inline comments by
     # taking the first whitespace-delimited token after trimming.
-    val="${val%%[[:space:]]*}"
+    val="$(printf '%s\n' "$val" | sed 's/[[:space:]].*$//')"
 
     case "$key" in
       bg|background)  bg="$val" ;;
       fg|foreground)  fg="$val" ;;
       cursor)         cursor="$val" ;;
+      cursor_style|cursor_shape) cursor_style="$semantic_val" ;;
+      cursor_blink|cursor_style_blink) cursor_blink="$semantic_val" ;;
       color0)  c0="$val"  ;; color1)  c1="$val"  ;;
       color2)  c2="$val"  ;; color3)  c3="$val"  ;;
       color4)  c4="$val"  ;; color5)  c5="$val"  ;;
@@ -1437,6 +1469,18 @@ _tabbing_load_user_theme() {
         status_style="${status_style}${status_style:+ }$semantic_val" ;;
       status_bg)
         status_style="${status_style}${status_style:+ }bg-$val" ;;
+      critical_style|critical_fg|critical_color) u0="${u0}${u0:+ }$semantic_val" ;;
+      critical_bg) u0="${u0}${u0:+ }bg-$val" ;;
+      urgent_style|urgent_fg|urgent_color) u1="${u1}${u1:+ }$semantic_val" ;;
+      urgent_bg) u1="${u1}${u1:+ }bg-$val" ;;
+      warning_style|warning_fg|warning_color) u2="${u2}${u2:+ }$semantic_val" ;;
+      warning_bg) u2="${u2}${u2:+ }bg-$val" ;;
+      attention_style|attention_fg|attention_color) u3="${u3}${u3:+ }$semantic_val" ;;
+      attention_bg) u3="${u3}${u3:+ }bg-$val" ;;
+      success_style|success_fg|success_color) u4="${u4}${u4:+ }$semantic_val" ;;
+      success_bg) u4="${u4}${u4:+ }bg-$val" ;;
+      muted_style|muted_fg|muted_color) u5="${u5}${u5:+ }$semantic_val" ;;
+      muted_bg) u5="${u5}${u5:+ }bg-$val" ;;
       urgency0_style|urgency0_fg|urgency0_color) u0="${u0}${u0:+ }$semantic_val" ;;
       urgency1_style|urgency1_fg|urgency1_color) u1="${u1}${u1:+ }$semantic_val" ;;
       urgency2_style|urgency2_fg|urgency2_color) u2="${u2}${u2:+ }$semantic_val" ;;
@@ -1482,6 +1526,7 @@ _tabbing_load_user_theme() {
   _tabbing_send_theme "$bg" "$fg" "$cursor" \
     "$c0" "$c1" "$c2" "$c3" "$c4" "$c5" "$c6" "$c7" \
     "$c8" "$c9" "$c10" "$c11" "$c12" "$c13" "$c14" "$c15"
+  _tabbing_send_cursor_style "$cursor_style" "$cursor_blink"
 
   export TAB_TITLE_STYLE="$title_style"
   export TAB_STATUS_STYLE=""
@@ -1495,6 +1540,7 @@ _tabbing_load_user_theme() {
     *) [ -n "$status_style" ] && export TAB_STATUS_STYLE="$status_style" ;;
   esac
   [ -z "${TAB_STATUS_STYLE:-}" ] && [ -n "$status_style" ] && export TAB_STATUS_STYLE="$status_style"
+  return 0
 }
 
 # ---------------------------------------------------------------------------

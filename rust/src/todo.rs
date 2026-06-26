@@ -70,18 +70,30 @@ fn init_file(tab_id: &str, tab_title: &str) {
 }
 
 /// Add a new todo item to the tab's todo file.
-pub fn todo_add(tab_id: &str, tab_title: &str, title: &str, description: &str, emoji: &str, urgency: &str) {
+pub fn todo_add(
+    tab_id: &str,
+    tab_title: &str,
+    title: &str,
+    description: &str,
+    emoji: &str,
+    urgency: &str,
+) {
     init_file(tab_id, tab_title);
 
     let path = todo_file(tab_id);
     let todo_id = read_next_id(&path);
-    let ts = chrono::Local::now().format("%Y-%m-%dT%H:%M:%S%z").to_string();
+    let ts = chrono::Local::now()
+        .format("%Y-%m-%dT%H:%M:%S%z")
+        .to_string();
 
     let mut entry = String::new();
     entry.push_str(&format!("  - id: {}\n", todo_id));
     entry.push_str(&format!("    title: \"{}\"\n", yaml_escape(title)));
     if !description.is_empty() {
-        entry.push_str(&format!("    description: \"{}\"\n", yaml_escape(description)));
+        entry.push_str(&format!(
+            "    description: \"{}\"\n",
+            yaml_escape(description)
+        ));
     }
     if !emoji.is_empty() {
         entry.push_str(&format!("    emoji: \"{}\"\n", yaml_escape(emoji)));
@@ -185,7 +197,11 @@ pub fn todo_list(tab_id: &str, tab_title: &str) {
     };
 
     let task_title = read_task_title(&content);
-    let display_title = if task_title.is_empty() { tab_title } else { &task_title };
+    let display_title = if task_title.is_empty() {
+        tab_title
+    } else {
+        &task_title
+    };
     println!("Todos for: {}\n", display_title);
 
     let items = parse_todos(&content);
@@ -281,7 +297,12 @@ pub fn todo_switch(tab_id: &str, target_id: &str) -> Option<(String, String, Str
 
 /// Rewrite the YAML content, changing the status of a specific todo.
 /// Optionally also deactivates any currently active todo.
-fn rewrite_status(content: &str, target_id: &str, new_status: &str, _deactivate_active: Option<bool>) -> String {
+fn rewrite_status(
+    content: &str,
+    target_id: &str,
+    new_status: &str,
+    _deactivate_active: Option<bool>,
+) -> String {
     let mut result = String::new();
     let mut current_id = String::new();
 
@@ -432,7 +453,7 @@ todos:
 /// Displays a navigable list; Enter switches to the selected todo.
 pub fn todo_pick(tab_id: &str) {
     use crossterm::event::{self, Event, KeyCode};
-    use crossterm::terminal::{enable_raw_mode, disable_raw_mode};
+    use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 
     let path = todo_file(tab_id);
     let content = match fs::read_to_string(&path) {

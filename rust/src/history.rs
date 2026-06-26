@@ -69,12 +69,7 @@ pub fn history_list_tabs() {
             fs::read_dir(&rec_dir)
                 .map(|rd| {
                     rd.filter_map(|e| e.ok())
-                        .filter(|e| {
-                            e.path()
-                                .extension()
-                                .and_then(|x| x.to_str())
-                                == Some("cast")
-                        })
+                        .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("cast"))
                         .count()
                 })
                 .unwrap_or(0)
@@ -302,7 +297,20 @@ fn ts_to_seconds(ts: &str) -> i64 {
         total_days += if is_leap(y) { 366 } else { 365 };
     }
     // Months
-    let days_in_month = [31, if is_leap(year) { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let days_in_month = [
+        31,
+        if is_leap(year) { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
     for m in 0..(month - 1) as usize {
         if m < 12 {
             total_days += days_in_month[m];
@@ -549,8 +557,7 @@ pub fn report(tab_id: &str) {
         let pct = (*dur * 100 / total) as usize;
         let filled = (pct * bar_width / 100).min(bar_width);
 
-        let bar: String = "\u{2588}".repeat(filled)
-            + &" ".repeat(bar_width - filled);
+        let bar: String = "\u{2588}".repeat(filled) + &" ".repeat(bar_width - filled);
 
         println!(
             "  {:<14} [{}] {:>3}%  {}",
@@ -567,12 +574,7 @@ pub fn report(tab_id: &str) {
         let cast_files: Vec<_> = fs::read_dir(&rec_dir)
             .into_iter()
             .flat_map(|rd| rd.filter_map(|e| e.ok()))
-            .filter(|e| {
-                e.path()
-                    .extension()
-                    .and_then(|x| x.to_str())
-                    == Some("cast")
-            })
+            .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("cast"))
             .collect();
 
         if !cast_files.is_empty() {

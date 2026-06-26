@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::process::{Command, Child, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::time::Instant;
 
 /// Check whether SoX is available on PATH.
@@ -44,12 +44,7 @@ impl Recorder {
         ));
 
         let child = Command::new("rec")
-            .args([
-                "-t", "wav",
-                "-r", "16000",
-                "-c", "1",
-                "-b", "16",
-            ])
+            .args(["-t", "wav", "-r", "16000", "-c", "1", "-b", "16"])
             .arg(tmp_path.as_os_str())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -98,9 +93,7 @@ impl Recorder {
 
     /// Elapsed whole seconds since recording started.
     pub fn duration_secs(&self) -> u64 {
-        self.start_time
-            .map(|t| t.elapsed().as_secs())
-            .unwrap_or(0)
+        self.start_time.map(|t| t.elapsed().as_secs()).unwrap_or(0)
     }
 
     pub fn is_recording(&self) -> bool {

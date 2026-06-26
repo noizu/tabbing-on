@@ -61,6 +61,21 @@ fi
 export TAB_TERMINAL
 
 # ---------------------------------------------------------------------------
+# Inline: install ssh TERM shim when the terminal needs a portable TERM
+# ---------------------------------------------------------------------------
+_tabbing_install_ssh_shim() {
+  local _tabbing_ssh_exports
+  if command -v tabbing-ssh-shim >/dev/null 2>&1; then
+    _tabbing_ssh_exports="$(command tabbing-ssh-shim bash 2>/dev/null)"
+    if [[ -n "$_tabbing_ssh_exports" ]]; then
+      eval "$_tabbing_ssh_exports"
+    fi
+  fi
+}
+_tabbing_install_ssh_shim
+unset -f _tabbing_install_ssh_shim 2>/dev/null
+
+# ---------------------------------------------------------------------------
 # Inline: generate session fingerprint (runs once at init)
 # ---------------------------------------------------------------------------
 if [ -z "${TAB_SESSION:-}" ]; then

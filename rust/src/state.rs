@@ -52,7 +52,9 @@ impl TabState {
     }
 
     pub fn from_session_file(session_id: &str) -> Option<Self> {
-        let path = state_dir().join("sessions").join(format!("{}.env", session_id));
+        let path = state_dir()
+            .join("sessions")
+            .join(format!("{}.env", session_id));
         let content = fs::read_to_string(path).ok()?;
         let vars: HashMap<String, String> = content
             .lines()
@@ -202,8 +204,14 @@ impl TabState {
         println!("export TAB_TITLE='{}'", shell_escape(&self.title));
         println!("export TAB_STATUS='{}'", shell_escape(&self.status));
         println!("export TAB_HIGHLIGHT='{}'", shell_escape(&self.highlight));
-        println!("export TAB_TITLE_STYLE='{}'", shell_escape(&self.title_style));
-        println!("export TAB_STATUS_STYLE='{}'", shell_escape(&self.status_style));
+        println!(
+            "export TAB_TITLE_STYLE='{}'",
+            shell_escape(&self.title_style)
+        );
+        println!(
+            "export TAB_STATUS_STYLE='{}'",
+            shell_escape(&self.status_style)
+        );
         println!("export TAB_URGENCY='{}'", shell_escape(&self.urgency));
         println!("export TAB_EMOJI='{}'", shell_escape(&self.emoji));
         println!("export TAB_BG='{}'", shell_escape(&self.bg));

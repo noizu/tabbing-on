@@ -42,12 +42,7 @@ pub fn recordings_list(tab_id: &str) {
     let mut cast_files: Vec<_> = fs::read_dir(&rec_dir)
         .into_iter()
         .flat_map(|rd| rd.filter_map(|e| e.ok()))
-        .filter(|e| {
-            e.path()
-                .extension()
-                .and_then(|x| x.to_str())
-                == Some("cast")
-        })
+        .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("cast"))
         .collect();
 
     if cast_files.is_empty() {
@@ -71,9 +66,7 @@ pub fn recording_to_gif(cast_file: &str, gif_file: &str) {
     // Check agg is available
     if Command::new("agg").arg("--version").output().is_err() {
         eprintln!("tabbing: agg not found");
-        eprintln!(
-            "tabbing: install it: cargo install --git https://github.com/asciinema/agg"
-        );
+        eprintln!("tabbing: install it: cargo install --git https://github.com/asciinema/agg");
         return;
     }
 
@@ -95,20 +88,14 @@ pub fn recording_to_gif(cast_file: &str, gif_file: &str) {
 
     println!("tabbing: converting {} \u{2192} {}", cast_file, gif_output);
 
-    let status = Command::new("agg")
-        .arg(cast_file)
-        .arg(&gif_output)
-        .status();
+    let status = Command::new("agg").arg(cast_file).arg(&gif_output).status();
 
     match status {
         Ok(s) if s.success() => {
             println!("tabbing: GIF saved to {}", gif_output);
         }
         Ok(s) => {
-            eprintln!(
-                "tabbing: agg exited with status {}",
-                s.code().unwrap_or(-1)
-            );
+            eprintln!("tabbing: agg exited with status {}", s.code().unwrap_or(-1));
         }
         Err(e) => {
             eprintln!("tabbing: failed to run agg: {}", e);
@@ -125,15 +112,9 @@ pub fn is_recording() -> bool {
 /// This shells out to `asciinema rec` which spawns a sub-shell.
 pub fn record_start(tab_id: &str, status: &str) {
     // Check asciinema is available
-    if Command::new("asciinema")
-        .arg("--version")
-        .output()
-        .is_err()
-    {
+    if Command::new("asciinema").arg("--version").output().is_err() {
         eprintln!("tabbing: asciinema not found");
-        eprintln!(
-            "tabbing: install it: https://docs.asciinema.org/manual/cli/installation/"
-        );
+        eprintln!("tabbing: install it: https://docs.asciinema.org/manual/cli/installation/");
         return;
     }
 

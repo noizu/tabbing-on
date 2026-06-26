@@ -172,7 +172,9 @@ impl TogglClient {
         billable: bool,
     ) -> Option<u64> {
         let url = format!("{}/workspaces/{}/time_entries", API_BASE, workspace_id);
-        let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S.000Z").to_string();
+        let now = chrono::Utc::now()
+            .format("%Y-%m-%dT%H:%M:%S.000Z")
+            .to_string();
 
         let payload = CreateEntryPayload {
             description: description.to_string(),
@@ -259,12 +261,7 @@ impl TogglClient {
         }
     }
 
-    pub fn update_time_entry(
-        &self,
-        workspace_id: u64,
-        entry_id: u64,
-        description: &str,
-    ) {
+    pub fn update_time_entry(&self, workspace_id: u64, entry_id: u64, description: &str) {
         let url = format!(
             "{}/workspaces/{}/time_entries/{}",
             API_BASE, workspace_id, entry_id
@@ -359,9 +356,13 @@ pub fn toggl_on_title_change(state: &TabState) {
                 } else {
                     // Different title — stop old, start new
                     client.stop_time_entry(ws_id, entry_id);
-                    if let Some(new_id) =
-                        client.create_time_entry(ws_id, &new_desc, client.project_id, &tags, billable)
-                    {
+                    if let Some(new_id) = client.create_time_entry(
+                        ws_id,
+                        &new_desc,
+                        client.project_id,
+                        &tags,
+                        billable,
+                    ) {
                         println!("export TAB_TOGGL_ENTRY_ID='{}'", new_id);
                     }
                 }
@@ -456,7 +457,9 @@ pub fn toggl_status() {
 
     match client.get_current_entry() {
         Some(entry) if entry.id == entry_id => {
-            let desc = entry.description.unwrap_or_else(|| "(no description)".to_string());
+            let desc = entry
+                .description
+                .unwrap_or_else(|| "(no description)".to_string());
             let duration_display = if entry.duration < 0 {
                 // Running — compute elapsed from start
                 let elapsed = entry

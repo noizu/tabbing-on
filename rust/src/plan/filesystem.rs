@@ -46,8 +46,7 @@ pub fn get_next_id(ticket_type: &TicketType, output_dir: &str) -> String {
             if let Some(rest) = name.strip_prefix(prefix) {
                 if let Some(rest) = rest.strip_prefix('-') {
                     // Take leading digits before any further dash or dot.
-                    let digits: String =
-                        rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+                    let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
                     if let Ok(n) = digits.parse::<u32>() {
                         if n > max_num {
                             max_num = n;
@@ -83,15 +82,7 @@ fn format_frontmatter(m: &TicketMetadata) -> String {
          category: \"{}\"\n\
          labels:\n{}\n\
          created_at: \"{}\"",
-        m.id,
-        m.title,
-        m.issue_type,
-        m.slug,
-        m.status,
-        m.priority,
-        m.category,
-        labels,
-        m.created_at,
+        m.id, m.title, m.issue_type, m.slug, m.status, m.priority, m.category, labels, m.created_at,
     )
 }
 
@@ -134,10 +125,7 @@ pub fn save_ticket(ticket: &Ticket, output_dir: &str) -> Result<String, String> 
 /// 2. Walk up from cwd looking for a `projects/` parent
 /// 3. `config_project` flag: look for `projects/<name>/project-management/`
 /// 4. Fallback: `<cwd>/project-management/`
-pub fn resolve_output_dir(
-    config_output_dir: Option<&str>,
-    config_project: Option<&str>,
-) -> String {
+pub fn resolve_output_dir(config_output_dir: Option<&str>, config_project: Option<&str>) -> String {
     // 1. Explicit override
     if let Some(dir) = config_output_dir {
         return dir.to_string();

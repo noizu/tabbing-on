@@ -20,12 +20,24 @@ fn theme_meta(name: &str) -> (&'static str, &'static [&'static str]) {
         "catppuccin" => ("Warm pastel palette — Mocha variant", &["warm", "pastel"]),
         "catppuccin-frappe" => ("Catppuccin's medium-dark French roast", &["warm", "pastel"]),
         "catppuccin-macchiato" => ("Teal-accented twilight variant", &["warm", "pastel"]),
-        "dracula" => ("Classic dark with vibrant neon accents", &["vibrant", "neon"]),
+        "dracula" => (
+            "Classic dark with vibrant neon accents",
+            &["vibrant", "neon"],
+        ),
         "nord" => ("Arctic north-bluish, low contrast", &["cool", "muted"]),
-        "tokyo-night" => ("Dark Tokyo cityscape with neon highlights", &["cool", "vibrant"]),
+        "tokyo-night" => (
+            "Dark Tokyo cityscape with neon highlights",
+            &["cool", "vibrant"],
+        ),
         "gruvbox" => ("Retro groove with warm earth tones", &["warm", "earth"]),
-        "solarized-dark" => ("Ethan Schoonover's precision dark palette", &["warm", "muted"]),
-        "monokai" => ("Iconic Sublime Text palette, high contrast", &["vibrant", "high-contrast"]),
+        "solarized-dark" => (
+            "Ethan Schoonover's precision dark palette",
+            &["warm", "muted"],
+        ),
+        "monokai" => (
+            "Iconic Sublime Text palette, high contrast",
+            &["vibrant", "high-contrast"],
+        ),
         "one-dark" => ("Atom editor's signature dark palette", &["cool", "muted"]),
         "rose-pine" => ("Soho vibes with muted roses and golds", &["warm", "muted"]),
         "rose-pine-moon" => ("Rose Pine's deeper moonlit variant", &["cool", "muted"]),
@@ -36,7 +48,10 @@ fn theme_meta(name: &str) -> (&'static str, &'static [&'static str]) {
         "ayu-mirage" => ("Twilight variant, softer contrast", &["warm", "muted"]),
         "material-dark" => ("Google Material Design dark scheme", &["vibrant", "cool"]),
         // Editor Light
-        "catppuccin-latte" => ("Catppuccin's lightest, airiest variant", &["warm", "pastel"]),
+        "catppuccin-latte" => (
+            "Catppuccin's lightest, airiest variant",
+            &["warm", "pastel"],
+        ),
         "nord-light" => ("Clean snowstorm light palette", &["cool", "muted"]),
         "tokyo-night-light" => ("Tokyo Night's bright daytime variant", &["cool", "muted"]),
         "gruvbox-light" => ("Gruvbox warmth on cream canvas", &["warm", "earth"]),
@@ -65,14 +80,38 @@ fn theme_meta(name: &str) -> (&'static str, &'static [&'static str]) {
         "storm" => ("Steel grey thundercloud palette", &["cool", "muted"]),
         "volcanic" => ("Dark ember and ash tones", &["warm", "earth"]),
         // Chromatic Dark · by color
-        "crimson" => ("Deep red background — bold and warm", &["red", "warm", "vibrant"]),
-        "tangerine" => ("Dark orange background — warm citrus", &["orange", "warm", "vibrant"]),
-        "amber" => ("Dark yellow-gold background — warm glow", &["yellow", "warm", "vibrant"]),
-        "lime" => ("Dark green background — fresh and vivid", &["green", "cool", "vibrant"]),
-        "teal" => ("Dark cyan background — deep aquamarine", &["cyan", "cool", "vibrant"]),
-        "azure" => ("Dark blue background — clear sky depths", &["blue", "cool", "vibrant"]),
-        "violet" => ("Dark purple background — rich and regal", &["purple", "cool", "vibrant"]),
-        "magenta" => ("Dark pink background — vivid berry", &["pink", "warm", "vibrant"]),
+        "crimson" => (
+            "Deep red background — bold and warm",
+            &["red", "warm", "vibrant"],
+        ),
+        "tangerine" => (
+            "Dark orange background — warm citrus",
+            &["orange", "warm", "vibrant"],
+        ),
+        "amber" => (
+            "Dark yellow-gold background — warm glow",
+            &["yellow", "warm", "vibrant"],
+        ),
+        "lime" => (
+            "Dark green background — fresh and vivid",
+            &["green", "cool", "vibrant"],
+        ),
+        "teal" => (
+            "Dark cyan background — deep aquamarine",
+            &["cyan", "cool", "vibrant"],
+        ),
+        "azure" => (
+            "Dark blue background — clear sky depths",
+            &["blue", "cool", "vibrant"],
+        ),
+        "violet" => (
+            "Dark purple background — rich and regal",
+            &["purple", "cool", "vibrant"],
+        ),
+        "magenta" => (
+            "Dark pink background — vivid berry",
+            &["pink", "warm", "vibrant"],
+        ),
         // Chromatic Light
         "terracotta" => ("Warm clay and earth on cream", &["warm", "earth"]),
         "sage-mist" => ("Soft sage green morning mist", &["cool", "muted"]),
@@ -84,15 +123,30 @@ fn theme_meta(name: &str) -> (&'static str, &'static [&'static str]) {
         "blush" => ("Soft pink warmth on cream", &["warm", "pastel"]),
         // Chromatic Light · by color
         "crimson-light" => ("Soft red tint on pale rose", &["red", "warm", "pastel"]),
-        "tangerine-light" => ("Soft orange tint on warm cream", &["orange", "warm", "pastel"]),
-        "amber-light" => ("Soft yellow tint on pale gold", &["yellow", "warm", "pastel"]),
+        "tangerine-light" => (
+            "Soft orange tint on warm cream",
+            &["orange", "warm", "pastel"],
+        ),
+        "amber-light" => (
+            "Soft yellow tint on pale gold",
+            &["yellow", "warm", "pastel"],
+        ),
         "lime-light" => ("Soft green tint on pale leaf", &["green", "cool", "pastel"]),
         "teal-light" => ("Soft cyan tint on pale mint", &["cyan", "cool", "pastel"]),
         "azure-light" => ("Soft blue tint on pale sky", &["blue", "cool", "pastel"]),
-        "violet-light" => ("Soft purple tint on pale lilac", &["purple", "cool", "pastel"]),
-        "magenta-light" => ("Soft pink tint on pale blossom", &["pink", "warm", "pastel"]),
+        "violet-light" => (
+            "Soft purple tint on pale lilac",
+            &["purple", "cool", "pastel"],
+        ),
+        "magenta-light" => (
+            "Soft pink tint on pale blossom",
+            &["pink", "warm", "pastel"],
+        ),
         // Semantic
-        "danger" => ("Red alert — production / critical", &["warm", "high-contrast"]),
+        "danger" => (
+            "Red alert — production / critical",
+            &["warm", "high-contrast"],
+        ),
         "safe" => ("Green all-clear — development", &["cool", "high-contrast"]),
         "ocean" => ("Deep ocean dark blues", &["cool", "muted"]),
         "ocean-light" => ("Coastal sky light blues", &["cool", "muted"]),
@@ -107,22 +161,39 @@ fn theme_meta(name: &str) -> (&'static str, &'static [&'static str]) {
 }
 
 const SLOT_NAMES: &[&str] = &[
-    "bg", "fg", "cursor",
-    "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
-    "bright black", "bright red", "bright green", "bright yellow",
-    "bright blue", "bright magenta", "bright cyan", "bright white",
+    "bg",
+    "fg",
+    "cursor",
+    "black",
+    "red",
+    "green",
+    "yellow",
+    "blue",
+    "magenta",
+    "cyan",
+    "white",
+    "bright black",
+    "bright red",
+    "bright green",
+    "bright yellow",
+    "bright blue",
+    "bright magenta",
+    "bright cyan",
+    "bright white",
 ];
 
 const COLOR_SLOT_COUNT: usize = 19;
 const SEMANTIC_SLOT_NAMES: &[&str] = &[
+    "cursor_style",
+    "cursor_blink",
     "title_style",
     "status_style",
-    "urgency0_style",
-    "urgency1_style",
-    "urgency2_style",
-    "urgency3_style",
-    "urgency4_style",
-    "urgency5_style",
+    "critical_style",
+    "urgent_style",
+    "warning_style",
+    "attention_style",
+    "success_style",
+    "muted_style",
 ];
 const EDIT_SLOT_COUNT: usize = COLOR_SLOT_COUNT + SEMANTIC_SLOT_NAMES.len();
 
@@ -363,7 +434,9 @@ fn build_entries() -> Vec<ThemeEntry> {
                 .filter_map(|e| {
                     let p = e.path();
                     if p.extension().and_then(|x| x.to_str()) == Some("theme") {
-                        p.file_stem().and_then(|s| s.to_str()).map(|s| s.to_string())
+                        p.file_stem()
+                            .and_then(|s| s.to_str())
+                            .map(|s| s.to_string())
                     } else {
                         None
                     }
@@ -474,19 +547,12 @@ fn swatch_spans<'a>(colors: &Option<[String; 19]>, width: usize) -> Vec<Span<'a>
     let count = (width / 2).min(indices.len());
     indices[..count]
         .iter()
-        .map(|&i| {
-            Span::styled(
-                "  ".to_string(),
-                Style::default().bg(hex_to_color(&c[i])),
-            )
-        })
+        .map(|&i| Span::styled("  ".to_string(), Style::default().bg(hex_to_color(&c[i]))))
         .collect()
 }
 
 fn is_valid_hex(s: &str) -> bool {
-    s.len() == 7
-        && s.starts_with('#')
-        && s[1..].chars().all(|c| c.is_ascii_hexdigit())
+    s.len() == 7 && s.starts_with('#') && s[1..].chars().all(|c| c.is_ascii_hexdigit())
 }
 
 // ============================================================================
@@ -544,7 +610,14 @@ fn compute_ui_colors(colors: &Option<[String; 19]>) -> UiColors {
         }
     };
 
-    let accent_rgb = palette_rgb(6, if bg_lum > 128.0 { (180, 130, 10) } else { (249, 226, 175) });
+    let accent_rgb = palette_rgb(
+        6,
+        if bg_lum > 128.0 {
+            (180, 130, 10)
+        } else {
+            (249, 226, 175)
+        },
+    );
     let accent_lum =
         0.299 * accent_rgb.0 as f32 + 0.587 * accent_rgb.1 as f32 + 0.114 * accent_rgb.2 as f32;
     let accent_text = if accent_lum > 128.0 {
@@ -649,10 +722,7 @@ pub fn run_picker() {
     }
 
     loop {
-        let cols = terminal
-            .size()
-            .map(|s| compute_cols(s.width))
-            .unwrap_or(1);
+        let cols = terminal.size().map(|s| compute_cols(s.width)).unwrap_or(1);
         if cols != state.cols {
             state.cols = cols;
             state.rebuild_grid();
@@ -827,8 +897,11 @@ fn handle_search(state: &mut PickerState, key: KeyEvent) {
         }
         KeyCode::Enter => {
             if !state.search_results.is_empty() {
-                state.selected =
-                    Some(state.entries[state.search_results[state.search_cursor]].name.clone());
+                state.selected = Some(
+                    state.entries[state.search_results[state.search_cursor]]
+                        .name
+                        .clone(),
+                );
             }
         }
         KeyCode::Up => {
@@ -836,8 +909,7 @@ fn handle_search(state: &mut PickerState, key: KeyEvent) {
         }
         KeyCode::Down => {
             if !state.search_results.is_empty() {
-                state.search_cursor =
-                    (state.search_cursor + 1).min(state.search_results.len() - 1);
+                state.search_cursor = (state.search_cursor + 1).min(state.search_results.len() - 1);
             }
         }
         KeyCode::Backspace => {
@@ -866,9 +938,7 @@ fn handle_edit(state: &mut PickerState, key: KeyEvent) {
             KeyCode::Enter => {
                 if state.edit_slot >= COLOR_SLOT_COUNT {
                     let semantic_idx = state.edit_slot - COLOR_SLOT_COUNT;
-                    if crate::color::style_sequence(&state.edit_input).is_some()
-                        || state.edit_input.trim().is_empty()
-                    {
+                    if validate_semantic_input(semantic_idx, &state.edit_input) {
                         state.edit_semantics[semantic_idx] = state.edit_input.trim().to_string();
                         state.edit_modified = true;
                         state.edit_typing = false;
@@ -919,17 +989,28 @@ fn handle_edit(state: &mut PickerState, key: KeyEvent) {
         }
         KeyCode::Enter | KeyCode::Char('w') | KeyCode::Char('W') | KeyCode::Char(' ') => {
             if state.edit_slot >= COLOR_SLOT_COUNT {
-                state.edit_typing = true;
-                state.edit_input = state.edit_semantics[state.edit_slot - COLOR_SLOT_COUNT].clone();
+                let semantic_idx = state.edit_slot - COLOR_SLOT_COUNT;
+                if is_select_semantic(semantic_idx) {
+                    cycle_select_semantic(state, semantic_idx, 1);
+                } else {
+                    state.edit_typing = true;
+                    state.edit_input = state.edit_semantics[semantic_idx].clone();
+                }
             } else {
                 open_wheel(state);
             }
         }
         KeyCode::Char('x') | KeyCode::Char('X') => {
-            state.edit_typing = true;
             if state.edit_slot >= COLOR_SLOT_COUNT {
-                state.edit_input = state.edit_semantics[state.edit_slot - COLOR_SLOT_COUNT].clone();
+                let semantic_idx = state.edit_slot - COLOR_SLOT_COUNT;
+                if is_select_semantic(semantic_idx) {
+                    cycle_select_semantic(state, semantic_idx, 1);
+                } else {
+                    state.edit_typing = true;
+                    state.edit_input = state.edit_semantics[semantic_idx].clone();
+                }
             } else {
+                state.edit_typing = true;
                 state.edit_input = state.edit_colors[state.edit_slot].clone();
             }
         }
@@ -941,13 +1022,23 @@ fn handle_edit(state: &mut PickerState, key: KeyEvent) {
         }
         KeyCode::Left | KeyCode::Char('h') => {
             if state.edit_slot >= COLOR_SLOT_COUNT {
-                state.edit_slot = COLOR_SLOT_COUNT - 1;
+                let semantic_idx = state.edit_slot - COLOR_SLOT_COUNT;
+                if is_select_semantic(semantic_idx) {
+                    cycle_select_semantic(state, semantic_idx, -1);
+                } else {
+                    state.edit_slot = COLOR_SLOT_COUNT - 1;
+                }
             } else if state.edit_slot >= 11 {
                 state.edit_slot -= 8;
             }
         }
         KeyCode::Right | KeyCode::Char('l') => {
-            if state.edit_slot >= 3 && state.edit_slot <= 10 {
+            if state.edit_slot >= COLOR_SLOT_COUNT {
+                let semantic_idx = state.edit_slot - COLOR_SLOT_COUNT;
+                if is_select_semantic(semantic_idx) {
+                    cycle_select_semantic(state, semantic_idx, 1);
+                }
+            } else if state.edit_slot >= 3 && state.edit_slot <= 10 {
                 state.edit_slot += 8;
             }
         }
@@ -956,6 +1047,73 @@ fn handle_edit(state: &mut PickerState, key: KeyEvent) {
         }
         _ => {}
     }
+}
+
+fn validate_semantic_input(semantic_idx: usize, input: &str) -> bool {
+    let input = input.trim();
+    if input.is_empty() {
+        return true;
+    }
+    match SEMANTIC_SLOT_NAMES.get(semantic_idx).copied().unwrap_or("") {
+        "cursor_style" => matches!(
+            input.replace('_', "-").to_ascii_lowercase().as_str(),
+            "default"
+                | "block"
+                | "steady-block"
+                | "blinking-block"
+                | "bar"
+                | "beam"
+                | "steady-bar"
+                | "steady-beam"
+                | "blinking-bar"
+                | "blinking-beam"
+                | "underline"
+                | "steady-underline"
+                | "blinking-underline"
+        ),
+        "cursor_blink" => matches!(
+            input.to_ascii_lowercase().as_str(),
+            "true" | "false" | "1" | "0" | "yes" | "no" | "on" | "off"
+        ),
+        _ => crate::color::style_sequence(input).is_some(),
+    }
+}
+
+fn is_select_semantic(semantic_idx: usize) -> bool {
+    matches!(
+        SEMANTIC_SLOT_NAMES.get(semantic_idx).copied().unwrap_or(""),
+        "cursor_style" | "cursor_blink"
+    )
+}
+
+fn semantic_options(semantic_idx: usize) -> &'static [&'static str] {
+    match SEMANTIC_SLOT_NAMES.get(semantic_idx).copied().unwrap_or("") {
+        "cursor_style" => &[
+            "",
+            "block",
+            "bar",
+            "underline",
+            "blinking-block",
+            "blinking-bar",
+            "blinking-underline",
+            "default",
+        ],
+        "cursor_blink" => &["", "true", "false"],
+        _ => &[],
+    }
+}
+
+fn cycle_select_semantic(state: &mut PickerState, semantic_idx: usize, dir: isize) {
+    let options = semantic_options(semantic_idx);
+    if options.is_empty() {
+        return;
+    }
+    let current = state.edit_semantics[semantic_idx].trim();
+    let cur_idx = options.iter().position(|v| *v == current).unwrap_or(0);
+    let len = options.len() as isize;
+    let next = (cur_idx as isize + dir).rem_euclid(len) as usize;
+    state.edit_semantics[semantic_idx] = options[next].to_string();
+    state.edit_modified = true;
 }
 
 fn open_wheel(state: &mut PickerState) {
@@ -1201,10 +1359,15 @@ fn apply_edit_colors(state: &PickerState) {
 fn load_edit_semantics(name: &str) -> Vec<String> {
     let semantics = theme::load_user_theme_semantics(name);
     let mut values = vec![String::new(); SEMANTIC_SLOT_NAMES.len()];
-    values[0] = semantics.title_style;
-    values[1] = semantics.status_style;
+    values[0] = semantics.cursor_style;
+    values[1] = semantics
+        .cursor_blink
+        .map(|b| b.to_string())
+        .unwrap_or_default();
+    values[2] = semantics.title_style;
+    values[3] = semantics.status_style;
     for i in 0..6 {
-        values[2 + i] = semantics.urgency_styles[i].clone();
+        values[4 + i] = semantics.urgency_styles[i].clone();
     }
     values
 }
@@ -1399,7 +1562,10 @@ fn render_header(f: &mut Frame, area: Rect, state: &PickerState) {
 
     let mut spans = mode_tabs;
     spans.push(Span::raw("  "));
-    spans.push(Span::styled(count, Style::default().fg(state.ui.text_muted)));
+    spans.push(Span::styled(
+        count,
+        Style::default().fg(state.ui.text_muted),
+    ));
 
     if let Some(msg) = state.active_flash() {
         spans.push(Span::raw("  "));
@@ -1409,16 +1575,15 @@ fn render_header(f: &mut Frame, area: Rect, state: &PickerState) {
         ));
     }
 
-    let header = Paragraph::new(Line::from(spans))
-        .block(
-            Block::default()
-                .title(Span::styled(
-                    " tabbing-theme ",
-                    Style::default().fg(state.ui.text).bold(),
-                ))
-                .borders(Borders::BOTTOM)
-                .border_style(Style::default().fg(state.ui.border)),
-        );
+    let header = Paragraph::new(Line::from(spans)).block(
+        Block::default()
+            .title(Span::styled(
+                " tabbing-theme ",
+                Style::default().fg(state.ui.text).bold(),
+            ))
+            .borders(Borders::BOTTOM)
+            .border_style(Style::default().fg(state.ui.border)),
+    );
 
     f.render_widget(header, area);
 }
@@ -1446,9 +1611,7 @@ fn render_browse(f: &mut Frame, area: Rect, state: &PickerState) {
         match vrow {
             VRow::Header(region) => {
                 let label = format!(" {} {} ", region.icon(), region.label());
-                let dashes = area
-                    .width
-                    .saturating_sub(label.chars().count() as u16 + 1) as usize;
+                let dashes = area.width.saturating_sub(label.chars().count() as u16 + 1) as usize;
                 let line = Line::from(vec![
                     Span::styled(
                         label,
@@ -1561,7 +1724,10 @@ fn render_search(f: &mut Frame, area: Rect, state: &PickerState) {
 
             let mut spans = vec![
                 Span::styled(marker.to_string(), Style::default().fg(state.ui.accent)),
-                Span::styled(format!("{:<width$}", entry.name, width = name_width), name_style),
+                Span::styled(
+                    format!("{:<width$}", entry.name, width = name_width),
+                    name_style,
+                ),
                 Span::raw(" "),
             ];
             spans.extend(swatch_spans(&entry.colors, swatch_width));
@@ -1598,7 +1764,11 @@ fn render_edit(f: &mut Frame, area: Rect, state: &PickerState) {
 
     let left_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(4), Constraint::Length(10), Constraint::Min(5)])
+        .constraints([
+            Constraint::Length(5),
+            Constraint::Length(10),
+            Constraint::Min(5),
+        ])
         .split(chunks[0]);
 
     let meta_lines = vec![
@@ -1687,6 +1857,15 @@ fn render_semantic_slot<'a>(state: &PickerState, semantic_idx: usize) -> Span<'a
         .map(|s| s.as_str())
         .unwrap_or("");
     let display = if value.is_empty() { "(default)" } else { value };
+    let rendered = match SEMANTIC_SLOT_NAMES.get(semantic_idx).copied().unwrap_or("") {
+        "cursor_style" => format!("[ {} ]", display),
+        "cursor_blink" => match value {
+            "true" => "[x] true".to_string(),
+            "false" => "[ ] false".to_string(),
+            _ => "[-] (default)".to_string(),
+        },
+        _ => display.to_string(),
+    };
     let is_selected = state.edit_slot == slot;
 
     if is_selected && state.edit_typing {
@@ -1699,7 +1878,7 @@ fn render_semantic_slot<'a>(state: &PickerState, semantic_idx: usize) -> Span<'a
         )
     } else if is_selected {
         Span::styled(
-            format!("  {:<28} ◀", display),
+            format!("  {:<28} ◀", rendered),
             Style::default()
                 .fg(state.ui.text)
                 .bg(state.ui.accent)
@@ -1708,7 +1887,7 @@ fn render_semantic_slot<'a>(state: &PickerState, semantic_idx: usize) -> Span<'a
         )
     } else {
         Span::styled(
-            format!("  {:<28}  ", display),
+            format!("  {:<28}  ", rendered),
             Style::default().fg(state.ui.text_dim),
         )
     }
@@ -1915,11 +2094,7 @@ fn render_footer(f: &mut Frame, area: Rect, state: &PickerState) {
             ("d", "delete"),
             ("?", "help"),
         ],
-        ViewMode::Search => vec![
-            ("↑↓", "navigate"),
-            ("Enter", "apply"),
-            ("Esc", "cancel"),
-        ],
+        ViewMode::Search => vec![("↑↓", "navigate"), ("Enter", "apply"), ("Esc", "cancel")],
         ViewMode::Edit if state.edit_typing && state.edit_slot >= COLOR_SLOT_COUNT => vec![
             ("type", "style tokens"),
             ("Enter", "confirm"),
@@ -1928,6 +2103,17 @@ fn render_footer(f: &mut Frame, area: Rect, state: &PickerState) {
         ViewMode::Edit if state.edit_typing => {
             vec![("type", "#RRGGBB"), ("Enter", "confirm"), ("Esc", "cancel")]
         }
+        ViewMode::Edit
+            if state.edit_slot >= COLOR_SLOT_COUNT
+                && is_select_semantic(state.edit_slot - COLOR_SLOT_COUNT) =>
+        {
+            vec![
+                ("←→", "cycle"),
+                ("Space", "toggle"),
+                ("s", "save"),
+                ("Esc", "cancel"),
+            ]
+        }
         ViewMode::Edit => vec![
             ("↑↓←→", "slots"),
             ("Enter", "edit"),
@@ -1935,11 +2121,9 @@ fn render_footer(f: &mut Frame, area: Rect, state: &PickerState) {
             ("s", "save"),
             ("Esc", "cancel"),
         ],
-        ViewMode::Wheel if state.edit_typing => vec![
-            ("type", "#RRGGBB"),
-            ("Enter", "confirm"),
-            ("Esc", "cancel"),
-        ],
+        ViewMode::Wheel if state.edit_typing => {
+            vec![("type", "#RRGGBB"), ("Enter", "confirm"), ("Esc", "cancel")]
+        }
         ViewMode::Wheel => vec![
             ("↑↓←→", "move"),
             ("+/-", "value"),
@@ -1966,7 +2150,10 @@ fn render_footer(f: &mut Frame, area: Rect, state: &PickerState) {
                         .bg(state.ui.text_muted)
                         .bold(),
                 ),
-                Span::styled(format!(" {} ", desc), Style::default().fg(state.ui.text_dim)),
+                Span::styled(
+                    format!(" {} ", desc),
+                    Style::default().fg(state.ui.text_dim),
+                ),
             ]
         })
         .collect();
@@ -2004,12 +2191,10 @@ fn render_create_modal(f: &mut Frame, area: Rect, state: &PickerState) {
                 Style::default().fg(state.ui.text).bold(),
             ),
         ]),
-        Line::from(vec![
-            Span::styled(
-                format!(" Based on: {}", base_name),
-                Style::default().fg(state.ui.text_muted),
-            ),
-        ]),
+        Line::from(vec![Span::styled(
+            format!(" Based on: {}", base_name),
+            Style::default().fg(state.ui.text_muted),
+        )]),
     ];
 
     f.render_widget(Paragraph::new(lines), inner);
@@ -2073,13 +2258,20 @@ fn render_wheel(f: &mut Frame, area: Rect, state: &PickerState) {
                 let (cr, cg, cb) = crate::color::hsv_to_rgb(hue, dist, value);
                 if col == ret_col && row == ret_row {
                     let lum = 0.299 * cr as f32 + 0.587 * cg as f32 + 0.114 * cb as f32;
-                    let fg = if lum > 140.0 { Color::Black } else { Color::White };
+                    let fg = if lum > 140.0 {
+                        Color::Black
+                    } else {
+                        Color::White
+                    };
                     spans.push(Span::styled(
                         "◉",
                         Style::default().fg(fg).bg(Color::Rgb(cr, cg, cb)),
                     ));
                 } else {
-                    spans.push(Span::styled(" ", Style::default().bg(Color::Rgb(cr, cg, cb))));
+                    spans.push(Span::styled(
+                        " ",
+                        Style::default().bg(Color::Rgb(cr, cg, cb)),
+                    ));
                 }
             } else {
                 spans.push(Span::raw(" "));
@@ -2096,7 +2288,10 @@ fn render_wheel(f: &mut Frame, area: Rect, state: &PickerState) {
         } else {
             spans.push(Span::raw(" "));
         }
-        spans.push(Span::styled("    ", Style::default().bg(Color::Rgb(sr, sg, sb))));
+        spans.push(Span::styled(
+            "    ",
+            Style::default().bg(Color::Rgb(sr, sg, sb)),
+        ));
         if row == 0 {
             spans.push(Span::styled(" Val", Style::default().fg(ui.text_muted)));
         } else if row == 1 {
@@ -2199,10 +2394,7 @@ fn render_help_overlay(f: &mut Frame, area: Rect, state: &PickerState) {
         h("PgUp/PgDn", "Page up / down"),
         h("Home/End", "First / last theme"),
         Line::from(""),
-        Line::from(Span::styled(
-            " Actions",
-            Style::default().fg(accent).bold(),
-        )),
+        Line::from(Span::styled(" Actions", Style::default().fg(accent).bold())),
         h("Enter", "Apply selected theme"),
         h("/", "Search (name, desc, tags)"),
         h("n", "New theme (clone + edit)"),
@@ -2477,7 +2669,10 @@ mod tests {
                     }
                 }
             }
-            assert!(seen.iter().all(|&b| b), "some theme not placed at cols={cols}");
+            assert!(
+                seen.iter().all(|&b| b),
+                "some theme not placed at cols={cols}"
+            );
             assert!(header_count >= 5, "expected a header per populated region");
         }
     }

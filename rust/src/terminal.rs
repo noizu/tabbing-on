@@ -81,7 +81,10 @@ pub fn detect() -> Terminal {
         Terminal::Tmux
     } else if env::var("ZELLIJ").is_ok() {
         Terminal::Zellij
-    } else if matches!(env::var("TERM").as_deref(), Ok("xterm") | Ok("xterm-256color")) {
+    } else if matches!(
+        env::var("TERM").as_deref(),
+        Ok("xterm") | Ok("xterm-256color")
+    ) {
         Terminal::Xterm
     } else {
         Terminal::Unknown

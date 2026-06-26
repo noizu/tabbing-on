@@ -92,6 +92,9 @@ fn emit_checks(shell: &str) {
     println!(r#"  case "${{TERM:-}}" in"#);
     println!(r#"    xterm-kitty|xterm-ghostty)"#);
     println!(r#"      if [ -n "${{TERM_FOR_SSHD:-}}" ]; then"#);
+    println!(r#"        if [ -n "${{TABBING_SSH_SHIM:-}}" ]; then"#);
+    println!(r#"          :"#);
+    println!(r#"        else"#);
     println!(
         r#"        if [ -f "$HOME/{rcfile}" ] && ! grep -v '^ *#' "$HOME/{rcfile}" | grep -qE '(ssh\s*\(\)|function ssh)' 2>/dev/null; then"#,
         rcfile = rcfile
@@ -102,12 +105,40 @@ fn emit_checks(shell: &str) {
         rcfile
     );
     println!(r#"        fi"#);
+    println!(r#"        fi"#);
     println!(r#"      fi"#);
     println!(r#"      ;;"#);
     println!(r#"  esac"#);
     println!(r#"  unset _tabbing_init_conf _tabbing_init_notitle"#);
     println!(r#"  unset -f _tabbing_init_warn 2>/dev/null"#);
     println!(r#"fi"#);
+}
+
+fn emit_ssh_shim(shell: &str) {
+    println!("# tabbing-on: ssh TERM shim");
+    println!("_tabbing_ssh_shim_needed=0");
+    println!("case \"${{TERM:-}}\" in");
+    println!("  xterm-ghostty|xterm-kitty) _tabbing_ssh_shim_needed=1 ;;");
+    println!("esac");
+    println!("if [ -n \"${{TERM_FOR_SSHD:-}}\" ]; then");
+    println!("  _tabbing_ssh_shim_needed=1");
+    println!("fi");
+    println!("if [ \"$_tabbing_ssh_shim_needed\" -eq 1 ]; then");
+    println!("  if [ -z \"${{TERM_FOR_SSHD:-}}\" ]; then");
+    println!("    case \"${{TERM:-}}\" in");
+    println!("      xterm-ghostty|xterm-kitty) export TERM_FOR_SSHD=\"xterm-256color\" ;;");
+    println!("      *) export TERM_FOR_SSHD=\"${{TERM:-xterm-256color}}\" ;;");
+    println!("    esac");
+    println!("  fi");
+    match shell {
+        "zsh" => println!("  if ! (( $+functions[ssh] || $+aliases[ssh] )); then"),
+        _ => println!("  if ! declare -F ssh >/dev/null 2>&1 && ! alias ssh >/dev/null 2>&1; then"),
+    }
+    println!("    ssh() {{ TERM=\"$TERM_FOR_SSHD\" command ssh \"$@\"; }}");
+    println!("    export TABBING_SSH_SHIM=1");
+    println!("  fi");
+    println!("fi");
+    println!("unset _tabbing_ssh_shim_needed");
 }
 
 fn emit_dc_init(tabbing_root: &str) {
@@ -143,6 +174,24 @@ fn print_help(tabbing_root: &str) {
     println!("  tabbing-report     View time-in-state reports and charts");
     println!("  tabbing-history    Search/browse tab history");
     println!("  tabbing-recordings List/manage terminal recordings");
+}
+
+pub fn run_ssh_shim(args: &[String]) {
+    let shell = args.first().map(|s| s.as_str()).unwrap_or("sh");
+    match shell {
+        "bash" | "zsh" => emit_ssh_shim(shell),
+        "--help" | "-h" | "help" => {
+            println!("tabbing-ssh-shim — emit shell code for ssh TERM override");
+            println!();
+            println!("Usage:");
+            println!("  eval \"$(tabbing-ssh-shim bash)\"");
+            println!("  eval \"$(tabbing-ssh-shim zsh)\"");
+        }
+        _ => {
+            eprintln!("tabbing-ssh-shim: specify shell: bash or zsh");
+            std::process::exit(1);
+        }
+    }
 }
 
 pub fn run_init(args: &[String]) {

@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::{self, BufRead, Write, stdout};
+use std::io::{self, stdout, BufRead, Write};
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
@@ -112,10 +112,7 @@ fn run_command(command: &str, speed: Speed) {
     thread::sleep(Duration::from_millis(100));
 
     // Execute via sh -c
-    let _ = Command::new("sh")
-        .arg("-c")
-        .arg(command)
-        .status();
+    let _ = Command::new("sh").arg("-c").arg(command).status();
 
     // Blank line after output
     println!();
@@ -154,7 +151,10 @@ pub fn run_demo(args: &[String]) {
                     if let Some(s) = Speed::from_str(&args[i]) {
                         speed = s;
                     } else {
-                        eprintln!("demo-runner: unknown speed '{}' (use fast|medium|slow)", args[i]);
+                        eprintln!(
+                            "demo-runner: unknown speed '{}' (use fast|medium|slow)",
+                            args[i]
+                        );
                         std::process::exit(1);
                     }
                 }
@@ -164,7 +164,10 @@ pub fn run_demo(args: &[String]) {
                 if let Some(s) = Speed::from_str(val) {
                     speed = s;
                 } else {
-                    eprintln!("demo-runner: unknown speed '{}' (use fast|medium|slow)", val);
+                    eprintln!(
+                        "demo-runner: unknown speed '{}' (use fast|medium|slow)",
+                        val
+                    );
                     std::process::exit(1);
                 }
             }

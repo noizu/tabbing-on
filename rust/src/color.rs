@@ -44,7 +44,10 @@ pub fn style_sequence(spec: &str) -> Option<String> {
         .split(|c: char| c.is_whitespace() || c == ',' || c == '+')
         .filter(|s| !s.is_empty())
     {
-        if let Some(bg_name) = token.strip_prefix("bg-").or_else(|| token.strip_prefix("bg:")) {
+        if let Some(bg_name) = token
+            .strip_prefix("bg-")
+            .or_else(|| token.strip_prefix("bg:"))
+        {
             let fg = color_code_or_raw(bg_name)?;
             let fg_code = fg.parse::<u16>().ok()?;
             let bg_code = match fg_code {

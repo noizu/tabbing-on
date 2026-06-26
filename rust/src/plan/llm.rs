@@ -120,9 +120,7 @@ impl LlmClient {
                             thread::sleep(backoff);
                             continue;
                         }
-                        return Err(format!(
-                            "Ticket generation failed (HTTP {status}): {body}"
-                        ));
+                        return Err(format!("Ticket generation failed (HTTP {status}): {body}"));
                     }
 
                     // Parse the outer chat-completions envelope.

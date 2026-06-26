@@ -296,6 +296,7 @@ fg = #C0CAF5
 
 # Optional (defaults to fg, or bg for color0/color8)
 cursor = #C0CAF5
+cursor_style = blinking-block
 
 # 16-color palette
 color0  = #15161E   # black
@@ -324,16 +325,16 @@ status_style = bright-cyan
 title_bg = black
 status_bg = black
 
-# Urgency-specific status styles override status_style when TAB_URGENCY is set.
-urgency0_style = bold bright-red
-urgency1_style = bright-red
-urgency2_style = bright-yellow
-urgency3_style = yellow
-urgency4_style = bright-green
-urgency5_style = dim bright-black
+# Status styles override status_style when TAB_URGENCY is set.
+critical_style = bold bright-red
+urgent_style = bright-red
+warning_style = bright-yellow
+attention_style = yellow
+success_style = bright-green
+muted_style = dim bright-black
 ```
 
-Only `bg` and `fg` are required — a minimal two-line theme file works fine. User themes override built-in themes of the same name. Semantic styles accept ANSI color/effect tokens: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `bright-*`, `bold`, `dim`, `italic`, `underline`, `blink`, `inverse`, `strikethrough`, and background tokens like `bg-black`. See `examples/themes/` for templates.
+Only `bg` and `fg` are required — a minimal two-line theme file works fine. User themes override built-in themes of the same name. If `cursor_style` or `cursor_blink` are unset, tabbing leaves the terminal default alone and the editor shows `(default)`. `cursor_style` accepts `default`, `block`, `bar`/`beam`, `underline`, `steady-*`, `blinking-*`; `cursor_blink` accepts `true`/`false`. Semantic styles accept ANSI color/effect tokens: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `bright-*`, `bold`, `dim`, `italic`, `underline`, `blink`, `inverse`, `strikethrough`, and background tokens like `bg-black`. See `examples/themes/` for templates.
 
 ## Background Colors
 

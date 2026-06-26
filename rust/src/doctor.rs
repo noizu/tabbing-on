@@ -112,9 +112,7 @@ mod tests {
 
     #[test]
     fn test_ghostty_config_title_report_not_matched() {
-        let lines = vec![
-            "title-report = full".to_string(),
-        ];
+        let lines = vec!["title-report = full".to_string()];
         let result = ghostty_config_has_title_key(&lines);
         assert_eq!(result, None);
     }
@@ -136,6 +134,7 @@ pub fn run_doctor() {
     let term = env::var("TERM").unwrap_or_default();
     let tab_terminal = env::var("TAB_TERMINAL").unwrap_or_default();
     let term_for_sshd = env::var("TERM_FOR_SSHD").ok();
+    let tabbing_ssh_shim = env::var("TABBING_SSH_SHIM").ok();
 
     println!();
     println!("{}", bold("tabbing-doctor: terminal configuration check"));
@@ -338,39 +337,43 @@ pub fn run_doctor() {
     if let Some(ref sshd_term) = term_for_sshd {
         check(&format!("TERM_FOR_SSHD is set ({})", sshd_term));
 
-        // Check for ssh wrapper in shell rc files
-        let mut ssh_wrapper_found = false;
-        let mut found_in = String::new();
-        for rc in &[
-            format!("{}/.zshrc", home),
-            format!("{}/.bashrc", home),
-            format!("{}/.profile", home),
-        ] {
-            if let Ok(content) = fs::read_to_string(rc) {
-                let has_wrapper = content.lines().any(|l| {
-                    let trimmed = l.trim();
-                    if trimmed.starts_with('#') {
-                        return false;
+        if tabbing_ssh_shim.as_deref() == Some("1") {
+            check("tabbing-on ssh shim is active in this shell");
+        } else {
+            // Check for ssh wrapper in shell rc files
+            let mut ssh_wrapper_found = false;
+            let mut found_in = String::new();
+            for rc in &[
+                format!("{}/.zshrc", home),
+                format!("{}/.bashrc", home),
+                format!("{}/.profile", home),
+            ] {
+                if let Ok(content) = fs::read_to_string(rc) {
+                    let has_wrapper = content.lines().any(|l| {
+                        let trimmed = l.trim();
+                        if trimmed.starts_with('#') {
+                            return false;
+                        }
+                        trimmed.contains("ssh()") || trimmed.contains("function ssh")
+                    });
+                    if has_wrapper {
+                        ssh_wrapper_found = true;
+                        found_in = rc.clone();
+                        break;
                     }
-                    trimmed.contains("ssh()") || trimmed.contains("function ssh")
-                });
-                if has_wrapper {
-                    ssh_wrapper_found = true;
-                    found_in = rc.clone();
-                    break;
                 }
             }
-        }
 
-        if ssh_wrapper_found {
-            check(&format!(
-                "ssh wrapper function detected in {} (TERM override active)",
-                found_in
-            ));
-        } else {
-            warn("No ssh wrapper \u{2014} remote hosts will get TERM=$TERM");
-            info("Add to .zshrc: ssh() { TERM=\"$TERM_FOR_SSHD\" command ssh \"$@\"; }");
-            issues += 1;
+            if ssh_wrapper_found {
+                check(&format!(
+                    "ssh wrapper function detected in {} (TERM override active)",
+                    found_in
+                ));
+            } else {
+                warn("No ssh wrapper \u{2014} remote hosts will get TERM=$TERM");
+                info("Run: eval \"$(tabbing-ssh-shim zsh)\"  # or bash");
+                issues += 1;
+            }
         }
     } else {
         match term.as_str() {
@@ -379,9 +382,7 @@ pub fn run_doctor() {
                     "TERM={} but TERM_FOR_SSHD not set \u{2014} remote hosts may have issues",
                     term
                 ));
-                info("Add to .zshrc:");
-                info("  case \"$TERM\" in xterm-ghostty|xterm-kitty) TERM_FOR_SSHD=xterm-256color ;; *) TERM_FOR_SSHD=$TERM ;; esac");
-                info("  ssh() { TERM=\"$TERM_FOR_SSHD\" command ssh \"$@\"; }");
+                info("Run: eval \"$(tabbing-ssh-shim zsh)\"  # or bash");
                 issues += 1;
             }
             _ => {
