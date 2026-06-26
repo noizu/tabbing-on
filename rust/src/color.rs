@@ -38,6 +38,35 @@ pub fn color_code_or_raw(name: &str) -> Option<String> {
     None
 }
 
+pub fn style_sequence(spec: &str) -> Option<String> {
+    let mut codes: Vec<String> = Vec::new();
+    for token in spec
+        .split(|c: char| c.is_whitespace() || c == ',' || c == '+')
+        .filter(|s| !s.is_empty())
+    {
+        if let Some(bg_name) = token.strip_prefix("bg-").or_else(|| token.strip_prefix("bg:")) {
+            let fg = color_code_or_raw(bg_name)?;
+            let fg_code = fg.parse::<u16>().ok()?;
+            let bg_code = match fg_code {
+                30..=37 => fg_code + 10,
+                90..=97 => fg_code + 10,
+                _ => return None,
+            };
+            codes.push(bg_code.to_string());
+        } else if let Some(code) = color_code_or_raw(token) {
+            codes.push(code);
+        } else {
+            return None;
+        }
+    }
+
+    if codes.is_empty() {
+        None
+    } else {
+        Some(codes.join(";"))
+    }
+}
+
 pub fn is_known_color(name: &str) -> bool {
     matches!(
         name,

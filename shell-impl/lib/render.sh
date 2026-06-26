@@ -121,6 +121,37 @@ _tabbing_color_code() {
   esac
 }
 
+_tabbing_style_code() {
+  local spec="$1"
+  local codes="" token code bg fg_code bg_code
+  for token in $spec; do
+    case "$token" in
+      bg-*|bg:*)
+        bg="${token#bg-}"
+        bg="${bg#bg:}"
+        code="$(_tabbing_color_code "$bg" 2>/dev/null)" || return 1
+        fg_code="$code"
+        case "$fg_code" in
+          3[0-7]) bg_code=$((fg_code + 10)) ;;
+          9[0-7]) bg_code=$((fg_code + 10)) ;;
+          *) return 1 ;;
+        esac
+        code="$bg_code"
+        ;;
+      *)
+        code="$(_tabbing_color_code "$token" 2>/dev/null)" || return 1
+        ;;
+    esac
+    if [ -n "$codes" ]; then
+      codes="${codes};${code}"
+    else
+      codes="$code"
+    fi
+  done
+  [ -n "$codes" ] || return 1
+  printf '%s\n' "$codes"
+}
+
 # ---------------------------------------------------------------------------
 # Check if a string is a known color name (replaces array lookup)
 # ---------------------------------------------------------------------------
@@ -910,19 +941,26 @@ _tabbing_display() {
   local reset
   reset="$(printf '\033[0m')"
 
-  # Title highlight
+  # Title style
   local tc="$reset"
-  if [ -n "${TAB_HIGHLIGHT:-}" ]; then
+  local title_style="${TAB_TITLE_STYLE:-${TAB_HIGHLIGHT:-}}"
+  if [ -n "$title_style" ]; then
     local code
-    code="$(_tabbing_color_code "$TAB_HIGHLIGHT" 2>/dev/null)"
+    code="$(_tabbing_style_code "$title_style" 2>/dev/null)"
     if [ -n "$code" ]; then
       tc="$(printf '\033[%sm' "$code")"
     fi
   fi
 
-  # Status color (from urgency)
+  # Status style (from theme semantics, or urgency fallback)
   local sc="$reset"
-  if [ -n "${TAB_URGENCY:-}" ]; then
+  if [ -n "${TAB_STATUS_STYLE:-}" ]; then
+    local code
+    code="$(_tabbing_style_code "$TAB_STATUS_STYLE" 2>/dev/null)"
+    if [ -n "$code" ]; then
+      sc="$(printf '\033[%sm' "$code")"
+    fi
+  elif [ -n "${TAB_URGENCY:-}" ]; then
     sc="$(printf '\033[%sm' "$(_tabbing_urgency_ansi "$TAB_URGENCY")")"
   fi
 
@@ -1353,6 +1391,8 @@ _tabbing_load_user_theme() {
   local bg="" fg="" cursor=""
   local c0="" c1="" c2="" c3="" c4="" c5="" c6="" c7=""
   local c8="" c9="" c10="" c11="" c12="" c13="" c14="" c15=""
+  local title_style="" status_style=""
+  local u0="" u1="" u2="" u3="" u4="" u5=""
 
   while IFS= read -r line || [ -n "$line" ]; do
     # Skip comments and blank lines
@@ -1360,8 +1400,6 @@ _tabbing_load_user_theme() {
       \#*|"") continue ;;
     esac
 
-    # Strip inline comments and leading/trailing whitespace
-    line="${line%%#*}"
     # Extract key and value
     local key="${line%%=*}"
     local val="${line#*=}"
@@ -1369,6 +1407,11 @@ _tabbing_load_user_theme() {
     # Trim whitespace from key and val
     key="$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
     val="$(echo "$val" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^["'"'"']//;s/["'"'"']$//')"
+    local semantic_val
+    semantic_val="$(echo "${val%%#*}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    # Keep hex values like #1E1E2E intact; drop trailing inline comments by
+    # taking the first whitespace-delimited token after trimming.
+    val="${val%%[[:space:]]*}"
 
     case "$key" in
       bg|background)  bg="$val" ;;
@@ -1382,6 +1425,30 @@ _tabbing_load_user_theme() {
       color10) c10="$val" ;; color11) c11="$val" ;;
       color12) c12="$val" ;; color13) c13="$val" ;;
       color14) c14="$val" ;; color15) c15="$val" ;;
+      highlight|title|title_color|title_fg)
+        title_style="${title_style}${title_style:+ }$semantic_val" ;;
+      title_style)
+        title_style="${title_style}${title_style:+ }$semantic_val" ;;
+      title_bg)
+        title_style="${title_style}${title_style:+ }bg-$val" ;;
+      status|status_color|status_fg)
+        status_style="${status_style}${status_style:+ }$semantic_val" ;;
+      status_style)
+        status_style="${status_style}${status_style:+ }$semantic_val" ;;
+      status_bg)
+        status_style="${status_style}${status_style:+ }bg-$val" ;;
+      urgency0_style|urgency0_fg|urgency0_color) u0="${u0}${u0:+ }$semantic_val" ;;
+      urgency1_style|urgency1_fg|urgency1_color) u1="${u1}${u1:+ }$semantic_val" ;;
+      urgency2_style|urgency2_fg|urgency2_color) u2="${u2}${u2:+ }$semantic_val" ;;
+      urgency3_style|urgency3_fg|urgency3_color) u3="${u3}${u3:+ }$semantic_val" ;;
+      urgency4_style|urgency4_fg|urgency4_color) u4="${u4}${u4:+ }$semantic_val" ;;
+      urgency5_style|urgency5_fg|urgency5_color) u5="${u5}${u5:+ }$semantic_val" ;;
+      urgency0_bg) u0="${u0}${u0:+ }bg-$val" ;;
+      urgency1_bg) u1="${u1}${u1:+ }bg-$val" ;;
+      urgency2_bg) u2="${u2}${u2:+ }bg-$val" ;;
+      urgency3_bg) u3="${u3}${u3:+ }bg-$val" ;;
+      urgency4_bg) u4="${u4}${u4:+ }bg-$val" ;;
+      urgency5_bg) u5="${u5}${u5:+ }bg-$val" ;;
     esac
   done < "$file"
 
@@ -1415,6 +1482,19 @@ _tabbing_load_user_theme() {
   _tabbing_send_theme "$bg" "$fg" "$cursor" \
     "$c0" "$c1" "$c2" "$c3" "$c4" "$c5" "$c6" "$c7" \
     "$c8" "$c9" "$c10" "$c11" "$c12" "$c13" "$c14" "$c15"
+
+  export TAB_TITLE_STYLE="$title_style"
+  export TAB_STATUS_STYLE=""
+  case "${TAB_URGENCY:-}" in
+    0) [ -n "$u0" ] && export TAB_STATUS_STYLE="$u0" ;;
+    1) [ -n "$u1" ] && export TAB_STATUS_STYLE="$u1" ;;
+    2) [ -n "$u2" ] && export TAB_STATUS_STYLE="$u2" ;;
+    3) [ -n "$u3" ] && export TAB_STATUS_STYLE="$u3" ;;
+    4) [ -n "$u4" ] && export TAB_STATUS_STYLE="$u4" ;;
+    5) [ -n "$u5" ] && export TAB_STATUS_STYLE="$u5" ;;
+    *) [ -n "$status_style" ] && export TAB_STATUS_STYLE="$status_style" ;;
+  esac
+  [ -z "${TAB_STATUS_STYLE:-}" ] && [ -n "$status_style" ] && export TAB_STATUS_STYLE="$status_style"
 }
 
 # ---------------------------------------------------------------------------

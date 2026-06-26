@@ -51,8 +51,13 @@ pub fn render_title(state: &TabState) {
 pub fn display(state: &TabState) {
     let reset = "\x1b[0m";
 
-    let tc = if !state.highlight.is_empty() {
-        if let Some(code) = color::color_code_or_raw(&state.highlight) {
+    let title_style = if !state.title_style.is_empty() {
+        &state.title_style
+    } else {
+        &state.highlight
+    };
+    let tc = if !title_style.is_empty() {
+        if let Some(code) = color::style_sequence(title_style) {
             format!("\x1b[{}m", code)
         } else {
             reset.to_string()
@@ -61,7 +66,13 @@ pub fn display(state: &TabState) {
         reset.to_string()
     };
 
-    let sc = if let Ok(level) = state.urgency.parse::<u8>() {
+    let sc = if !state.status_style.is_empty() {
+        if let Some(code) = color::style_sequence(&state.status_style) {
+            format!("\x1b[{}m", code)
+        } else {
+            reset.to_string()
+        }
+    } else if let Ok(level) = state.urgency.parse::<u8>() {
         format!("\x1b[{}m", color::urgency_ansi(level))
     } else {
         reset.to_string()
@@ -93,8 +104,13 @@ pub fn display(state: &TabState) {
 pub fn display_stderr(state: &TabState) {
     let reset = "\x1b[0m";
 
-    let tc = if !state.highlight.is_empty() {
-        if let Some(code) = color::color_code_or_raw(&state.highlight) {
+    let title_style = if !state.title_style.is_empty() {
+        &state.title_style
+    } else {
+        &state.highlight
+    };
+    let tc = if !title_style.is_empty() {
+        if let Some(code) = color::style_sequence(title_style) {
             format!("\x1b[{}m", code)
         } else {
             reset.to_string()
@@ -103,7 +119,13 @@ pub fn display_stderr(state: &TabState) {
         reset.to_string()
     };
 
-    let sc = if let Ok(level) = state.urgency.parse::<u8>() {
+    let sc = if !state.status_style.is_empty() {
+        if let Some(code) = color::style_sequence(&state.status_style) {
+            format!("\x1b[{}m", code)
+        } else {
+            reset.to_string()
+        }
+    } else if let Ok(level) = state.urgency.parse::<u8>() {
         format!("\x1b[{}m", color::urgency_ansi(level))
     } else {
         reset.to_string()

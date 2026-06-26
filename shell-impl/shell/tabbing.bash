@@ -330,6 +330,8 @@ tabbing-on() {
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
     _tabbing_set theme ""
+    _tabbing_set title_style ""
+    _tabbing_set status_style ""
   fi
 
   if [[ $has_marquee -eq 1 ]]; then
@@ -506,6 +508,8 @@ tabbing-status() {
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
     _tabbing_set theme ""
+    _tabbing_set title_style ""
+    _tabbing_set status_style ""
   fi
 
   if [[ $has_marquee -eq 1 ]]; then
@@ -744,6 +748,8 @@ tabbing-style() {
   # No flags at all — show current settings
   if [[ $has_highlight -eq 0 && $has_urgency -eq 0 && $has_emoji -eq 0 && $no_emoji -eq 0 && $has_bg -eq 0 && $no_bg -eq 0 && $has_theme -eq 0 && $no_theme -eq 0 && $has_marquee -eq 0 && $no_marquee -eq 0 ]]; then
     printf 'highlight: %s\n' "${TAB_HIGHLIGHT:-(none)}"
+    printf 'title_style: %s\n' "${TAB_TITLE_STYLE:-(none)}"
+    printf 'status_style: %s\n' "${TAB_STATUS_STYLE:-(none)}"
     printf 'urgency:   %s\n' "${TAB_URGENCY:-(none)}"
     printf 'emoji:     %s\n' "${TAB_EMOJI:-(none)}"
     printf 'bg:        %s\n' "${TAB_BG:-(none)}"
@@ -803,6 +809,8 @@ tabbing-style() {
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
     _tabbing_set theme ""
+    _tabbing_set title_style ""
+    _tabbing_set status_style ""
   fi
 
   if [[ $has_marquee -eq 1 ]]; then
@@ -851,7 +859,7 @@ tabbing-off() {
   if [[ -n "${TAB_SESSION:-}" ]]; then
     rm -f "${XDG_STATE_HOME:-$HOME/.local/state}/tabbing/sessions/${TAB_SESSION}.env"
   fi
-  unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_BG TAB_THEME TAB_ID TAB_RECORDING
+  unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_BG TAB_THEME TAB_ID TAB_RECORDING
   unset TABBING_DC_UUID TABBING_DC_DAEMON_PID _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE
   _tabbing_out 'tabbing: off\n'
 }
@@ -870,7 +878,7 @@ _tabbing_precmd() {
     local _sf="${XDG_STATE_HOME:-$HOME/.local/state}/tabbing/sessions/${TAB_SESSION}.env"
     if [[ -f "$_sf" ]]; then
       . "$_sf"
-      export TAB_ID TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_THEME TAB_TERMINAL TABBING_DC_UUID
+      export TAB_ID TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_URGENCY TAB_EMOJI TAB_THEME TAB_TERMINAL TABBING_DC_UUID
       if [[ -n "${TAB_THEME:-}" ]]; then
         _tabbing_apply_named_theme "$TAB_THEME" 2>/dev/null
       fi

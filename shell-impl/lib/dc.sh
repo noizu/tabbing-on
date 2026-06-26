@@ -102,7 +102,7 @@ _tabbing_dc_bump_timestamp() {
 # ---------------------------------------------------------------------------
 # Set a TAB_* variable and write-through to dc if dc mode is active.
 # Usage: _tabbing_set <key> <value>
-#   key: lowercase dc key name (title, status, highlight, urgency, emoji, theme)
+#   key: lowercase dc key name (title, status, highlight, title_style, status_style, urgency, emoji, theme)
 # Sets the corresponding TAB_* env var AND calls dc set immediately.
 # ---------------------------------------------------------------------------
 _tabbing_set() {
@@ -112,6 +112,8 @@ _tabbing_set() {
     title)     export TAB_TITLE="$_value" ;;
     status)    export TAB_STATUS="$_value" ;;
     highlight) export TAB_HIGHLIGHT="$_value" ;;
+    title_style) export TAB_TITLE_STYLE="$_value" ;;
+    status_style) export TAB_STATUS_STYLE="$_value" ;;
     urgency)   export TAB_URGENCY="$_value" ;;
     emoji)     export TAB_EMOJI="$_value" ;;
     theme)     export TAB_THEME="$_value" ;;
@@ -128,8 +130,8 @@ _tabbing_dc_save() {
   _ns="$(_tabbing_dc_ns)"
   _tabbing_dc_bump_timestamp
   _ts="$(dc get "$_ns" last_update --raw 2>/dev/null)"
-  printf 'title: %s\nstatus: %s\nhighlight: %s\nurgency: %s\nemoji: %s\ntheme: %s\nlast_update: %s\n' \
-    "${TAB_TITLE:-}" "${TAB_STATUS:-}" "${TAB_HIGHLIGHT:-}" \
+  printf 'title: %s\nstatus: %s\nhighlight: %s\ntitle_style: %s\nstatus_style: %s\nurgency: %s\nemoji: %s\ntheme: %s\nlast_update: %s\n' \
+    "${TAB_TITLE:-}" "${TAB_STATUS:-}" "${TAB_HIGHLIGHT:-}" "${TAB_TITLE_STYLE:-}" "${TAB_STATUS_STYLE:-}" \
     "${TAB_URGENCY:-}" "${TAB_EMOJI:-}" "${TAB_THEME:-}" "${_ts:-0}" \
     | dc yaml "$_ns" --replace 2>/dev/null
   _tabbing_dc_notify_daemon

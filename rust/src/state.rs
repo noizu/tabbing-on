@@ -16,6 +16,8 @@ pub struct TabState {
     pub title: String,
     pub status: String,
     pub highlight: String,
+    pub title_style: String,
+    pub status_style: String,
     pub urgency: String,
     pub emoji: String,
     pub bg: String,
@@ -32,6 +34,8 @@ impl TabState {
             title: env::var("TAB_TITLE").unwrap_or_default(),
             status: env::var("TAB_STATUS").unwrap_or_default(),
             highlight: env::var("TAB_HIGHLIGHT").unwrap_or_default(),
+            title_style: env::var("TAB_TITLE_STYLE").unwrap_or_default(),
+            status_style: env::var("TAB_STATUS_STYLE").unwrap_or_default(),
             urgency: env::var("TAB_URGENCY").unwrap_or_default(),
             emoji: env::var("TAB_EMOJI").unwrap_or_default(),
             bg: env::var("TAB_BG").unwrap_or_default(),
@@ -62,6 +66,8 @@ impl TabState {
             title: vars.get("TAB_TITLE").cloned().unwrap_or_default(),
             status: vars.get("TAB_STATUS").cloned().unwrap_or_default(),
             highlight: vars.get("TAB_HIGHLIGHT").cloned().unwrap_or_default(),
+            title_style: vars.get("TAB_TITLE_STYLE").cloned().unwrap_or_default(),
+            status_style: vars.get("TAB_STATUS_STYLE").cloned().unwrap_or_default(),
             urgency: vars.get("TAB_URGENCY").cloned().unwrap_or_default(),
             emoji: vars.get("TAB_EMOJI").cloned().unwrap_or_default(),
             bg: vars.get("TAB_BG").cloned().unwrap_or_default(),
@@ -89,6 +95,12 @@ impl TabState {
             }
             if !Self::env_is_set("TAB_HIGHLIGHT") {
                 self.highlight = saved.highlight;
+            }
+            if !Self::env_is_set("TAB_TITLE_STYLE") {
+                self.title_style = saved.title_style;
+            }
+            if !Self::env_is_set("TAB_STATUS_STYLE") {
+                self.status_style = saved.status_style;
             }
             if !Self::env_is_set("TAB_URGENCY") {
                 self.urgency = saved.urgency;
@@ -119,8 +131,8 @@ impl TabState {
         let _ = fs::create_dir_all(&dir);
         let path = dir.join(format!("{}.env", self.session));
         let content = format!(
-            "TAB_TITLE={}\nTAB_STATUS={}\nTAB_HIGHLIGHT={}\nTAB_URGENCY={}\nTAB_EMOJI={}\nTAB_BG={}\nTAB_THEME={}\nTAB_ID={}\nTAB_TERMINAL={}\nTAB_MARQUEE={}\n",
-            self.title, self.status, self.highlight, self.urgency, self.emoji,
+            "TAB_TITLE={}\nTAB_STATUS={}\nTAB_HIGHLIGHT={}\nTAB_TITLE_STYLE={}\nTAB_STATUS_STYLE={}\nTAB_URGENCY={}\nTAB_EMOJI={}\nTAB_BG={}\nTAB_THEME={}\nTAB_ID={}\nTAB_TERMINAL={}\nTAB_MARQUEE={}\n",
+            self.title, self.status, self.highlight, self.title_style, self.status_style, self.urgency, self.emoji,
             self.bg, self.theme, self.tab_id, self.terminal,
             if self.marquee { "1" } else { "" }
         );
@@ -157,6 +169,8 @@ impl TabState {
             ("title", &self.title),
             ("status", &self.status),
             ("highlight", &self.highlight),
+            ("title_style", &self.title_style),
+            ("status_style", &self.status_style),
             ("urgency", &self.urgency),
             ("emoji", &self.emoji),
             ("theme", &self.theme),
@@ -188,6 +202,8 @@ impl TabState {
         println!("export TAB_TITLE='{}'", shell_escape(&self.title));
         println!("export TAB_STATUS='{}'", shell_escape(&self.status));
         println!("export TAB_HIGHLIGHT='{}'", shell_escape(&self.highlight));
+        println!("export TAB_TITLE_STYLE='{}'", shell_escape(&self.title_style));
+        println!("export TAB_STATUS_STYLE='{}'", shell_escape(&self.status_style));
         println!("export TAB_URGENCY='{}'", shell_escape(&self.urgency));
         println!("export TAB_EMOJI='{}'", shell_escape(&self.emoji));
         println!("export TAB_BG='{}'", shell_escape(&self.bg));

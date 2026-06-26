@@ -117,6 +117,9 @@ fn cmd_tabbing_on() {
     let orig_emoji = s.emoji.clone();
 
     let mut positional: Vec<String> = Vec::new();
+    let mut theme_changed = false;
+    let mut title_style_changed = false;
+    let mut status_style_changed = false;
     let mut has_record = false;
     let mut has_continue = false;
     let mut has_claude = false;
@@ -145,15 +148,60 @@ fn cmd_tabbing_on() {
                         process::exit(1);
                     }
                     s.highlight = val.clone();
+                    title_style_changed = true;
                 }
             }
             a if a.starts_with("--highlight=") => {
                 let val = a.strip_prefix("--highlight=").unwrap();
                 s.highlight = val.to_string();
+                title_style_changed = true;
             }
             a if a.starts_with("--color=") => {
                 let val = a.strip_prefix("--color=").unwrap();
                 s.highlight = val.to_string();
+                title_style_changed = true;
+            }
+            "--title-style" => {
+                i += 1;
+                if i < args.len() {
+                    let val = &args[i];
+                    if color::style_sequence(val).is_none() {
+                        eprintln!("tabbing: unknown title style '{}'", val);
+                        process::exit(1);
+                    }
+                    s.title_style = val.clone();
+                    title_style_changed = true;
+                }
+            }
+            a if a.starts_with("--title-style=") => {
+                let val = a.strip_prefix("--title-style=").unwrap();
+                if color::style_sequence(val).is_none() {
+                    eprintln!("tabbing: unknown title style '{}'", val);
+                    process::exit(1);
+                }
+                s.title_style = val.to_string();
+                title_style_changed = true;
+            }
+            "--status-style" => {
+                i += 1;
+                if i < args.len() {
+                    let val = &args[i];
+                    if color::style_sequence(val).is_none() {
+                        eprintln!("tabbing: unknown status style '{}'", val);
+                        process::exit(1);
+                    }
+                    s.status_style = val.clone();
+                    status_style_changed = true;
+                }
+            }
+            a if a.starts_with("--status-style=") => {
+                let val = a.strip_prefix("--status-style=").unwrap();
+                if color::style_sequence(val).is_none() {
+                    eprintln!("tabbing: unknown status style '{}'", val);
+                    process::exit(1);
+                }
+                s.status_style = val.to_string();
+                status_style_changed = true;
             }
 
             "--urgency" | "--pri" | "-p" => {
@@ -213,14 +261,19 @@ fn cmd_tabbing_on() {
                 i += 1;
                 if i < args.len() {
                     s.theme = args[i].clone();
+                    theme_changed = true;
                 }
             }
             a if a.starts_with("--theme=") => {
                 s.theme = a.strip_prefix("--theme=").unwrap().to_string();
+                theme_changed = true;
             }
             "--no-theme" => {
                 theme::clear_theme();
                 s.theme.clear();
+                s.title_style.clear();
+                s.status_style.clear();
+                theme_changed = false;
             }
 
             "--claude" => {
@@ -261,6 +314,7 @@ fn cmd_tabbing_on() {
                 let name = &a[1..];
                 if color::is_known_color(name) {
                     s.highlight = name.to_string();
+                    title_style_changed = true;
                 } else if emoji::is_known_emoji(name) {
                     s.emoji = name.to_string();
                 } else {
@@ -302,6 +356,10 @@ fn cmd_tabbing_on() {
     let t = terminal::detect();
     s.terminal = t.as_str().to_string();
     s.ensure_tab_id();
+    if theme_changed && !s.theme.is_empty() {
+        let theme_name = s.theme.clone();
+        theme::apply_semantics_to_state(&mut s, &theme_name, title_style_changed, status_style_changed);
+    }
 
     // Render escape sequences to terminal
     if !s.title.is_empty() {
@@ -374,6 +432,8 @@ fn cmd_tabbing_style() {
     // No args — show current style settings
     if args.is_empty() {
         println!("highlight: {}", if s.highlight.is_empty() { "(none)" } else { &s.highlight });
+        println!("title_style: {}", if s.title_style.is_empty() { "(none)" } else { &s.title_style });
+        println!("status_style: {}", if s.status_style.is_empty() { "(none)" } else { &s.status_style });
         println!("urgency:   {}", if s.urgency.is_empty() { "(none)" } else { &s.urgency });
         println!("emoji:     {}", if s.emoji.is_empty() { "(none)" } else { &s.emoji });
         println!("bg:        {}", if s.bg.is_empty() { "(none)" } else { &s.bg });
@@ -382,6 +442,9 @@ fn cmd_tabbing_style() {
         return;
     }
 
+    let mut theme_changed = false;
+    let mut title_style_changed = false;
+    let mut status_style_changed = false;
     let mut i = 0;
     while i < args.len() {
         let arg = &args[i];
@@ -395,15 +458,60 @@ fn cmd_tabbing_style() {
                         process::exit(1);
                     }
                     s.highlight = val.clone();
+                    title_style_changed = true;
                 }
             }
             a if a.starts_with("--highlight=") => {
                 let val = a.strip_prefix("--highlight=").unwrap();
                 s.highlight = val.to_string();
+                title_style_changed = true;
             }
             a if a.starts_with("--color=") => {
                 let val = a.strip_prefix("--color=").unwrap();
                 s.highlight = val.to_string();
+                title_style_changed = true;
+            }
+            "--title-style" => {
+                i += 1;
+                if i < args.len() {
+                    let val = &args[i];
+                    if color::style_sequence(val).is_none() {
+                        eprintln!("tabbing: unknown title style '{}'", val);
+                        process::exit(1);
+                    }
+                    s.title_style = val.clone();
+                    title_style_changed = true;
+                }
+            }
+            a if a.starts_with("--title-style=") => {
+                let val = a.strip_prefix("--title-style=").unwrap();
+                if color::style_sequence(val).is_none() {
+                    eprintln!("tabbing: unknown title style '{}'", val);
+                    process::exit(1);
+                }
+                s.title_style = val.to_string();
+                title_style_changed = true;
+            }
+            "--status-style" => {
+                i += 1;
+                if i < args.len() {
+                    let val = &args[i];
+                    if color::style_sequence(val).is_none() {
+                        eprintln!("tabbing: unknown status style '{}'", val);
+                        process::exit(1);
+                    }
+                    s.status_style = val.clone();
+                    status_style_changed = true;
+                }
+            }
+            a if a.starts_with("--status-style=") => {
+                let val = a.strip_prefix("--status-style=").unwrap();
+                if color::style_sequence(val).is_none() {
+                    eprintln!("tabbing: unknown status style '{}'", val);
+                    process::exit(1);
+                }
+                s.status_style = val.to_string();
+                status_style_changed = true;
             }
 
             "--urgency" | "--pri" | "-p" => {
@@ -463,14 +571,19 @@ fn cmd_tabbing_style() {
                 i += 1;
                 if i < args.len() {
                     s.theme = args[i].clone();
+                    theme_changed = true;
                 }
             }
             a if a.starts_with("--theme=") => {
                 s.theme = a.strip_prefix("--theme=").unwrap().to_string();
+                theme_changed = true;
             }
             "--no-theme" => {
                 theme::clear_theme();
                 s.theme.clear();
+                s.title_style.clear();
+                s.status_style.clear();
+                theme_changed = false;
             }
 
             "-m" | "--marquee" => s.marquee = true,
@@ -491,6 +604,7 @@ fn cmd_tabbing_style() {
                 let name = &a[1..];
                 if color::is_known_color(name) {
                     s.highlight = name.to_string();
+                    title_style_changed = true;
                 } else if emoji::is_known_emoji(name) {
                     s.emoji = name.to_string();
                 } else {
@@ -515,6 +629,10 @@ fn cmd_tabbing_style() {
     let t = terminal::detect();
     s.terminal = t.as_str().to_string();
     s.ensure_tab_id();
+    if theme_changed && !s.theme.is_empty() {
+        let theme_name = s.theme.clone();
+        theme::apply_semantics_to_state(&mut s, &theme_name, title_style_changed, status_style_changed);
+    }
 
     // Render escape sequences to terminal
     render::render_title(&s);
@@ -559,7 +677,7 @@ fn cmd_tabbing_off() {
     }
 
     // Print unset statements to stdout (for eval $(tabbing-off))
-    println!("unset TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_BG TAB_THEME TAB_ID TAB_SESSION TAB_TERMINAL TAB_RECORDING");
+    println!("unset TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_URGENCY TAB_EMOJI TAB_BG TAB_THEME TAB_ID TAB_SESSION TAB_TERMINAL TAB_RECORDING");
     println!("unset TABBING_DC_UUID TABBING_DC_DAEMON_PID _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE TABBING_PIPE");
     println!("unset TAB_TOGGL_TOKEN TAB_TOGGL_WORKSPACE TAB_TOGGL_PROJECT TAB_TOGGL_TAGS TAB_TOGGL_BILLABLE TAB_TOGGL_ENTRY_ID");
 
@@ -577,6 +695,8 @@ fn cmd_tabbing_status() {
     }
 
     let mut positional: Vec<String> = Vec::new();
+    let mut theme_changed = false;
+    let mut status_style_changed = false;
     let mut i = 0;
 
     while i < args.len() {
@@ -607,14 +727,41 @@ fn cmd_tabbing_status() {
                 i += 1;
                 if i < args.len() {
                     s.theme = args[i].clone();
+                    theme_changed = true;
                 }
             }
             a if a.starts_with("--theme=") => {
                 s.theme = a.strip_prefix("--theme=").unwrap().to_string();
+                theme_changed = true;
             }
             "--no-theme" => {
                 theme::clear_theme();
                 s.theme.clear();
+                s.title_style.clear();
+                s.status_style.clear();
+                theme_changed = false;
+            }
+
+            "--status-style" => {
+                i += 1;
+                if i < args.len() {
+                    let val = &args[i];
+                    if color::style_sequence(val).is_none() {
+                        eprintln!("tabbing: unknown status style '{}'", val);
+                        process::exit(1);
+                    }
+                    s.status_style = val.clone();
+                    status_style_changed = true;
+                }
+            }
+            a if a.starts_with("--status-style=") => {
+                let val = a.strip_prefix("--status-style=").unwrap();
+                if color::style_sequence(val).is_none() {
+                    eprintln!("tabbing: unknown status style '{}'", val);
+                    process::exit(1);
+                }
+                s.status_style = val.to_string();
+                status_style_changed = true;
             }
 
             "-m" | "--marquee" => s.marquee = true,
@@ -654,6 +801,10 @@ fn cmd_tabbing_status() {
     }
 
     let t = terminal::detect();
+    if (!s.theme.is_empty() && !s.urgency.is_empty()) || theme_changed {
+        let theme_name = s.theme.clone();
+        theme::apply_semantics_to_state(&mut s, &theme_name, true, status_style_changed);
+    }
 
     render::render_title(&s);
     render::apply_urgency_color(&s, &t);
@@ -683,6 +834,8 @@ fn cmd_tabbing_info() {
     println!("  title:     {}", if s.title.is_empty() { "(not set)" } else { &s.title });
     println!("  status:    {}", if s.status.is_empty() { "(not set)" } else { &s.status });
     println!("  highlight: {}", if s.highlight.is_empty() { "(not set)" } else { &s.highlight });
+    println!("  title_style: {}", if s.title_style.is_empty() { "(not set)" } else { &s.title_style });
+    println!("  status_style: {}", if s.status_style.is_empty() { "(not set)" } else { &s.status_style });
     println!("  urgency:   {}", if s.urgency.is_empty() { "(not set)" } else { &s.urgency });
     println!("  emoji:     {}", if s.emoji.is_empty() { "(not set)" } else { &s.emoji });
     println!("  bg:        {}", if s.bg.is_empty() { "(not set)" } else { &s.bg });

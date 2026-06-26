@@ -113,6 +113,19 @@ const SLOT_NAMES: &[&str] = &[
     "bright blue", "bright magenta", "bright cyan", "bright white",
 ];
 
+const COLOR_SLOT_COUNT: usize = 19;
+const SEMANTIC_SLOT_NAMES: &[&str] = &[
+    "title_style",
+    "status_style",
+    "urgency0_style",
+    "urgency1_style",
+    "urgency2_style",
+    "urgency3_style",
+    "urgency4_style",
+    "urgency5_style",
+];
+const EDIT_SLOT_COUNT: usize = COLOR_SLOT_COUNT + SEMANTIC_SLOT_NAMES.len();
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -217,6 +230,7 @@ struct PickerState {
 
     edit_entry_idx: usize,
     edit_colors: [String; 19],
+    edit_semantics: Vec<String>,
     edit_slot: usize,
     edit_typing: bool,
     edit_input: String,
@@ -591,6 +605,7 @@ pub fn run_picker() {
         search_cursor: 0,
         edit_entry_idx: 0,
         edit_colors: Default::default(),
+        edit_semantics: vec![String::new(); SEMANTIC_SLOT_NAMES.len()],
         edit_slot: 0,
         edit_typing: false,
         edit_input: String::new(),
@@ -849,7 +864,19 @@ fn handle_edit(state: &mut PickerState, key: KeyEvent) {
                 state.edit_input.clear();
             }
             KeyCode::Enter => {
-                if is_valid_hex(&state.edit_input) {
+                if state.edit_slot >= COLOR_SLOT_COUNT {
+                    let semantic_idx = state.edit_slot - COLOR_SLOT_COUNT;
+                    if crate::color::style_sequence(&state.edit_input).is_some()
+                        || state.edit_input.trim().is_empty()
+                    {
+                        state.edit_semantics[semantic_idx] = state.edit_input.trim().to_string();
+                        state.edit_modified = true;
+                        state.edit_typing = false;
+                        state.edit_input.clear();
+                    } else {
+                        state.flash_msg("Invalid style tokens");
+                    }
+                } else if is_valid_hex(&state.edit_input) {
                     state.edit_colors[state.edit_slot] = state.edit_input.clone();
                     state.edit_modified = true;
                     state.edit_typing = false;
@@ -861,15 +888,21 @@ fn handle_edit(state: &mut PickerState, key: KeyEvent) {
             KeyCode::Backspace => {
                 state.edit_input.pop();
             }
-            KeyCode::Char(c) if state.edit_input.len() < 7 => {
-                if state.edit_input.is_empty() && c != '#' {
-                    state.edit_input.push('#');
-                }
-                state.edit_input.push(c.to_ascii_uppercase());
-                if is_valid_hex(&state.edit_input) {
-                    state.edit_colors[state.edit_slot] = state.edit_input.clone();
-                    state.edit_modified = true;
-                    apply_edit_colors(state);
+            KeyCode::Char(c) => {
+                if state.edit_slot >= COLOR_SLOT_COUNT {
+                    if state.edit_input.len() < 64 {
+                        state.edit_input.push(c);
+                    }
+                } else if state.edit_input.len() < 7 {
+                    if state.edit_input.is_empty() && c != '#' {
+                        state.edit_input.push('#');
+                    }
+                    state.edit_input.push(c.to_ascii_uppercase());
+                    if is_valid_hex(&state.edit_input) {
+                        state.edit_colors[state.edit_slot] = state.edit_input.clone();
+                        state.edit_modified = true;
+                        apply_edit_colors(state);
+                    }
                 }
             }
             _ => {}
@@ -885,20 +918,31 @@ fn handle_edit(state: &mut PickerState, key: KeyEvent) {
             state.mode = ViewMode::Browse;
         }
         KeyCode::Enter | KeyCode::Char('w') | KeyCode::Char('W') | KeyCode::Char(' ') => {
-            open_wheel(state);
+            if state.edit_slot >= COLOR_SLOT_COUNT {
+                state.edit_typing = true;
+                state.edit_input = state.edit_semantics[state.edit_slot - COLOR_SLOT_COUNT].clone();
+            } else {
+                open_wheel(state);
+            }
         }
         KeyCode::Char('x') | KeyCode::Char('X') => {
             state.edit_typing = true;
-            state.edit_input = state.edit_colors[state.edit_slot].clone();
+            if state.edit_slot >= COLOR_SLOT_COUNT {
+                state.edit_input = state.edit_semantics[state.edit_slot - COLOR_SLOT_COUNT].clone();
+            } else {
+                state.edit_input = state.edit_colors[state.edit_slot].clone();
+            }
         }
         KeyCode::Up | KeyCode::Char('k') => {
             state.edit_slot = state.edit_slot.saturating_sub(1);
         }
         KeyCode::Down | KeyCode::Char('j') => {
-            state.edit_slot = (state.edit_slot + 1).min(18);
+            state.edit_slot = (state.edit_slot + 1).min(EDIT_SLOT_COUNT - 1);
         }
         KeyCode::Left | KeyCode::Char('h') => {
-            if state.edit_slot >= 11 {
+            if state.edit_slot >= COLOR_SLOT_COUNT {
+                state.edit_slot = COLOR_SLOT_COUNT - 1;
+            } else if state.edit_slot >= 11 {
                 state.edit_slot -= 8;
             }
         }
@@ -1098,6 +1142,7 @@ fn handle_create(state: &mut PickerState, key: KeyEvent) {
             state.rebuild_grid();
 
             state.edit_colors = base_colors;
+            state.edit_semantics = vec![String::new(); SEMANTIC_SLOT_NAMES.len()];
             state.edit_name = name;
             state.edit_slot = 0;
             state.edit_typing = false;
@@ -1140,6 +1185,7 @@ fn enter_edit_mode(state: &mut PickerState) {
     let colors = entry.colors.clone().unwrap_or_else(default_colors);
     state.edit_entry_idx = idx;
     state.edit_colors = colors;
+    state.edit_semantics = load_edit_semantics(&entry.name);
     state.edit_name = entry.name.clone();
     state.edit_slot = 0;
     state.edit_typing = false;
@@ -1152,6 +1198,17 @@ fn apply_edit_colors(state: &PickerState) {
     theme::send_theme(&refs);
 }
 
+fn load_edit_semantics(name: &str) -> Vec<String> {
+    let semantics = theme::load_user_theme_semantics(name);
+    let mut values = vec![String::new(); SEMANTIC_SLOT_NAMES.len()];
+    values[0] = semantics.title_style;
+    values[1] = semantics.status_style;
+    for i in 0..6 {
+        values[2 + i] = semantics.urgency_styles[i].clone();
+    }
+    values
+}
+
 fn save_edit(state: &mut PickerState) {
     let td = theme::theme_dir();
     let file = td.join(format!("{}.theme", state.edit_name));
@@ -1161,6 +1218,11 @@ fn save_edit(state: &mut PickerState) {
     content.push_str(&format!("cursor={}\n", state.edit_colors[2]));
     for i in 0..16 {
         content.push_str(&format!("color{}={}\n", i, state.edit_colors[3 + i]));
+    }
+    for (idx, value) in state.edit_semantics.iter().enumerate() {
+        if !value.trim().is_empty() {
+            content.push_str(&format!("{}={}\n", SEMANTIC_SLOT_NAMES[idx], value.trim()));
+        }
     }
     match std::fs::write(&file, &content) {
         Ok(_) => {
@@ -1406,12 +1468,19 @@ fn render_browse(f: &mut Frame, area: Rect, state: &PickerState) {
 
                     let marker = if is_cursor { " ▸ " } else { "   " };
                     let name_style = if is_cursor {
-                        Style::default().fg(state.ui.text).bold()
+                        Style::default()
+                            .fg(state.ui.accent_text)
+                            .bg(state.ui.accent)
+                            .bold()
+                            .add_modifier(Modifier::UNDERLINED | Modifier::SLOW_BLINK)
                     } else {
                         Style::default().fg(state.ui.text_dim)
                     };
 
                     let mut name = entry.name.clone();
+                    if is_cursor {
+                        name = format!("<<{}>>", name);
+                    }
                     if name.chars().count() > name_w {
                         name.truncate(name_w.saturating_sub(1));
                         name.push('…');
@@ -1529,7 +1598,7 @@ fn render_edit(f: &mut Frame, area: Rect, state: &PickerState) {
 
     let left_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(4), Constraint::Min(3)])
+        .constraints([Constraint::Length(4), Constraint::Length(10), Constraint::Min(5)])
         .split(chunks[0]);
 
     let meta_lines = vec![
@@ -1586,7 +1655,63 @@ fn render_edit(f: &mut Frame, area: Rect, state: &PickerState) {
     );
     f.render_widget(palette, left_chunks[1]);
 
+    let mut semantic_lines: Vec<Line> = Vec::new();
+    for (i, name) in SEMANTIC_SLOT_NAMES.iter().enumerate() {
+        semantic_lines.push(Line::from(vec![
+            Span::styled(
+                format!("   {:<15}", name),
+                Style::default().fg(state.ui.text_muted),
+            ),
+            render_semantic_slot(state, i),
+        ]));
+    }
+    let semantic = Paragraph::new(semantic_lines).block(
+        Block::default()
+            .title(Span::styled(
+                " Semantic ",
+                Style::default().fg(state.ui.cat_c).bold(),
+            ))
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(state.ui.border)),
+    );
+    f.render_widget(semantic, left_chunks[2]);
+
     render_code_preview(f, chunks[1], state);
+}
+
+fn render_semantic_slot<'a>(state: &PickerState, semantic_idx: usize) -> Span<'a> {
+    let slot = COLOR_SLOT_COUNT + semantic_idx;
+    let value = state
+        .edit_semantics
+        .get(semantic_idx)
+        .map(|s| s.as_str())
+        .unwrap_or("");
+    let display = if value.is_empty() { "(default)" } else { value };
+    let is_selected = state.edit_slot == slot;
+
+    if is_selected && state.edit_typing {
+        Span::styled(
+            format!("{:<28}▏", state.edit_input),
+            Style::default()
+                .fg(state.ui.accent)
+                .bg(state.ui.text_muted)
+                .bold(),
+        )
+    } else if is_selected {
+        Span::styled(
+            format!("  {:<28} ◀", display),
+            Style::default()
+                .fg(state.ui.text)
+                .bg(state.ui.accent)
+                .bold()
+                .add_modifier(Modifier::UNDERLINED),
+        )
+    } else {
+        Span::styled(
+            format!("  {:<28}  ", display),
+            Style::default().fg(state.ui.text_dim),
+        )
+    }
 }
 
 fn render_edit_slot<'a>(state: &PickerState, slot: usize) -> Span<'a> {
@@ -1795,15 +1920,18 @@ fn render_footer(f: &mut Frame, area: Rect, state: &PickerState) {
             ("Enter", "apply"),
             ("Esc", "cancel"),
         ],
-        ViewMode::Edit if state.edit_typing => vec![
-            ("type", "#RRGGBB"),
+        ViewMode::Edit if state.edit_typing && state.edit_slot >= COLOR_SLOT_COUNT => vec![
+            ("type", "style tokens"),
             ("Enter", "confirm"),
             ("Esc", "cancel"),
         ],
+        ViewMode::Edit if state.edit_typing => {
+            vec![("type", "#RRGGBB"), ("Enter", "confirm"), ("Esc", "cancel")]
+        }
         ViewMode::Edit => vec![
             ("↑↓←→", "slots"),
-            ("Enter", "wheel"),
-            ("x", "hex"),
+            ("Enter", "edit"),
+            ("x", "edit"),
             ("s", "save"),
             ("Esc", "cancel"),
         ],
@@ -2380,6 +2508,7 @@ mod tests {
             search_cursor: 1,
             edit_entry_idx: 0,
             edit_colors: default_colors(),
+            edit_semantics: vec![String::new(); SEMANTIC_SLOT_NAMES.len()],
             edit_slot: 6,
             edit_typing: false,
             edit_input: String::new(),

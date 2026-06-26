@@ -1,11 +1,17 @@
 // theme.rs — Terminal theme system (OSC palette recoloring)
 //
 // Ports lib/render.sh (theme section) and lib/theme.sh to Rust.
-// Standalone module — no references to other crate modules.
-
+use crate::state::TabState;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
+
+#[derive(Debug, Clone, Default)]
+pub struct ThemeSemantics {
+    pub title_style: String,
+    pub status_style: String,
+    pub urgency_styles: [String; 6],
+}
 
 // ============================================================================
 // Theme data: 19 hex values per theme
@@ -873,6 +879,118 @@ pub fn load_user_theme(name: &str) -> Option<[String; 19]> {
     ];
 
     Some(result)
+}
+
+fn append_style_slot(slot: &mut String, val: &str) {
+    if val.is_empty() {
+        return;
+    }
+    if !slot.is_empty() {
+        slot.push(' ');
+    }
+    slot.push_str(val);
+}
+
+fn semantic_value(raw: &str) -> String {
+    raw.split('#')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .trim_matches(|c| c == '"' || c == '\'')
+        .to_string()
+}
+
+pub fn load_user_theme_semantics(name: &str) -> ThemeSemantics {
+    let path = theme_dir().join(format!("{}.theme", name));
+    let Ok(contents) = fs::read_to_string(&path) else {
+        return ThemeSemantics::default();
+    };
+
+    let mut semantics = ThemeSemantics::default();
+
+    for line in contents.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let Some((key, raw_val)) = line.split_once('=') else {
+            continue;
+        };
+        let key = key.trim();
+        let val = semantic_value(raw_val);
+        if val.is_empty() {
+            continue;
+        }
+
+        match key {
+            "highlight" | "title" | "title_color" | "title_fg" => {
+                append_style_slot(&mut semantics.title_style, &val);
+            }
+            "title_style" => {
+                append_style_slot(&mut semantics.title_style, &val);
+            }
+            "title_bg" => {
+                append_style_slot(&mut semantics.title_style, &format!("bg-{val}"));
+            }
+            "status" | "status_color" | "status_fg" => {
+                append_style_slot(&mut semantics.status_style, &val);
+            }
+            "status_style" => {
+                append_style_slot(&mut semantics.status_style, &val);
+            }
+            "status_bg" => {
+                append_style_slot(&mut semantics.status_style, &format!("bg-{val}"));
+            }
+            k if k.starts_with("urgency") && k.ends_with("_style") => {
+                let idx = &k["urgency".len()..k.len() - "_style".len()];
+                if let Ok(idx) = idx.parse::<usize>() {
+                    if idx < semantics.urgency_styles.len() {
+                        append_style_slot(&mut semantics.urgency_styles[idx], &val);
+                    }
+                }
+            }
+            k if k.starts_with("urgency") && (k.ends_with("_fg") || k.ends_with("_color")) => {
+                let suffix_len = if k.ends_with("_fg") { 3 } else { 6 };
+                let idx = &k["urgency".len()..k.len() - suffix_len];
+                if let Ok(idx) = idx.parse::<usize>() {
+                    if idx < semantics.urgency_styles.len() {
+                        append_style_slot(&mut semantics.urgency_styles[idx], &val);
+                    }
+                }
+            }
+            k if k.starts_with("urgency") && k.ends_with("_bg") => {
+                let idx = &k["urgency".len()..k.len() - "_bg".len()];
+                if let Ok(idx) = idx.parse::<usize>() {
+                    if idx < semantics.urgency_styles.len() {
+                        append_style_slot(&mut semantics.urgency_styles[idx], &format!("bg-{val}"));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    semantics
+}
+
+pub fn apply_semantics_to_state(state: &mut TabState, theme_name: &str, keep_title_style: bool, keep_status_style: bool) {
+    let semantics = load_user_theme_semantics(theme_name);
+    if !keep_title_style {
+        state.title_style = semantics.title_style;
+    }
+
+    if keep_status_style {
+        return;
+    }
+
+    if let Ok(level) = state.urgency.parse::<usize>() {
+        if level < semantics.urgency_styles.len() && !semantics.urgency_styles[level].is_empty() {
+            state.status_style = semantics.urgency_styles[level].clone();
+            return;
+        }
+    }
+
+    state.status_style = semantics.status_style;
 }
 
 /// Print a categorized list of available themes to stdout.

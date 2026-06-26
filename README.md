@@ -314,9 +314,26 @@ color12 = #7AA2F7   # bright blue
 color13 = #BB9AF7   # bright magenta
 color14 = #7DCFFF   # bright cyan
 color15 = #C0CAF5   # bright white
+
+# Optional semantic render slots
+# These affect tabbing-on's console/status display, not the terminal palette.
+title_style = bold bright-blue
+status_style = bright-cyan
+
+# Background style tokens use bg-COLOR with ANSI palette color names.
+title_bg = black
+status_bg = black
+
+# Urgency-specific status styles override status_style when TAB_URGENCY is set.
+urgency0_style = bold bright-red
+urgency1_style = bright-red
+urgency2_style = bright-yellow
+urgency3_style = yellow
+urgency4_style = bright-green
+urgency5_style = dim bright-black
 ```
 
-Only `bg` and `fg` are required — a minimal two-line theme file works fine. User themes override built-in themes of the same name. See `examples/themes/` for templates.
+Only `bg` and `fg` are required — a minimal two-line theme file works fine. User themes override built-in themes of the same name. Semantic styles accept ANSI color/effect tokens: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `bright-*`, `bold`, `dim`, `italic`, `underline`, `blink`, `inverse`, `strikethrough`, and background tokens like `bg-black`. See `examples/themes/` for templates.
 
 ## Background Colors
 

@@ -55,6 +55,8 @@ _tabbing_session_save() {
     printf "TAB_TITLE='%s'\n"     "$(printf '%s' "${TAB_TITLE:-}"     | sed "s/'/'\\\\''/g")"
     printf "TAB_STATUS='%s'\n"    "$(printf '%s' "${TAB_STATUS:-}"    | sed "s/'/'\\\\''/g")"
     printf "TAB_HIGHLIGHT='%s'\n" "$(printf '%s' "${TAB_HIGHLIGHT:-}" | sed "s/'/'\\\\''/g")"
+    printf "TAB_TITLE_STYLE='%s'\n" "$(printf '%s' "${TAB_TITLE_STYLE:-}" | sed "s/'/'\\\\''/g")"
+    printf "TAB_STATUS_STYLE='%s'\n" "$(printf '%s' "${TAB_STATUS_STYLE:-}" | sed "s/'/'\\\\''/g")"
     printf "TAB_URGENCY='%s'\n"   "$(printf '%s' "${TAB_URGENCY:-}"   | sed "s/'/'\\\\''/g")"
     printf "TAB_EMOJI='%s'\n"     "$(printf '%s' "${TAB_EMOJI:-}"     | sed "s/'/'\\\\''/g")"
     printf "TAB_THEME='%s'\n"     "$(printf '%s' "${TAB_THEME:-}"     | sed "s/'/'\\\\''/g")"
@@ -74,7 +76,7 @@ _tabbing_session_load() {
   _file="$(_tabbing_session_file)" || return 0
   if [ -f "$_file" ]; then
     . "$_file"
-    export TAB_ID TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_THEME TAB_TERMINAL
+    export TAB_ID TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_URGENCY TAB_EMOJI TAB_THEME TAB_TERMINAL
     export TABBING_DC_UUID TABBING_PIPE TABBING_CLAUDE_PID TABBING_RUN_WITH_PIPE
   fi
 }

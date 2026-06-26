@@ -51,10 +51,12 @@ pub fn write_state_to_pipe(state: &TabState) {
 /// snapshot was received.
 fn format_state_block(state: &TabState) -> String {
     format!(
-        "TAB_TITLE={}\nTAB_STATUS={}\nTAB_HIGHLIGHT={}\nTAB_URGENCY={}\nTAB_EMOJI={}\nTAB_BG={}\nTAB_THEME={}\nTAB_ID={}\nTAB_TERMINAL={}\n---\n",
+        "TAB_TITLE={}\nTAB_STATUS={}\nTAB_HIGHLIGHT={}\nTAB_TITLE_STYLE={}\nTAB_STATUS_STYLE={}\nTAB_URGENCY={}\nTAB_EMOJI={}\nTAB_BG={}\nTAB_THEME={}\nTAB_ID={}\nTAB_TERMINAL={}\n---\n",
         state.title,
         state.status,
         state.highlight,
+        state.title_style,
+        state.status_style,
         state.urgency,
         state.emoji,
         state.bg,
@@ -116,10 +118,12 @@ pub fn write_state_file(state: &TabState, session: &str) {
     let tmp_path = dir.join(format!("claude-{}.state.tmp", session));
 
     let content = format!(
-        "title={}\nstatus={}\nhighlight={}\nurgency={}\nemoji={}\nbg={}\ntheme={}\ntab_id={}\nterminal={}\n",
+        "title={}\nstatus={}\nhighlight={}\ntitle_style={}\nstatus_style={}\nurgency={}\nemoji={}\nbg={}\ntheme={}\ntab_id={}\nterminal={}\n",
         state.title,
         state.status,
         state.highlight,
+        state.title_style,
+        state.status_style,
         state.urgency,
         state.emoji,
         state.bg,

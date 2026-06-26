@@ -59,6 +59,8 @@ fn state_from_dc(client: &DcClient, ns: &str) -> TabState {
         title: get("title"),
         status: get("status"),
         highlight: get("highlight"),
+        title_style: get("title_style"),
+        status_style: get("status_style"),
         urgency: get("urgency"),
         emoji: get("emoji"),
         bg: get("bg"),
