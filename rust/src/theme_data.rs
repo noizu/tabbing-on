@@ -44,6 +44,10 @@ pub fn handle_to_line(handle: &str) -> Option<usize> {
         "foreground" | "fg" => return Some(110),
         "background" | "bg" => return Some(111),
         "cursor" => return Some(112),
+        // extended theme state on free lines (mnemonic: OSC number where one exists)
+        "cursor-shape" | "cursor-style" => return Some(113),
+        "selection-bg" | "highlight-bg" | "selection" => return Some(117), // OSC 17
+        "selection-fg" | "highlight-fg" => return Some(119),               // OSC 19
         _ => {}
     }
 
@@ -289,6 +293,164 @@ pub fn empty_blob() -> String {
     vec![""; THEME_DATA_LINES].join("\n")
 }
 
+// --- escape-sequence emission (single source of truth; shell only evals) ------
+//
+// All OSC/CSI construction lives here so the shell carries no color/escape
+// logic. The CLI `emit` subcommand renders these as an eval-able `printf`.
+
+const ESC: char = '\u{1b}';
+const BEL: char = '\u{7}';
+
+/// OSC stream that paints a populated theme blob:
+///   line 110 -> OSC 10 (fg), 111 -> OSC 11 (bg), 112 -> OSC 12 (cursor),
+///   lines 128..=383 -> OSC 4;slot;color (palette slots 0..255).
+/// Empty lines are skipped. Returns "" when nothing is set.
+pub fn emit_theme_seq(blob: &str) -> String {
+    let lines = blob_lines(blob);
+    let mut out = String::new();
+    for (i, v) in lines.iter().enumerate() {
+        if v.is_empty() {
+            continue;
+        }
+        let n = i + 1; // 1-based line number
+        match n {
+            110 => out.push_str(&format!("{ESC}]10;{v}{BEL}")),
+            111 => out.push_str(&format!("{ESC}]11;{v}{BEL}")),
+            112 => out.push_str(&format!("{ESC}]12;{v}{BEL}")),
+            128..=383 => out.push_str(&format!("{ESC}]4;{};{v}{BEL}", n - 128)),
+            _ => {}
+        }
+    }
+    out
+}
+
+/// Reset stream: OSC 104 (palette), 110 (fg), 111 (bg), 112 (cursor),
+/// and DECSCUSR 0 (restore default cursor shape).
+pub fn emit_clear_seq() -> String {
+    format!("{ESC}]104{BEL}{ESC}]110{BEL}{ESC}]111{BEL}{ESC}]112{BEL}{ESC}[0 q")
+}
+
+/// Reset background only (OSC 111).
+pub fn emit_clear_bg_seq() -> String {
+    format!("{ESC}]111{BEL}")
+}
+
+/// Background-only OSC 11 for a resolved color name/hex. "" if unresolvable.
+pub fn emit_bg_seq(color: &str) -> String {
+    let hex = resolve_value(color);
+    if hex.is_empty() {
+        return String::new();
+    }
+    format!("{ESC}]11;{hex}{BEL}")
+}
+
+/// DECSCUSR cursor-shape code (0..6) for a style name, or None if unknown.
+/// Mirrors the shell `_tabbing_cursor_style_code` mapping.
+pub fn cursor_style_code(style: &str, blink: &str) -> Option<u8> {
+    let s = style.trim().to_ascii_lowercase().replace('_', "-");
+    let steady = matches!(blink.trim().to_ascii_lowercase().as_str(), "false" | "0" | "no" | "off");
+    match s.as_str() {
+        "" => None,
+        "default" => Some(0),
+        "blinking-block" => Some(1),
+        "block" => Some(if steady { 2 } else { 1 }),
+        "steady-block" => Some(2),
+        "blinking-underline" => Some(3),
+        "underline" => Some(if steady { 4 } else { 3 }),
+        "steady-underline" => Some(4),
+        "blinking-bar" | "blinking-beam" => Some(5),
+        "bar" | "beam" => Some(if steady { 6 } else { 5 }),
+        "steady-bar" | "steady-beam" => Some(6),
+        _ => None,
+    }
+}
+
+/// DECSCUSR escape for a cursor style, or "" if the style is unknown.
+/// A bare 0..=6 passes through as the raw DECSCUSR code.
+pub fn emit_cursor_seq(style: &str, blink: &str) -> String {
+    let code = style
+        .trim()
+        .parse::<u8>()
+        .ok()
+        .filter(|c| *c <= 6)
+        .or_else(|| cursor_style_code(style, blink));
+    match code {
+        Some(c) => format!("{ESC}[{c} q"),
+        None => String::new(),
+    }
+}
+
+/// Window/tab title via OSC 0 (sets both icon name and title). "" if empty.
+pub fn emit_title_seq(title: &str) -> String {
+    if title.is_empty() {
+        String::new()
+    } else {
+        format!("{ESC}]0;{title}{BEL}")
+    }
+}
+
+/// iTerm2 tab background color via OSC 6 (one sequence per channel). Resolves a
+/// name/hex to RGB; "" if unresolvable. Harmless no-op on terminals that ignore
+/// OSC 6 — callers gate by terminal type.
+pub fn emit_tab_color_seq(color: &str) -> String {
+    let hex = resolve_value(color);
+    let h = hex.strip_prefix('#').unwrap_or(&hex);
+    if h.len() != 6 || !h.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return String::new();
+    }
+    let c = |s: &str| u8::from_str_radix(s, 16).unwrap_or(0);
+    let (r, g, b) = (c(&h[0..2]), c(&h[2..4]), c(&h[4..6]));
+    format!(
+        "{ESC}]6;1;bg;red;brightness;{r}{BEL}{ESC}]6;1;bg;green;brightness;{g}{BEL}{ESC}]6;1;bg;blue;brightness;{b}{BEL}"
+    )
+}
+
+/// Optional runtime/terminal extras layered on top of the theme blob by `--all`.
+#[derive(Default)]
+pub struct EmitExtras<'a> {
+    pub cursor: Option<&'a str>,
+    pub blink: &'a str,
+    pub title: Option<&'a str>,
+    pub tab_color: Option<&'a str>,
+}
+
+/// The full supported escape bundle for a theme blob plus optional extras.
+/// Order is chosen so later writes can't be clobbered by resets:
+///   1. OSC 4 256-palette + OSC 10/11/12 fg/bg/cursor colors  (blob)
+///   2. OSC 17 / 19 selection (highlight) bg/fg               (blob 117/119)
+///   3. DECSCUSR cursor shape   (extras.cursor override, else blob line 113)
+///   4. OSC 0 title             (extras.title)
+///   5. iTerm OSC 6 tab color   (extras.tab_color)
+pub fn emit_all_seq(blob: &str, extras: &EmitExtras) -> String {
+    let lines = blob_lines(blob);
+    let line = |n: usize| lines.get(n - 1).map(|s| s.as_str()).unwrap_or("");
+
+    let mut out = emit_theme_seq(blob);
+
+    let sel_bg = line(117);
+    if !sel_bg.is_empty() {
+        out.push_str(&format!("{ESC}]17;{sel_bg}{BEL}"));
+    }
+    let sel_fg = line(119);
+    if !sel_fg.is_empty() {
+        out.push_str(&format!("{ESC}]19;{sel_fg}{BEL}"));
+    }
+
+    let cursor = extras.cursor.unwrap_or_else(|| line(113));
+    if !cursor.is_empty() {
+        out.push_str(&emit_cursor_seq(cursor, extras.blink));
+    }
+
+    if let Some(t) = extras.title {
+        out.push_str(&emit_title_seq(t));
+    }
+    if let Some(tc) = extras.tab_color {
+        out.push_str(&emit_tab_color_seq(tc));
+    }
+
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -391,6 +553,32 @@ mod tests {
         // a genuine 6-char non-color string must yield empty, never silent black
         assert!(gen_ramp("zzzzzz", "yellow", 4).is_empty());
         assert!(gen_ramp("notacolor", "white", 3).is_empty());
+    }
+
+    #[test]
+    fn test_emit_seqs() {
+        let blob = set(&empty_blob(), "background", "#1e1e2e");
+        let blob = set(&blob, "foreground", "#cdd6f4");
+        let blob = set(&blob, "selection-bg", "#45475a");
+        let blob = set(&blob, "cursor-shape", "bar");
+        // plain emit: only OSC 10/11/12 + palette, no selection/cursor-shape
+        let seq = emit_theme_seq(&blob);
+        assert!(seq.contains("]11;#1e1e2e\u{7}"));
+        assert!(seq.contains("]10;#cdd6f4\u{7}"));
+        assert!(!seq.contains("]17;")); // selection only in --all
+        // --all: includes selection (OSC 17) + cursor shape (DECSCUSR bar=5)
+        let extras = EmitExtras { title: Some("build"), ..Default::default() };
+        let all = emit_all_seq(&blob, &extras);
+        assert!(all.contains("]17;#45475a\u{7}"));
+        assert!(all.contains("[5 q"));
+        assert!(all.contains("]0;build\u{7}"));
+        // numeric cursor shape passes through
+        assert_eq!(emit_cursor_seq("3", ""), "\u{1b}[3 q");
+        // iTerm tab color -> 3 channel sequences
+        let tc = emit_tab_color_seq("#FF8040");
+        assert!(tc.contains("red;brightness;255"));
+        assert!(tc.contains("green;brightness;128"));
+        assert!(tc.contains("blue;brightness;64"));
     }
 
     #[test]

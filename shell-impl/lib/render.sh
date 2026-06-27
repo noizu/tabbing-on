@@ -51,6 +51,25 @@ _tabbing_tty_printf() {
   printf "$@" >/dev/tty 2>/dev/null || printf "$@"
 }
 
+# Name of the Rust CLI that constructs OSC/CSI escape streams (the `emit` mode).
+# All terminal-recoloring escape logic lives there; the shell only evals it.
+: "${TABBING_THEME_BIN:=tabbing-theme}"
+
+# _tabbing_tty_eval — eval a `printf '...'` command emitted by `tabbing-theme
+# emit`, routing its output to the terminal with the same rules as
+# _tabbing_tty_printf. No-op on empty input (binary missing / nothing to emit).
+_tabbing_tty_eval() {
+  [ -n "${1:-}" ] || return 0
+  if [ "${CLAUDECODE:-}" = "1" ]; then
+    eval "$1"
+    return
+  fi
+  if [ -n "${TABBING_TTY:-}" ] && [ -w "${TABBING_TTY:-}" ]; then
+    eval "$1" >"$TABBING_TTY" 2>/dev/null && return
+  fi
+  eval "$1" >/dev/tty 2>/dev/null || eval "$1"
+}
+
 # _tabbing_out — User-facing output with verbosity control.
 #
 # Flags (must come before format string):
@@ -1293,15 +1312,14 @@ _tabbing_color_to_hex() {
 # Supported: Ghostty, iTerm2, Kitty, WezTerm, xterm, most modern terminals
 # ---------------------------------------------------------------------------
 _tabbing_send_bg_color() {
-  local color="$1"
-  _tabbing_tty_printf '\033]11;%s\007' "$color"
+  _tabbing_tty_eval "$("$TABBING_THEME_BIN" emit --bg "$1" 2>/dev/null)"
 }
 
 # ---------------------------------------------------------------------------
 # Reset terminal background color to default via OSC 111
 # ---------------------------------------------------------------------------
 _tabbing_clear_bg_color() {
-  _tabbing_tty_printf '\033]111\007'
+  _tabbing_tty_eval "$("$TABBING_THEME_BIN" emit --clear-bg 2>/dev/null)"
 }
 
 # ---------------------------------------------------------------------------
@@ -1361,12 +1379,8 @@ _tabbing_theme_data_build() {
 # 0..15 + ui for a base theme (~19 writes); up to 259 for a full 256 theme.
 _tabbing_emit_theme_data() {
   [ -n "${TAB_THEME_DATA:-}" ] || return 1
-  printf '%s\n' "$TAB_THEME_DATA" | awk '
-    NR >= 128 && NR <= 383 && $0 != "" { printf "\033]4;%d;%s\007", NR - 128, $0 }
-    NR == 110 && $0 != "" { printf "\033]10;%s\007", $0 }
-    NR == 111 && $0 != "" { printf "\033]11;%s\007", $0 }
-    NR == 112 && $0 != "" { printf "\033]12;%s\007", $0 }
-  ' | _tabbing_tty_cat
+  # Escape construction lives in `tabbing-theme emit`; we just eval its printf.
+  _tabbing_tty_eval "$(TAB_THEME_DATA="$TAB_THEME_DATA" "$TABBING_THEME_BIN" emit 2>/dev/null)"
   return 0
 }
 
@@ -1404,9 +1418,8 @@ _tabbing_cursor_style_code() {
 }
 
 _tabbing_send_cursor_style() {
-  local code
-  code="$(_tabbing_cursor_style_code "${1:-}" "${2:-}")" || return 0
-  _tabbing_tty_printf '\033[%s q' "$code"
+  # DECSCUSR shape — style->code mapping + escape built by `tabbing-theme emit`.
+  _tabbing_tty_eval "$("$TABBING_THEME_BIN" emit --cursor "${1:-}" --blink "${2:-}" 2>/dev/null)"
 }
 
 # ---------------------------------------------------------------------------
@@ -1414,11 +1427,8 @@ _tabbing_send_cursor_style() {
 # OSC 104 = reset palette, 110 = reset fg, 111 = reset bg, 112 = reset cursor
 # ---------------------------------------------------------------------------
 _tabbing_clear_theme() {
-  _tabbing_tty_printf '\033]104\007'
-  _tabbing_tty_printf '\033]110\007'
-  _tabbing_tty_printf '\033]111\007'
-  _tabbing_tty_printf '\033]112\007'
-  _tabbing_tty_printf '\033[0 q'
+  # OSC 104/110/111/112 + DECSCUSR 0 — built by `tabbing-theme emit --clear`.
+  _tabbing_tty_eval "$("$TABBING_THEME_BIN" emit --clear 2>/dev/null)"
   # Drop the cached blob so _tabbing_persist_theme stops re-asserting it.
   unset TAB_THEME_DATA 2>/dev/null
 }

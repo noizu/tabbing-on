@@ -1624,6 +1624,95 @@ fn cmd_tabbing_theme() {
                 println!("{}", hex);
             }
         }
+        "emit" => {
+            // Output mode: construct the OSC/CSI stream in Rust and print an
+            // eval-able `printf '...'` command. The shell carries no escape
+            // logic — it just evals this and routes it to the tty.
+            //   emit [--name NAME]      theme palette from blob ($TAB_THEME_DATA)
+            //   emit --all [extras]     EVERYTHING: 256 palette + fg/bg/cursor
+            //                           colors + selection (OSC 17/19) + cursor
+            //                           shape + title + iTerm tab color
+            //   emit --clear            reset (OSC 104/110/111/112 + cursor)
+            //   emit --clear-bg         background reset only (OSC 111)
+            //   emit --bg COLOR         background only (OSC 11)
+            //   emit --cursor STYLE [--blink B]   cursor shape (DECSCUSR)
+            //   --all extras: --title TEXT, --tab-color COLOR, --cursor/--blink
+            //   emit ... --raw          emit raw bytes instead of a printf cmd
+            let mut raw = false;
+            let mut all = false;
+            let mut clear = false;
+            let mut clear_bg = false;
+            let mut bg: Option<String> = None;
+            let mut cursor: Option<String> = None;
+            let mut blink = String::new();
+            let mut title: Option<String> = None;
+            let mut tab_color: Option<String> = None;
+            let mut name: Option<String> = None;
+            let mut i = 1;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--raw" => raw = true,
+                    "--all" => all = true,
+                    "--clear" | "--reset" => clear = true,
+                    "--clear-bg" => clear_bg = true,
+                    "--bg" => {
+                        i += 1;
+                        bg = args.get(i).cloned();
+                    }
+                    "--cursor" => {
+                        i += 1;
+                        cursor = args.get(i).cloned();
+                    }
+                    "--blink" => {
+                        i += 1;
+                        blink = args.get(i).cloned().unwrap_or_default();
+                    }
+                    "--title" => {
+                        i += 1;
+                        title = args.get(i).cloned();
+                    }
+                    "--tab-color" => {
+                        i += 1;
+                        tab_color = args.get(i).cloned();
+                    }
+                    "--name" => {
+                        i += 1;
+                        name = args.get(i).cloned();
+                    }
+                    _ => {}
+                }
+                i += 1;
+            }
+            let seq = if clear {
+                theme_data::emit_clear_seq()
+            } else if clear_bg {
+                theme_data::emit_clear_bg_seq()
+            } else if let Some(c) = bg {
+                theme_data::emit_bg_seq(&c)
+            } else if cursor.is_some() && !all {
+                theme_data::emit_cursor_seq(cursor.as_deref().unwrap_or(""), &blink)
+            } else if all {
+                let blob = load_theme_blob(name.as_deref());
+                let extras = theme_data::EmitExtras {
+                    cursor: cursor.as_deref(),
+                    blink: &blink,
+                    title: title.as_deref(),
+                    tab_color: tab_color.as_deref(),
+                };
+                theme_data::emit_all_seq(&blob, &extras)
+            } else {
+                let blob = load_theme_blob(name.as_deref());
+                theme_data::emit_theme_seq(&blob)
+            };
+            if seq.is_empty() {
+                return;
+            }
+            if raw {
+                print!("{}", seq);
+            } else {
+                println!("{}", as_printf_cmd(&seq));
+            }
+        }
         "x11" => {
             if args.len() < 2 {
                 eprintln!("Usage: tabbing-theme x11 <name>");
@@ -1650,6 +1739,24 @@ fn cmd_tabbing_theme() {
 }
 
 /// Path to a theme's line-indexed data blob.
+/// Render a raw escape byte string as a single-quoted `printf` shell command
+/// the caller can `eval`. ESC/BEL become octal escapes; printf-/shell-special
+/// characters are neutralized so the format string is inert apart from \0nn.
+fn as_printf_cmd(seq: &str) -> String {
+    let mut fmt = String::new();
+    for ch in seq.chars() {
+        match ch {
+            '\u{1b}' => fmt.push_str("\\033"),
+            '\u{7}' => fmt.push_str("\\007"),
+            '\\' => fmt.push_str("\\\\"),
+            '%' => fmt.push_str("%%"),
+            '\'' => fmt.push_str("'\\''"),
+            c => fmt.push(c),
+        }
+    }
+    format!("printf '{}'", fmt)
+}
+
 fn theme_blob_path(name: &str) -> std::path::PathBuf {
     let base = dirs::config_dir().unwrap_or_else(|| {
         let home = env::var("HOME").unwrap_or_default();
