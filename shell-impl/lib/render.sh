@@ -1384,6 +1384,15 @@ _tabbing_emit_theme_data() {
   return 0
 }
 
+# Emit the FULL supported escape bundle for the active theme in one call: 256
+# palette + fg/bg/cursor colors + selection (OSC 17/19) + cursor shape, plus any
+# extras forwarded as args (e.g. --title "..." --tab-color "#..." --cursor bar).
+_tabbing_emit_theme_all() {
+  [ -n "${TAB_THEME_DATA:-}" ] || return 1
+  _tabbing_tty_eval "$(TAB_THEME_DATA="$TAB_THEME_DATA" "$TABBING_THEME_BIN" emit --all "$@" 2>/dev/null)"
+  return 0
+}
+
 _tabbing_send_theme() {
   local bg="$1" fg="$2" cursor="$3"
   shift 3
