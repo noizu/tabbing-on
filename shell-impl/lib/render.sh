@@ -39,11 +39,16 @@ fi
 #
 # Usage: _tabbing_tty_printf FORMAT [ARGS...]
 _tabbing_tty_printf() {
-  if [[ "${CLAUDECODE}" == "1" ]]; then
+  if [ "${CLAUDECODE:-}" = "1" ]; then
     printf "$@"
-  else
-    printf "$@" >/dev/tty 2>/dev/null || printf "$@"
+    return
   fi
+
+  if [ -n "${TABBING_TTY:-}" ] && [ -w "${TABBING_TTY:-}" ]; then
+    printf "$@" >"$TABBING_TTY" 2>/dev/null && return
+  fi
+
+  printf "$@" >/dev/tty 2>/dev/null || printf "$@"
 }
 
 # _tabbing_out — User-facing output with verbosity control.
@@ -941,12 +946,20 @@ _tabbing_display() {
   local reset
   reset="$(printf '\033[0m')"
 
-  # Title style
+  # Title style (theme attribute toggles — bold/underline/overline/... from the
+  # blob lines 1-9,50-65 — are merged in front of the named title color)
   local tc="$reset"
   local title_style="${TAB_TITLE_STYLE:-${TAB_HIGHLIGHT:-}}"
-  if [ -n "$title_style" ]; then
+  local attr_codes=""
+  if command -v _tabbing_theme_attr_codes >/dev/null 2>&1; then
+    attr_codes="$(_tabbing_theme_attr_codes 2>/dev/null)"
+  fi
+  if [ -n "$title_style" ] || [ -n "$attr_codes" ]; then
     local code
     code="$(_tabbing_style_code "$title_style" 2>/dev/null)"
+    if [ -n "$attr_codes" ]; then
+      code="${attr_codes}${code:+;}${code}"
+    fi
     if [ -n "$code" ]; then
       tc="$(printf '\033[%sm' "$code")"
     fi
@@ -1281,16 +1294,14 @@ _tabbing_color_to_hex() {
 # ---------------------------------------------------------------------------
 _tabbing_send_bg_color() {
   local color="$1"
-  printf '\033]11;%s\007' "$color" >/dev/tty 2>/dev/null || \
-    printf '\033]11;%s\007' "$color"
+  _tabbing_tty_printf '\033]11;%s\007' "$color"
 }
 
 # ---------------------------------------------------------------------------
 # Reset terminal background color to default via OSC 111
 # ---------------------------------------------------------------------------
 _tabbing_clear_bg_color() {
-  printf '\033]111\007' >/dev/tty 2>/dev/null || \
-    printf '\033]111\007'
+  _tabbing_tty_printf '\033]111\007'
 }
 
 # ---------------------------------------------------------------------------
@@ -1317,26 +1328,59 @@ _tabbing_apply_bg_color() {
 # Args: bg fg cursor c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15
 # All values are #RRGGBB hex strings
 # ---------------------------------------------------------------------------
+# Stream raw bytes (e.g. an awk-generated escape sequence) to the terminal,
+# using the same /dev/tty routing as _tabbing_tty_printf.
+_tabbing_tty_cat() {
+  if [ "${CLAUDECODE:-}" = "1" ]; then cat; return; fi
+  if [ -n "${TABBING_TTY:-}" ] && [ -w "${TABBING_TTY:-}" ]; then
+    cat >"$TABBING_TTY" 2>/dev/null && return
+  fi
+  cat >/dev/tty 2>/dev/null || cat
+}
+
+# Build the 383-line theme blob (see lib/theme-data.sh for the line map) from a
+# base 16-color palette. ui colors -> lines 110/111/112; slots 0..15 ->
+# lines 128..143. Extended slots (16..255) and SGR lines are left blank.
+# Args: bg fg cursor  "<c0 c1 ... c15>"
+_tabbing_theme_data_build() {
+  awk -v bg="$1" -v fg="$2" -v cur="$3" -v pal="$4" 'BEGIN{
+    n = split(pal, c, " ")
+    for (i = 1; i <= 383; i++) {
+      v = ""
+      if      (i == 110) v = fg
+      else if (i == 111) v = bg
+      else if (i == 112) v = cur
+      else if (i >= 128 && i <= 143) v = c[i - 127]   # slot i-128, 1-indexed
+      print v
+    }
+  }'
+}
+
+# Emit OSC for every populated slot/ui line in $TAB_THEME_DATA. Single awk pass
+# generates the whole escape stream; cheap enough for the prompt hook. Slots
+# 0..15 + ui for a base theme (~19 writes); up to 259 for a full 256 theme.
+_tabbing_emit_theme_data() {
+  [ -n "${TAB_THEME_DATA:-}" ] || return 1
+  printf '%s\n' "$TAB_THEME_DATA" | awk '
+    NR >= 128 && NR <= 383 && $0 != "" { printf "\033]4;%d;%s\007", NR - 128, $0 }
+    NR == 110 && $0 != "" { printf "\033]10;%s\007", $0 }
+    NR == 111 && $0 != "" { printf "\033]11;%s\007", $0 }
+    NR == 112 && $0 != "" { printf "\033]12;%s\007", $0 }
+  ' | _tabbing_tty_cat
+  return 0
+}
+
 _tabbing_send_theme() {
   local bg="$1" fg="$2" cursor="$3"
   shift 3
+  local pal="$*"
 
-  # Palette colors 0-15
-  local i=0
-  while [ $i -lt 16 ] && [ $# -gt 0 ]; do
-    printf '\033]4;%d;%s\007' "$i" "$1" >/dev/tty 2>/dev/null || \
-      printf '\033]4;%d;%s\007' "$i" "$1"
-    i=$((i + 1))
-    shift
-  done
-
-  # Background, foreground, cursor
-  printf '\033]11;%s\007' "$bg" >/dev/tty 2>/dev/null || \
-    printf '\033]11;%s\007' "$bg"
-  printf '\033]10;%s\007' "$fg" >/dev/tty 2>/dev/null || \
-    printf '\033]10;%s\007' "$fg"
-  printf '\033]12;%s\007' "$cursor" >/dev/tty 2>/dev/null || \
-    printf '\033]12;%s\007' "$cursor"
+  # Populate the canonical line-indexed blob (slots 0..15 + ui), then emit it.
+  # The blob is the single source of truth consumed by the prompt-hook
+  # re-assert path and by `tabbing-theme get/set` (lib/theme-data.sh).
+  TAB_THEME_DATA="$(_tabbing_theme_data_build "$bg" "$fg" "$cursor" "$pal")"
+  export TAB_THEME_DATA
+  _tabbing_emit_theme_data
 }
 
 _tabbing_cursor_style_code() {
@@ -1362,8 +1406,7 @@ _tabbing_cursor_style_code() {
 _tabbing_send_cursor_style() {
   local code
   code="$(_tabbing_cursor_style_code "${1:-}" "${2:-}")" || return 0
-  printf '\033[%s q' "$code" >/dev/tty 2>/dev/null || \
-    printf '\033[%s q' "$code"
+  _tabbing_tty_printf '\033[%s q' "$code"
 }
 
 # ---------------------------------------------------------------------------
@@ -1371,19 +1414,42 @@ _tabbing_send_cursor_style() {
 # OSC 104 = reset palette, 110 = reset fg, 111 = reset bg, 112 = reset cursor
 # ---------------------------------------------------------------------------
 _tabbing_clear_theme() {
-  {
-    printf '\033]104\007'
-    printf '\033]110\007'
-    printf '\033]111\007'
-    printf '\033]112\007'
-    printf '\033[0 q'
-  } >/dev/tty 2>/dev/null || {
-    printf '\033]104\007'
-    printf '\033]110\007'
-    printf '\033]111\007'
-    printf '\033]112\007'
-    printf '\033[0 q'
-  }
+  _tabbing_tty_printf '\033]104\007'
+  _tabbing_tty_printf '\033]110\007'
+  _tabbing_tty_printf '\033]111\007'
+  _tabbing_tty_printf '\033]112\007'
+  _tabbing_tty_printf '\033[0 q'
+  # Drop the cached blob so _tabbing_persist_theme stops re-asserting it.
+  unset TAB_THEME_DATA 2>/dev/null
+}
+
+# ---------------------------------------------------------------------------
+# Re-emit the cached palette blob without resolving a theme name or re-parsing
+# a .theme file. Cheap enough for every prompt. Returns 1 if nothing cached.
+# (Kept as an alias for back-compat; the blob is emitted by
+# _tabbing_emit_theme_data.)
+# ---------------------------------------------------------------------------
+_tabbing_resend_theme() {
+  _tabbing_emit_theme_data
+}
+
+# ---------------------------------------------------------------------------
+# Prompt-hook entry point: re-assert the active theme each prompt so terminals
+# that reset their palette on their own schedule (Ghostty/Kitty config reload,
+# focus changes, new splits) get stomped back to the tabbing theme — exactly
+# how _tabbing_render re-sets the tab title every prompt.
+#
+#   - Fast path: re-emit the cached palette (no name lookup, no file read).
+#   - Cold path: if no cache yet but TAB_THEME is set (e.g. seeded by direnv
+#     from .envrc), resolve it once — which repopulates the cache for next time.
+# Disabled by default: the every-prompt re-assert was stomping the tab title
+# and repainting the palette from a bad cached ramp (gen-ramp -> #000000).
+# Opt back in with TABBING_THEME_PERSIST=1 once the ramp/title issues are fixed.
+# ---------------------------------------------------------------------------
+_tabbing_persist_theme() {
+  [ "${TABBING_THEME_PERSIST:-0}" = "1" ] || return 0
+  _tabbing_emit_theme_data && return 0
+  [ -n "${TAB_THEME:-}" ] && _tabbing_apply_named_theme "$TAB_THEME" 2>/dev/null
 }
 
 # ---------------------------------------------------------------------------
@@ -1551,7 +1617,10 @@ _tabbing_load_user_theme() {
 # Returns 0 on success, 1 if theme not found
 # ---------------------------------------------------------------------------
 _tabbing_apply_named_theme() {
-  # Try user theme first
+  # Try a saved line-indexed blob (.themedata) first, then a .theme file
+  if command -v _tabbing_load_theme_data >/dev/null 2>&1; then
+    _tabbing_load_theme_data "$1" 2>/dev/null && return 0
+  fi
   _tabbing_load_user_theme "$1" 2>/dev/null && return 0
 
   case "${1:-}" in

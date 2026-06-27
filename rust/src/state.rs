@@ -175,6 +175,7 @@ impl TabState {
             ("status_style", &self.status_style),
             ("urgency", &self.urgency),
             ("emoji", &self.emoji),
+            ("bg", &self.bg),
             ("theme", &self.theme),
             ("last_update", &ts),
         ];
@@ -216,6 +217,9 @@ impl TabState {
         println!("export TAB_EMOJI='{}'", shell_escape(&self.emoji));
         println!("export TAB_BG='{}'", shell_escape(&self.bg));
         println!("export TAB_THEME='{}'", shell_escape(&self.theme));
+        // The full palette is rebuilt into the line-indexed TAB_THEME_DATA blob
+        // by the shell on first prompt (see _tabbing_persist_theme cold path),
+        // so --export only needs to seed the theme name here.
         println!("export TAB_ID='{}'", shell_escape(&self.tab_id));
         if self.marquee {
             println!("export TAB_MARQUEE=1");

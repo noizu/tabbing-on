@@ -53,11 +53,14 @@ _tabbing_dc_load() {
   _val="$(dc get "$_ns" title --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_TITLE="$_val"
   _val="$(dc get "$_ns" status --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_STATUS="$_val"
   _val="$(dc get "$_ns" highlight --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_HIGHLIGHT="$_val"
+  _val="$(dc get "$_ns" title_style --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_TITLE_STYLE="$_val"
+  _val="$(dc get "$_ns" status_style --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_STATUS_STYLE="$_val"
   _val="$(dc get "$_ns" urgency --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_URGENCY="$_val"
   _val="$(dc get "$_ns" emoji --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_EMOJI="$_val"
+  _val="$(dc get "$_ns" bg --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_BG="$_val"
   _val="$(dc get "$_ns" theme --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_THEME="$_val"
 
-  export TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_THEME
+  export TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_URGENCY TAB_EMOJI TAB_BG TAB_THEME
   unset _val _ns
 }
 
@@ -102,7 +105,7 @@ _tabbing_dc_bump_timestamp() {
 # ---------------------------------------------------------------------------
 # Set a TAB_* variable and write-through to dc if dc mode is active.
 # Usage: _tabbing_set <key> <value>
-#   key: lowercase dc key name (title, status, highlight, title_style, status_style, urgency, emoji, theme)
+#   key: lowercase dc key name (title, status, highlight, title_style, status_style, urgency, emoji, bg, theme)
 # Sets the corresponding TAB_* env var AND calls dc set immediately.
 # ---------------------------------------------------------------------------
 _tabbing_set() {
@@ -116,6 +119,7 @@ _tabbing_set() {
     status_style) export TAB_STATUS_STYLE="$_value" ;;
     urgency)   export TAB_URGENCY="$_value" ;;
     emoji)     export TAB_EMOJI="$_value" ;;
+    bg)        export TAB_BG="$_value" ;;
     theme)     export TAB_THEME="$_value" ;;
   esac
   _tabbing_dc_set "$_key" "$_value"
@@ -130,9 +134,9 @@ _tabbing_dc_save() {
   _ns="$(_tabbing_dc_ns)"
   _tabbing_dc_bump_timestamp
   _ts="$(dc get "$_ns" last_update --raw 2>/dev/null)"
-  printf 'title: %s\nstatus: %s\nhighlight: %s\ntitle_style: %s\nstatus_style: %s\nurgency: %s\nemoji: %s\ntheme: %s\nlast_update: %s\n' \
+  printf 'title: %s\nstatus: %s\nhighlight: %s\ntitle_style: %s\nstatus_style: %s\nurgency: %s\nemoji: %s\nbg: %s\ntheme: %s\nlast_update: %s\n' \
     "${TAB_TITLE:-}" "${TAB_STATUS:-}" "${TAB_HIGHLIGHT:-}" "${TAB_TITLE_STYLE:-}" "${TAB_STATUS_STYLE:-}" \
-    "${TAB_URGENCY:-}" "${TAB_EMOJI:-}" "${TAB_THEME:-}" "${_ts:-0}" \
+    "${TAB_URGENCY:-}" "${TAB_EMOJI:-}" "${TAB_BG:-}" "${TAB_THEME:-}" "${_ts:-0}" \
     | dc yaml "$_ns" --replace 2>/dev/null
   _tabbing_dc_notify_daemon
 }

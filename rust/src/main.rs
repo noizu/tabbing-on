@@ -14,6 +14,7 @@ mod render;
 mod state;
 mod terminal;
 mod theme;
+mod theme_data;
 mod theme_picker;
 mod todo;
 mod toggl;
@@ -133,6 +134,7 @@ fn cmd_tabbing_on() {
 
     let mut positional: Vec<String> = Vec::new();
     let mut theme_changed = false;
+    let mut bg_changed = false;
     let mut title_style_changed = false;
     let mut status_style_changed = false;
     let mut has_record = false;
@@ -262,14 +264,17 @@ fn cmd_tabbing_on() {
                 i += 1;
                 if i < args.len() {
                     s.bg = args[i].clone();
+                    bg_changed = true;
                 }
             }
             a if a.starts_with("--bg=") => {
                 s.bg = a.strip_prefix("--bg=").unwrap().to_string();
+                bg_changed = true;
             }
             "--no-bg" => {
                 terminal::clear_bg_color();
                 s.bg.clear();
+                bg_changed = true;
             }
 
             "--theme" => {
@@ -375,6 +380,9 @@ fn cmd_tabbing_on() {
     s.terminal = t.as_str().to_string();
     s.ensure_tab_id();
     if theme_changed && !s.theme.is_empty() {
+        if !bg_changed {
+            s.bg.clear();
+        }
         let theme_name = s.theme.clone();
         theme::apply_semantics_to_state(
             &mut s,
@@ -388,10 +396,10 @@ fn cmd_tabbing_on() {
     if !s.title.is_empty() {
         render::render_title(&s);
         render::apply_urgency_color(&s, &t);
-        render::apply_bg_color(&s);
         if !s.theme.is_empty() {
             theme::apply_named_theme(&s.theme);
         }
+        render::apply_bg_color(&s);
     }
 
     // Display colored state to console (stderr so exports go to stdout)
@@ -511,6 +519,7 @@ fn cmd_tabbing_style() {
     }
 
     let mut theme_changed = false;
+    let mut bg_changed = false;
     let mut title_style_changed = false;
     let mut status_style_changed = false;
     let mut i = 0;
@@ -625,14 +634,17 @@ fn cmd_tabbing_style() {
                 i += 1;
                 if i < args.len() {
                     s.bg = args[i].clone();
+                    bg_changed = true;
                 }
             }
             a if a.starts_with("--bg=") => {
                 s.bg = a.strip_prefix("--bg=").unwrap().to_string();
+                bg_changed = true;
             }
             "--no-bg" => {
                 terminal::clear_bg_color();
                 s.bg.clear();
+                bg_changed = true;
             }
 
             "--theme" => {
@@ -704,6 +716,9 @@ fn cmd_tabbing_style() {
     s.terminal = t.as_str().to_string();
     s.ensure_tab_id();
     if theme_changed && !s.theme.is_empty() {
+        if !bg_changed {
+            s.bg.clear();
+        }
         let theme_name = s.theme.clone();
         theme::apply_semantics_to_state(
             &mut s,
@@ -716,10 +731,10 @@ fn cmd_tabbing_style() {
     // Render escape sequences to terminal
     render::render_title(&s);
     render::apply_urgency_color(&s, &t);
-    render::apply_bg_color(&s);
     if !s.theme.is_empty() {
         theme::apply_named_theme(&s.theme);
     }
+    render::apply_bg_color(&s);
 
     // Display colored state to console (stderr so exports go to stdout)
     render::display_stderr(&s);
@@ -884,16 +899,19 @@ fn cmd_tabbing_status() {
 
     let t = terminal::detect();
     if (!s.theme.is_empty() && !s.urgency.is_empty()) || theme_changed {
+        if theme_changed {
+            s.bg.clear();
+        }
         let theme_name = s.theme.clone();
         theme::apply_semantics_to_state(&mut s, &theme_name, true, status_style_changed);
     }
 
     render::render_title(&s);
     render::apply_urgency_color(&s, &t);
-    render::apply_bg_color(&s);
     if !s.theme.is_empty() {
         theme::apply_named_theme(&s.theme);
     }
+    render::apply_bg_color(&s);
     render::display_stderr(&s);
 
     state::record_event(&s, "status");
@@ -1396,6 +1414,25 @@ fn cmd_tabbing_recordings() {
     recording::recordings_list(&target_tab);
 }
 
+fn record_applied_theme(theme_name: &str) {
+    let mut s = state::TabState::from_env();
+    s.load();
+    s.theme = theme_name.to_string();
+    s.bg.clear();
+    theme::apply_semantics_to_state(&mut s, theme_name, false, false);
+    s.save();
+}
+
+fn record_cleared_theme() {
+    let mut s = state::TabState::from_env();
+    s.load();
+    s.theme.clear();
+    s.bg.clear();
+    s.title_style.clear();
+    s.status_style.clear();
+    s.save();
+}
+
 fn cmd_tabbing_theme() {
     let args: Vec<String> = env::args().skip(1).collect();
 
@@ -1409,12 +1446,13 @@ fn cmd_tabbing_theme() {
             theme_picker::run_picker();
         }
         "list" | "ls" => theme::theme_list(),
-        "apply" | "set" => {
+        "apply" => {
             if args.len() < 2 {
                 eprintln!("Usage: tabbing-theme apply <name>");
                 process::exit(1);
             }
             if theme::apply_named_theme(&args[1]) {
+                record_applied_theme(&args[1]);
                 println!("Theme '{}' applied.", args[1]);
             } else {
                 eprintln!("Unknown theme: {}", args[1]);
@@ -1481,6 +1519,7 @@ fn cmd_tabbing_theme() {
         }
         "reset" | "clear" => {
             theme::clear_theme();
+            record_cleared_theme();
             println!("Theme cleared. Terminal reset to defaults.");
         }
         "help" | "--help" | "-h" => {
@@ -1509,14 +1548,146 @@ fn cmd_tabbing_theme() {
             println!("  r            Reset to terminal defaults");
             println!("  q/Esc        Quit (restore original theme)");
         }
+        "get" => {
+            if args.len() < 2 {
+                eprintln!("Usage: tabbing-theme get <handle> [name]");
+                process::exit(1);
+            }
+            let handle = &args[1];
+            let name = args.get(2).map(|s| s.as_str());
+            let blob = load_theme_blob(name);
+            match theme_data::get(&blob, handle) {
+                Some(v) => println!("{}", v),
+                None => {}
+            }
+        }
+        "set" => {
+            // Backward-compatible alias: `set <name>` applies a theme by name
+            // (matching the shell's `apply|set`). `set <handle> <value> [name]`
+            // is the line-indexed theme-data setter.
+            if args.len() < 3 {
+                if args.len() == 2 {
+                    if theme::apply_named_theme(&args[1]) {
+                        record_applied_theme(&args[1]);
+                        println!("Theme '{}' applied.", args[1]);
+                    } else {
+                        eprintln!("Unknown theme: {}", args[1]);
+                        process::exit(1);
+                    }
+                    return;
+                }
+                eprintln!("Usage: tabbing-theme set <handle> <value> [name]");
+                process::exit(1);
+            }
+            let handle = &args[1];
+            let value = &args[2];
+            let name = args.get(3).map(|s| s.as_str());
+            let blob = load_theme_blob(name);
+            let new_blob = theme_data::set(&blob, handle, value);
+            match name {
+                Some(n) => {
+                    write_theme_blob(n, &new_blob);
+                }
+                None => {
+                    println!("export TAB_THEME_DATA='{}'", new_blob);
+                }
+            }
+        }
+        "gen-standard" => {
+            let name = args.get(1).map(|s| s.as_str());
+            let blob = load_theme_blob(name);
+            let new_blob = theme_data::gen_standard_palette(&blob);
+            match name {
+                Some(n) => {
+                    write_theme_blob(n, &new_blob);
+                }
+                None => {
+                    println!("export TAB_THEME_DATA='{}'", new_blob);
+                }
+            }
+        }
+        "gen-ramp" => {
+            if args.len() < 4 {
+                eprintln!("Usage: tabbing-theme gen-ramp <from> <to> <steps>");
+                process::exit(1);
+            }
+            let steps: usize = args[3].parse().unwrap_or(6);
+            let ramp = theme_data::gen_ramp(&args[1], &args[2], steps);
+            if ramp.is_empty() {
+                eprintln!(
+                    "tabbing-theme: gen-ramp endpoints must resolve to #RRGGBB (got '{}', '{}')",
+                    args[1], args[2]
+                );
+                process::exit(1);
+            }
+            for hex in ramp {
+                println!("{}", hex);
+            }
+        }
+        "x11" => {
+            if args.len() < 2 {
+                eprintln!("Usage: tabbing-theme x11 <name>");
+                process::exit(1);
+            }
+            match theme_data::x11_to_hex(&args[1]) {
+                Some(hex) => println!("{}", hex),
+                None => {
+                    eprintln!("tabbing-theme: unknown X11 color '{}'", args[1]);
+                    process::exit(1);
+                }
+            }
+        }
         name => {
             if theme::apply_named_theme(name) {
+                record_applied_theme(name);
                 println!("Theme '{}' applied.", name);
             } else {
                 eprintln!("Unknown theme or subcommand: {}", name);
                 process::exit(1);
             }
         }
+    }
+}
+
+/// Path to a theme's line-indexed data blob.
+fn theme_blob_path(name: &str) -> std::path::PathBuf {
+    let base = dirs::config_dir().unwrap_or_else(|| {
+        let home = env::var("HOME").unwrap_or_default();
+        std::path::PathBuf::from(home).join(".config")
+    });
+    base.join("tabbing-on")
+        .join("themes")
+        .join(format!("{}.themedata", name))
+}
+
+/// Load a theme blob: from the named `.themedata` file if `name` is given, else
+/// from $TAB_THEME_DATA. Always padded to 383 lines.
+fn load_theme_blob(name: Option<&str>) -> String {
+    let raw = match name {
+        Some(n) => std::fs::read_to_string(theme_blob_path(n)).unwrap_or_default(),
+        None => env::var("TAB_THEME_DATA").unwrap_or_default(),
+    };
+    if raw.is_empty() {
+        theme_data::empty_blob()
+    } else {
+        // pad to 383 lines via a no-op set round-trip is overkill; just ensure length
+        let mut lines: Vec<String> = raw.split('\n').map(|s| s.to_string()).collect();
+        if lines.len() < theme_data::THEME_DATA_LINES {
+            lines.resize(theme_data::THEME_DATA_LINES, String::new());
+        }
+        lines.join("\n")
+    }
+}
+
+/// Write a theme blob to its `.themedata` file, creating parent dirs.
+fn write_theme_blob(name: &str, blob: &str) {
+    let path = theme_blob_path(name);
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Err(e) = std::fs::write(&path, blob) {
+        eprintln!("tabbing-theme: failed to write {}: {}", path.display(), e);
+        process::exit(1);
     }
 }
 

@@ -1547,6 +1547,25 @@ pub fn resolve_alias_pub(name: &str) -> &str {
     resolve_alias(name)
 }
 
+/// Resolve a theme name to its 19-entry palette `[bg, fg, cursor, color0..15]`.
+///
+/// User themes (`~/.config/tabbing-on/themes/NAME.theme`) win over built-ins,
+/// matching `apply_named_theme`. Returns `None` for an unknown theme. Used by
+/// the `--export` path so the shell can cache and continuously re-assert the
+/// palette (see `_tabbing_persist_theme`).
+pub fn resolve_palette(name: &str) -> Option<[String; 19]> {
+    if let Some(colors) = load_user_theme(name) {
+        return Some(colors);
+    }
+    let canonical = resolve_alias(name);
+    for (theme_name, colors) in BUILTIN_THEMES {
+        if *theme_name == canonical {
+            return Some(std::array::from_fn(|i| colors[i].to_string()));
+        }
+    }
+    None
+}
+
 /// Resolve a theme alias to its canonical name.
 fn resolve_alias(name: &str) -> &str {
     for (alias, canonical) in THEME_ALIASES {

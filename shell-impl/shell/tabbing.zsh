@@ -20,7 +20,9 @@ else
 fi
 
 source "${_tabbing_root}/lib/render.sh"
+source "${_tabbing_root}/lib/theme-data.sh"
 source "${_tabbing_root}/lib/dc.sh"
+export TABBING_ROOT="${_tabbing_root}"
 
 # Capture the interactive shell's TTY early so the dc daemon can use it
 if [ -z "${TABBING_TTY:-}" ]; then
@@ -328,11 +330,11 @@ tabbing-on() {
       _tabbing_color_to_hex "$opt_bg"
       return 1
     fi
-    export TAB_BG="$opt_bg"
+    _tabbing_set bg "$opt_bg"
   fi
   if [[ $no_bg -eq 1 ]]; then
     _tabbing_clear_bg_color
-    unset TAB_BG
+    _tabbing_set bg ""
   fi
 
   if [[ $has_theme -eq 1 ]]; then
@@ -342,6 +344,7 @@ tabbing-on() {
       return 1
     fi
     _tabbing_set theme "$opt_theme"
+    [[ $has_bg -eq 0 ]] && _tabbing_set bg ""
   fi
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
@@ -506,11 +509,11 @@ tabbing-status() {
       _tabbing_color_to_hex "$opt_bg"
       return 1
     fi
-    export TAB_BG="$opt_bg"
+    _tabbing_set bg "$opt_bg"
   fi
   if [[ $no_bg -eq 1 ]]; then
     _tabbing_clear_bg_color
-    unset TAB_BG
+    _tabbing_set bg ""
   fi
 
   if [[ $has_theme -eq 1 ]]; then
@@ -520,6 +523,7 @@ tabbing-status() {
       return 1
     fi
     _tabbing_set theme "$opt_theme"
+    [[ $has_bg -eq 0 ]] && _tabbing_set bg ""
   fi
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
@@ -808,11 +812,11 @@ tabbing-style() {
       _tabbing_color_to_hex "$opt_bg"
       return 1
     fi
-    export TAB_BG="$opt_bg"
+    _tabbing_set bg "$opt_bg"
   fi
   if [[ $no_bg -eq 1 ]]; then
     _tabbing_clear_bg_color
-    unset TAB_BG
+    _tabbing_set bg ""
   fi
 
   if [[ $has_theme -eq 1 ]]; then
@@ -822,6 +826,7 @@ tabbing-style() {
       return 1
     fi
     _tabbing_set theme "$opt_theme"
+    [[ $has_bg -eq 0 ]] && _tabbing_set bg ""
   fi
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
@@ -895,7 +900,7 @@ _tabbing_precmd() {
     local _sf="${XDG_STATE_HOME:-$HOME/.local/state}/tabbing/sessions/${TAB_SESSION}.env"
     if [[ -f "$_sf" ]]; then
       . "$_sf"
-      export TAB_ID TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_URGENCY TAB_EMOJI TAB_THEME TAB_TERMINAL TABBING_DC_UUID
+      export TAB_ID TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_URGENCY TAB_EMOJI TAB_BG TAB_THEME TAB_TERMINAL TABBING_DC_UUID
       if [[ -n "${TAB_THEME:-}" ]]; then
         _tabbing_apply_named_theme "$TAB_THEME" 2>/dev/null
       fi
@@ -909,6 +914,10 @@ _tabbing_precmd() {
     _tabbing_clear_title
     unset _TABBING_WAS_ACTIVE
   fi
+
+  # Re-assert the terminal palette so Ghostty/Kitty resets get stomped back,
+  # the same way the title is re-set above. No-op unless a theme is active.
+  _tabbing_persist_theme
 }
 
 # Register hook — remove-then-append ensures we run LAST,

@@ -59,7 +59,7 @@ _daemon_loop() {
   fi
 
   # Cached dc values
-  local c_title="" c_status="" c_highlight="" c_urgency="" c_emoji=""
+  local c_title="" c_status="" c_highlight="" c_urgency="" c_emoji="" c_bg="" c_theme=""
 
   local tty="${TABBING_TTY:-/dev/tty}"
 
@@ -90,15 +90,27 @@ _daemon_loop() {
     # State changed — reload from dc
     last_seen_update="$cur_update"
     marquee_offset=0
+    local prev_bg="$c_bg"
+    local prev_theme="$c_theme"
 
     c_title="$(dc get "$dc_ns" title --raw 2>/dev/null)" || true
     c_status="$(dc get "$dc_ns" status --raw 2>/dev/null)" || true
     c_highlight="$(dc get "$dc_ns" highlight --raw 2>/dev/null)" || true
     c_urgency="$(dc get "$dc_ns" urgency --raw 2>/dev/null)" || true
     c_emoji="$(dc get "$dc_ns" emoji --raw 2>/dev/null)" || true
+    c_bg="$(dc get "$dc_ns" bg --raw 2>/dev/null)" || true
+    c_theme="$(dc get "$dc_ns" theme --raw 2>/dev/null)" || true
 
     export TAB_TITLE="$c_title" TAB_STATUS="$c_status" TAB_HIGHLIGHT="$c_highlight"
-    export TAB_URGENCY="$c_urgency" TAB_EMOJI="$c_emoji"
+    export TAB_URGENCY="$c_urgency" TAB_EMOJI="$c_emoji" TAB_BG="$c_bg" TAB_THEME="$c_theme"
+
+    if [ -n "$c_theme" ]; then
+      _tabbing_apply_named_theme "$c_theme" 2>/dev/null || true
+    elif [ -n "$c_bg" ]; then
+      _tabbing_apply_bg_color
+    elif [ -n "$prev_theme" ] || [ -n "$prev_bg" ]; then
+      _tabbing_clear_theme 2>/dev/null || true
+    fi
 
     if [ ${#c_status} -gt $max_status ]; then
       _daemon_render_marquee "$tty"

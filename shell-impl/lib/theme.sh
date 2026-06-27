@@ -75,6 +75,39 @@ slate|semantic|dark
 THEMES
 }
 
+_tabbing_theme_record_applied() {
+  local theme="$1"
+  if command -v _tabbing_set >/dev/null 2>&1; then
+    _tabbing_set theme "$theme"
+    _tabbing_set bg ""
+  else
+    export TAB_THEME="$theme"
+    export TAB_BG=""
+  fi
+  command -v _tabbing_session_save >/dev/null 2>&1 && _tabbing_session_save
+}
+
+_tabbing_theme_record_cleared() {
+  if command -v _tabbing_set >/dev/null 2>&1; then
+    _tabbing_set theme ""
+    _tabbing_set bg ""
+    _tabbing_set title_style ""
+    _tabbing_set status_style ""
+  else
+    export TAB_THEME=""
+    export TAB_BG=""
+    export TAB_TITLE_STYLE=""
+    export TAB_STATUS_STYLE=""
+  fi
+  command -v _tabbing_session_save >/dev/null 2>&1 && _tabbing_session_save
+}
+
+_tabbing_theme_apply_and_record() {
+  local theme="$1"
+  _tabbing_apply_named_theme "$theme" || return 1
+  _tabbing_theme_record_applied "$theme"
+}
+
 # ---------------------------------------------------------------------------
 # Collect all themes: built-in + user, with metadata
 # Output: name|category|variant per line
@@ -316,7 +349,7 @@ _tabbing_edit_theme() {
   read -r answer
   case "$answer" in
     [Nn]*) ;;
-    *) _tabbing_apply_named_theme "$name" && printf 'Theme "%s" applied.\n' "$name" ;;
+    *) _tabbing_theme_apply_and_record "$name" && printf 'Theme "%s" applied.\n' "$name" ;;
   esac
 }
 
@@ -805,8 +838,10 @@ EOF
       q|Q)
         if [ -n "$original_theme" ]; then
           _tabbing_apply_named_theme "$original_theme" 2>/dev/null
+          _tabbing_theme_record_applied "$original_theme"
         else
           _tabbing_clear_theme 2>/dev/null
+          _tabbing_theme_record_cleared
         fi
         running=0
         ;;
@@ -814,7 +849,6 @@ EOF
       "")
         # Enter
         selected="${all_names[$cursor]}"
-        export TAB_THEME="$selected"
         _tabbing_apply_named_theme "$selected" 2>/dev/null
         action="applied"
         running=0
@@ -1062,7 +1096,7 @@ EOFR
 
       r|R)
         _tabbing_clear_theme 2>/dev/null
-        unset TAB_THEME
+        _tabbing_theme_record_cleared
         _tabbing_picker_render
         ;;
 
@@ -1167,7 +1201,7 @@ EOFR
   stty echo icanon 2>/dev/null
 
   if [ -n "$selected" ] && [ "$action" = "applied" ]; then
-    _tabbing_apply_named_theme "$selected" >/dev/null 2>&1
+    _tabbing_theme_apply_and_record "$selected" >/dev/null 2>&1
     _tabbing_prompt_save_theme "$selected"
   fi
 }
@@ -1185,8 +1219,7 @@ _tabbing_theme_cmd() {
       ;;
     apply|set)
       [ -z "${2:-}" ] && { echo "Usage: tabbing-theme apply <name>" >&2; return 1; }
-      if _tabbing_apply_named_theme "$2"; then
-        export TAB_THEME="$2"
+      if _tabbing_theme_apply_and_record "$2"; then
         _tabbing_prompt_save_theme "$2"
       else
         printf 'Unknown theme: %s\n' "$2" >&2
@@ -1228,13 +1261,12 @@ _tabbing_theme_cmd() {
       ;;
     reset|clear)
       _tabbing_clear_theme 2>/dev/null
-      unset TAB_THEME
+      _tabbing_theme_record_cleared
       printf 'Theme cleared. Terminal reset to defaults.\n'
       ;;
     preview)
       [ -z "${2:-}" ] && { echo "Usage: tabbing-theme preview <name>" >&2; return 1; }
       if _tabbing_apply_named_theme "$2"; then
-        export TAB_THEME="$2"
         printf 'Previewing theme "%s" — use "tabbing-theme reset" to undo.\n' "$2"
       else
         printf 'Unknown theme: %s\n' "$2" >&2
@@ -1246,8 +1278,7 @@ _tabbing_theme_cmd() {
       ;;
     *)
       # Try as theme name (shorthand for apply)
-      if _tabbing_apply_named_theme "$1" 2>/dev/null; then
-        export TAB_THEME="$1"
+      if _tabbing_theme_apply_and_record "$1" 2>/dev/null; then
         _tabbing_prompt_save_theme "$1"
       else
         printf 'Unknown subcommand or theme: %s\n' "$1" >&2

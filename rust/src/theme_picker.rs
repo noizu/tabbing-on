@@ -8,7 +8,9 @@ use ratatui::widgets::*;
 use std::io::{self, Write as IoWrite};
 use std::time::{Duration, Instant};
 
+use crate::state::TabState;
 use crate::theme::{self, BUILTIN_THEMES, THEME_META};
+use crate::theme_data;
 
 // ============================================================================
 // Theme descriptions & tags
@@ -649,6 +651,25 @@ fn region_ui_color(region: Region, ui: &UiColors) -> Color {
     }
 }
 
+fn record_applied_theme(name: &str) {
+    let mut state = TabState::from_env();
+    state.load();
+    state.theme = name.to_string();
+    state.bg.clear();
+    theme::apply_semantics_to_state(&mut state, name, false, false);
+    state.save();
+}
+
+fn record_cleared_theme() {
+    let mut state = TabState::from_env();
+    state.load();
+    state.theme.clear();
+    state.bg.clear();
+    state.title_style.clear();
+    state.status_style.clear();
+    state.save();
+}
+
 // ============================================================================
 // Main loop
 // ============================================================================
@@ -755,12 +776,14 @@ pub fn run_picker() {
     if state.quit {
         if let Some(ref orig) = original_theme {
             theme::apply_named_theme(orig);
+            record_applied_theme(orig);
         } else {
             theme::clear_theme();
+            record_cleared_theme();
         }
     } else if let Some(ref name) = state.selected {
         theme::apply_named_theme(name);
-        std::env::set_var("TAB_THEME", name);
+        record_applied_theme(name);
         prompt_save_envrc(name);
     }
 }
@@ -848,11 +871,14 @@ fn handle_browse(state: &mut PickerState, key: KeyEvent) {
                 move_grid_vertical(state, 1);
             }
         }
-        KeyCode::Home | KeyCode::Char('g') => {
+        KeyCode::Home => {
             state.cursor = 0;
         }
         KeyCode::End | KeyCode::Char('G') => {
             state.cursor = len - 1;
+        }
+        KeyCode::Char('g') => {
+            generate_256(state);
         }
         KeyCode::Char('n') | KeyCode::Char('N') => {
             state.mode = ViewMode::CreateName;
@@ -871,6 +897,7 @@ fn handle_browse(state: &mut PickerState, key: KeyEvent) {
         }
         KeyCode::Char('r') | KeyCode::Char('R') => {
             theme::clear_theme();
+            record_cleared_theme();
             state.flash_msg("Theme reset to terminal defaults");
         }
         KeyCode::Char('s') | KeyCode::Char('S') => {
@@ -1415,6 +1442,40 @@ fn try_delete_theme(state: &mut PickerState) {
         state.entries.remove(idx);
         state.rebuild_grid();
         state.flash_msg(format!("Deleted '{}'", name));
+    }
+}
+
+/// Generate a full 256-color `.themedata` blob for the currently selected
+/// theme: foreground/background/cursor + the 16 base ANSI slots come from the
+/// theme's palette, the 6x6x6 cube and grayscale ramp are filled with canonical
+/// xterm values. Written to `~/.config/tabbing-on/themes/<name>-256.themedata`.
+fn generate_256(state: &mut PickerState) {
+    let name = state.current_name().to_string();
+    let palette = match theme::resolve_palette(&name) {
+        Some(p) => p,
+        None => {
+            state.flash_msg(format!("Cannot generate {} — palette unavailable", name));
+            return;
+        }
+    };
+
+    // palette layout: [0]=bg, [1]=fg, [2]=cursor, [3..19]=color0..15
+    let mut blob = theme_data::empty_blob();
+    blob = theme_data::set(&blob, "foreground", &palette[1]);
+    blob = theme_data::set(&blob, "background", &palette[0]);
+    blob = theme_data::set(&blob, "cursor", &palette[2]);
+    for i in 0..16 {
+        blob = theme_data::set(&blob, &format!("slot-{}", i), &palette[3 + i]);
+    }
+    blob = theme_data::gen_standard_palette(&blob);
+
+    let td = theme::theme_dir();
+    let _ = std::fs::create_dir_all(&td);
+    let path = td.join(format!("{}-256.themedata", name));
+    // Trailing newline matches the shell .themedata format (awk `print`).
+    match std::fs::write(&path, format!("{}\n", blob)) {
+        Ok(_) => state.flash_msg(format!("Generated {}-256 (256-color)", name)),
+        Err(e) => state.flash_msg(format!("Generate failed: {}", e)),
     }
 }
 
@@ -2092,6 +2153,7 @@ fn render_footer(f: &mut Frame, area: Rect, state: &PickerState) {
             ("e", "edit"),
             ("c", "clone"),
             ("d", "delete"),
+            ("g", "256"),
             ("?", "help"),
         ],
         ViewMode::Search => vec![("↑↓", "navigate"), ("Enter", "apply"), ("Esc", "cancel")],
@@ -2401,6 +2463,7 @@ fn render_help_overlay(f: &mut Frame, area: Rect, state: &PickerState) {
         h("e", "Edit colors (⏎ opens color wheel)"),
         h("c", "Clone to user themes"),
         h("d", "Delete user theme"),
+        h("g", "Generate 256-color .themedata"),
         h("s", "Apply & save to .envrc"),
         h("r", "Reset to terminal defaults"),
         h("?", "Toggle this help"),
@@ -2561,6 +2624,7 @@ pub fn edit_theme(name: &str) {
             if io::stdin().read_line(&mut ans).is_ok() {
                 if !ans.trim().eq_ignore_ascii_case("n") {
                     if theme::apply_named_theme(name) {
+                        record_applied_theme(name);
                         println!("Theme \"{}\" applied.", name);
                     }
                 }
@@ -2619,7 +2683,6 @@ pub fn export_theme(name: &str) {
 
 pub fn preview_theme(name: &str) {
     if theme::apply_named_theme(name) {
-        std::env::set_var("TAB_THEME", name);
         println!(
             "Previewing theme \"{}\" — use \"tabbing-theme reset\" to undo.",
             name
