@@ -595,7 +595,7 @@ tabbing-todo() {
 
     # Get pending list from bin/ script
     local pending
-    pending="$("$_root/bin/tabbing-todo" --list-pending)"
+    pending="$(command tabbing-todo --list-pending)"
     if [[ -z "$pending" ]]; then
       _tabbing_out -v 0 -e 'tabbing: no pending todos to switch to\n'
       return 1
@@ -628,7 +628,7 @@ tabbing-todo() {
 
     # Get export statements from bin/ script and eval them
     local _exports
-    _exports="$("$_root/bin/tabbing-todo" --export-switch "$choice")"
+    _exports="$(command tabbing-todo --export-switch "$choice")"
     if [[ -n "$_exports" ]]; then
       eval "$_exports"
       _tabbing_render
@@ -649,8 +649,10 @@ tabbing-todo() {
     return
   fi
 
-  # All other todo operations delegate entirely to bin/ script
-  "$_root/bin/tabbing-todo" "${orig_args[@]}"
+  # All other todo operations delegate entirely to the tabbing-todo worker.
+  # `command` bypasses this shell function (avoids recursion) and hits the
+  # installed rust applet (or the source bin/ script when it is first on PATH).
+  command tabbing-todo "${orig_args[@]}"
 }
 
 # ---------------------------------------------------------------------------
