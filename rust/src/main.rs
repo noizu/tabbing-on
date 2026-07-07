@@ -1226,6 +1226,16 @@ fn cmd_tabbing_todo() {
         "--list-pending" => {
             todo::todo_pending(tab_id);
         }
+        "--export-switch" => {
+            let id = args.get(1).map(|s| s.as_str()).unwrap_or("");
+            if id.is_empty() {
+                eprintln!("tabbing-todo: --export-switch requires a todo ID");
+                process::exit(1);
+            }
+            if todo::todo_export_switch(tab_id, id) {
+                state::record_event(&s, "todo_switch");
+            }
+        }
         "--pick" => {
             todo::todo_pick(tab_id);
         }

@@ -295,6 +295,61 @@ pub fn todo_switch(tab_id: &str, target_id: &str) -> Option<(String, String, Str
     Some(result)
 }
 
+/// Adapter-facing switch: rewrite the todo file to activate `target_id`, then emit
+/// `export TAB_*` statements on stdout for the interactive shell to `eval`. The
+/// human-readable confirmation goes to stderr so stdout stays purely eval-able.
+///
+/// Mirrors `bin/tabbing-todo --export-switch`: a subprocess cannot mutate the parent
+/// shell's environment, so it hands the shell adapter the exports to apply itself.
+/// Returns true on success.
+pub fn todo_export_switch(tab_id: &str, target_id: &str) -> bool {
+    let path = todo_file(tab_id);
+    let content = match fs::read_to_string(&path) {
+        Ok(c) => c,
+        Err(_) => {
+            eprintln!("tabbing: no todos found");
+            return false;
+        }
+    };
+
+    let items = parse_todos(&content);
+    let target = match items.iter().find(|i| i.id == target_id) {
+        Some(t) => t,
+        None => {
+            eprintln!("tabbing: no todo #{}", target_id);
+            return false;
+        }
+    };
+    let title = target.title.clone();
+    let emoji = target.emoji.clone();
+    let urgency = target.urgency.clone();
+
+    // Rewrite: deactivate any active todo, activate the target.
+    let updated = rewrite_status_switch(&content, target_id);
+    let _ = fs::write(&path, updated);
+
+    // Escape for a shell double-quoted value that will be eval'd by the adapter.
+    fn sh_escape(s: &str) -> String {
+        s.replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('`', "\\`")
+            .replace('$', "\\$")
+    }
+
+    if !title.is_empty() {
+        println!("export TAB_STATUS=\"{}\"", sh_escape(&title));
+    }
+    if !emoji.is_empty() {
+        println!("export TAB_EMOJI=\"{}\"", sh_escape(&emoji));
+    }
+    if !urgency.is_empty() {
+        println!("export TAB_URGENCY=\"{}\"", sh_escape(&urgency));
+    }
+
+    eprintln!("tabbing: switched to todo #{}: {}", target_id, title);
+    true
+}
+
 /// Rewrite the YAML content, changing the status of a specific todo.
 /// Optionally also deactivates any currently active todo.
 fn rewrite_status(
