@@ -20,10 +20,15 @@ fn resolve_tabbing_root() -> PathBuf {
 }
 
 fn emit_purge() {
-    println!("unset TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_URGENCY TAB_EMOJI TAB_THEME");
+    // A fresh interactive shell must not inherit ANY appearance state from a
+    // previous session — otherwise the prompt hook re-applies the last tab's
+    // theme. TAB_THEME_DATA (the 383-line palette blob), TAB_BG, and the
+    // _TABBING_WAS_ACTIVE / TAB_MARQUEE flags are just as load-bearing as
+    // TAB_THEME here, so purge them too.
+    println!("unset TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_URGENCY TAB_EMOJI TAB_THEME TAB_THEME_DATA TAB_BG TAB_MARQUEE");
     println!("unset TAB_TERMINAL TAB_SESSION TAB_ID TAB_COLOR_SUPPORT");
     println!("unset TABBING_TTY TABBING_DC_DAEMON_PID");
-    println!("unset TABBING_PIPE TABBING_RUN_WITH_PIPE TABBING_DC_UUID");
+    println!("unset TABBING_PIPE TABBING_RUN_WITH_PIPE TABBING_DC_UUID DC_TAB_NS _TABBING_OWNER_PID _TABBING_WAS_ACTIVE");
     println!("unset CLAUDE_CODE_DISABLE_TERMINAL_TITLE");
 }
 

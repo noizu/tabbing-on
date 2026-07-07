@@ -78,8 +78,38 @@ _tabbing_install_ssh_shim
 unset -f _tabbing_install_ssh_shim 2>/dev/null
 
 # ---------------------------------------------------------------------------
-# Inline: generate session fingerprint (runs once at init)
+# Inline: session identity + inherited-state hygiene (runs once at init)
+#
+# TAB_SESSION (session-file key) and TABBING_DC_UUID (dc keyspace) are both
+# EXPORTED, so any child process inherits them — including a new interactive
+# shell: a terminal tab spawned from within a shell, a nested `zsh`, or a
+# cloned zellij/tmux pane. If a new interactive shell reused an inherited
+# identity it would read the PREVIOUS tab's session file / dc keyspace and
+# re-apply that tab's theme. That is the cross-session theme leak.
+#
+# We stamp the owning interactive shell's PID ($$) next to the identity in
+# _TABBING_OWNER_PID. When the inherited owner PID does not match this shell's
+# $$ (a different shell process), this is a fresh session: we drop the
+# inherited appearance vars so the previous tab's theme/title/bg are out of
+# scope, and force TAB_SESSION / TABBING_DC_UUID to regenerate below. A
+# deliberate `exec zsh` keeps the same PID, so it preserves the tab's scope.
+#
+# Non-interactive bin/ wrappers (tabbing-status, ...) do NOT source this file,
+# so they still inherit and share the parent tab's identity, as intended.
 # ---------------------------------------------------------------------------
+if [ "${_TABBING_OWNER_PID:-}" != "$$" ]; then
+  unset TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE \
+        TAB_URGENCY TAB_EMOJI TAB_BG TAB_THEME TAB_THEME_DATA TAB_ID TAB_MARQUEE \
+        _TABBING_WAS_ACTIVE 2>/dev/null
+  unset DC_TAB_NS 2>/dev/null
+  TAB_SESSION=""
+  TABBING_DC_UUID=""
+  _TABBING_DC_ZELLIJ_PANE="${ZELLIJ_PANE_ID:-}"
+  _TABBING_OWNER_PID="$$"
+  export _TABBING_OWNER_PID
+fi
+
+# Generate a session fingerprint if we don't have one for this session yet.
 if [ -z "${TAB_SESSION:-}" ]; then
   if [ -r /dev/urandom ]; then
     TAB_SESSION="$(od -An -tx1 -N4 /dev/urandom 2>/dev/null | tr -d ' \n')"
@@ -90,12 +120,9 @@ if [ -z "${TAB_SESSION:-}" ]; then
   export TAB_SESSION
 fi
 
-# ---------------------------------------------------------------------------
-# Inline: generate dc UUID once per terminal session
-# Scopes dc keys to this tab/pane so daemons don't cross-read state from
-# other tabs. Regenerated in new Zellij panes (ZELLIJ_PANE_ID changes)
-# to avoid cloned UUIDs from pane splits.
-# ---------------------------------------------------------------------------
+# Generate the dc keyspace UUID once per session (dc mode only). The owner-PID
+# guard above already blanks it for a fresh session; the ZELLIJ_PANE_ID check
+# is a secondary safety for pane clones that somehow keep the same PID.
 if _tabbing_dc_enabled; then
   _tabbing_need_uuid=0
   if [ -z "${TABBING_DC_UUID:-}" ]; then
@@ -108,6 +135,10 @@ if _tabbing_dc_enabled; then
     _TABBING_DC_ZELLIJ_PANE="${ZELLIJ_PANE_ID:-}"
   fi
   unset _tabbing_need_uuid
+  # Mirror the session-scoped dc namespace into DC_TAB_NS every init (the UUID
+  # may have been inherited without regeneration) so the direnv dc-init bridge
+  # reads this tab's config, not the shared global `tab`.
+  _tabbing_dc_export_ns
 fi
 
 # Known color names for -color shorthand matching (zsh array)
@@ -881,8 +912,8 @@ tabbing-off() {
   if [[ -n "${TAB_SESSION:-}" ]]; then
     rm -f "${XDG_STATE_HOME:-$HOME/.local/state}/tabbing/sessions/${TAB_SESSION}.env"
   fi
-  unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_BG TAB_THEME TAB_ID TAB_RECORDING
-  unset TABBING_DC_UUID TABBING_DC_DAEMON_PID _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE
+  unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_BG TAB_THEME TAB_THEME_DATA TAB_MARQUEE TAB_ID TAB_RECORDING
+  unset TABBING_DC_UUID DC_TAB_NS TABBING_DC_DAEMON_PID _TABBING_OWNER_PID _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE
   _tabbing_out 'tabbing: off\n'
 }
 

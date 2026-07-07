@@ -32,6 +32,8 @@ _tabbing_dc_ns() {
 # ---------------------------------------------------------------------------
 # Generate a dc UUID for this terminal session. Called once at shell init
 # (by tabbing.zsh/tabbing.bash) to establish the session's dc scope.
+# Keeps DC_TAB_NS in lockstep so the direnv `dc-init` bridge always reads
+# THIS session's tab namespace rather than the shared global `tab`.
 # ---------------------------------------------------------------------------
 _tabbing_dc_gen_uuid() {
   if [ -r /dev/urandom ]; then
@@ -41,6 +43,17 @@ _tabbing_dc_gen_uuid() {
     TABBING_DC_UUID="$(printf '%04x%04x%04x%04x' $$ "$(date +%s)" $RANDOM $RANDOM | cut -c1-16)"
   fi
   export TABBING_DC_UUID
+  _tabbing_dc_export_ns
+}
+
+# ---------------------------------------------------------------------------
+# Export DC_TAB_NS mirroring _tabbing_dc_ns. The direnv-config `dc-init`
+# precmd bridge reads `${DC_TAB_NS:-tab}`; exporting the session-scoped
+# namespace here stops it from re-applying another tab's global state.
+# ---------------------------------------------------------------------------
+_tabbing_dc_export_ns() {
+  DC_TAB_NS="$(_tabbing_dc_ns)"
+  export DC_TAB_NS
 }
 
 # ---------------------------------------------------------------------------
@@ -71,7 +84,11 @@ _tabbing_dc_set() {
   _tabbing_dc_enabled || return 0
   _key="$1"
   _value="$2"
-  dc set "$(_tabbing_dc_ns)" "$_key" "$_value" 2>/dev/null
+  # Write the `base` layer to match _tabbing_dc_save (dc yaml --replace, base).
+  # `dc set` defaults to the `local` layer, which shadows `base` on `dc get` —
+  # so mixing the two would let a `dc set` key permanently mask a later
+  # `dc yaml --replace` of the same key (e.g. a cleared theme never taking).
+  dc set "$(_tabbing_dc_ns)" "$_key" "$_value" --layer base 2>/dev/null
   _tabbing_dc_bump_timestamp
   _tabbing_dc_notify_daemon
 }
@@ -92,14 +109,17 @@ _tabbing_dc_notify_daemon() {
 # ---------------------------------------------------------------------------
 _tabbing_dc_bump_timestamp() {
   _tabbing_dc_enabled || return 0
+  # BSD date accepts +%s%3N but prints a literal "3N" suffix, so exit-code
+  # probing is not enough — verify the output is purely numeric.
   if command -v gdate >/dev/null 2>&1; then
     _ts="$(gdate +%s%3N)"
-  elif date +%s%3N >/dev/null 2>&1; then
-    _ts="$(date +%s%3N)"
   else
-    _ts="$(date +%s)000"
+    _ts="$(date +%s%3N 2>/dev/null)"
   fi
-  dc set "$(_tabbing_dc_ns)" last_update "$_ts" 2>/dev/null
+  case "$_ts" in
+    ''|*[!0-9]*) _ts="$(date +%s)000" ;;
+  esac
+  dc set "$(_tabbing_dc_ns)" last_update "$_ts" --layer base 2>/dev/null
 }
 
 # ---------------------------------------------------------------------------
@@ -137,7 +157,7 @@ _tabbing_dc_save() {
   printf 'title: %s\nstatus: %s\nhighlight: %s\ntitle_style: %s\nstatus_style: %s\nurgency: %s\nemoji: %s\nbg: %s\ntheme: %s\nlast_update: %s\n' \
     "${TAB_TITLE:-}" "${TAB_STATUS:-}" "${TAB_HIGHLIGHT:-}" "${TAB_TITLE_STYLE:-}" "${TAB_STATUS_STYLE:-}" \
     "${TAB_URGENCY:-}" "${TAB_EMOJI:-}" "${TAB_BG:-}" "${TAB_THEME:-}" "${_ts:-0}" \
-    | dc yaml "$_ns" --replace 2>/dev/null
+    | dc yaml "$_ns" --replace --layer base 2>/dev/null
   _tabbing_dc_notify_daemon
 }
 
