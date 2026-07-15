@@ -196,8 +196,22 @@ const SEMANTIC_SLOT_NAMES: &[&str] = &[
     "attention_style",
     "success_style",
     "muted_style",
+    "ps1_layout",
+    "ps1",
+];
+const PS1_LAYOUTS: &[&str] = &[
+    "",
+    "default",
+    "minimal",
+    "compact",
+    "full",
+    "two-line",
+    "git",
+    "tab-status",
+    "custom",
 ];
 const EDIT_SLOT_COUNT: usize = COLOR_SLOT_COUNT + SEMANTIC_SLOT_NAMES.len();
+const BROWSE_NAME_WIDTH: usize = 32;
 
 // ============================================================================
 // Types
@@ -213,6 +227,65 @@ enum Region {
     User,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ThemeTone {
+    Dark,
+    Light,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BrowseFocus {
+    UserThemes,
+    StandardHeader,
+    Tone,
+    Color,
+    StandardThemes,
+}
+
+impl ThemeTone {
+    fn label(self) -> &'static str {
+        match self {
+            ThemeTone::Dark => "Dark",
+            ThemeTone::Light => "Light",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum BgFamily {
+    Black,
+    Gray,
+    White,
+    Red,
+    Orange,
+    Yellow,
+    Green,
+    Cyan,
+    Blue,
+    Purple,
+    Pink,
+    Other,
+}
+
+impl BgFamily {
+    fn label(self) -> &'static str {
+        match self {
+            BgFamily::Black => "Black",
+            BgFamily::Gray => "Gray",
+            BgFamily::White => "White",
+            BgFamily::Red => "Red",
+            BgFamily::Orange => "Orange",
+            BgFamily::Yellow => "Yellow",
+            BgFamily::Green => "Green",
+            BgFamily::Cyan => "Cyan",
+            BgFamily::Blue => "Blue",
+            BgFamily::Purple => "Purple",
+            BgFamily::Pink => "Pink",
+            BgFamily::Other => "Other",
+        }
+    }
+}
+
 impl Region {
     fn label(self) -> &'static str {
         match self {
@@ -221,7 +294,7 @@ impl Region {
             Region::ChromaticDark => "Chromatic Dark",
             Region::ChromaticLight => "Chromatic Light",
             Region::Semantic => "Semantic",
-            Region::User => "User",
+            Region::User => "User Themes",
         }
     }
 
@@ -234,17 +307,6 @@ impl Region {
             }
             Region::Semantic => Style::default().fg(Color::Cyan).bold(),
             Region::User => Style::default().fg(Color::Green).bold(),
-        }
-    }
-
-    fn icon(self) -> &'static str {
-        match self {
-            Region::EditorDark => "■",
-            Region::EditorLight => "☀",
-            Region::ChromaticDark => "◆",
-            Region::ChromaticLight => "◇",
-            Region::Semantic => "●",
-            Region::User => "★",
         }
     }
 }
@@ -265,32 +327,28 @@ struct ThemeEntry {
     colors: Option<[String; 19]>,
 }
 
-/// One rendered row of the browse grid: a full-width section header, or a row
-/// of up to `cols` theme cells. Theme values are indices into `order`.
-enum VRow {
-    Header(Region),
-    Themes(Vec<usize>),
-}
-
 const REGIONS: [Region; 6] = [
+    Region::User,
     Region::EditorDark,
     Region::EditorLight,
     Region::ChromaticDark,
     Region::ChromaticLight,
     Region::Semantic,
-    Region::User,
 ];
 
 struct PickerState {
     entries: Vec<ThemeEntry>,
     /// entries indices, themes only, in region/display order. `cursor` indexes here.
     order: Vec<usize>,
-    /// Browse grid rows for rendering + scrolling.
-    vrows: Vec<VRow>,
-    /// order-index -> (vrow index, column).
-    pos: Vec<(usize, usize)>,
     /// Current column count for the browse grid.
     cols: usize,
+
+    /// Stateful tabs for the Standard Themes section. Each tone retains its
+    /// own last color so toggling Dark/Light returns to where it left off.
+    standard_tone: ThemeTone,
+    standard_dark_family: Option<BgFamily>,
+    standard_light_family: Option<BgFamily>,
+    browse_focus: BrowseFocus,
 
     mode: ViewMode,
     cursor: usize,
@@ -393,14 +451,12 @@ impl PickerState {
     /// Recompute `order`, `vrows`, and `pos` from the current entries + cols.
     fn rebuild_grid(&mut self) {
         self.order = build_order(&self.entries);
-        let (vrows, pos) = build_grid(&self.entries, &self.order, self.cols);
-        self.vrows = vrows;
-        self.pos = pos;
         if !self.order.is_empty() {
             self.cursor = self.cursor.min(self.order.len() - 1);
         } else {
             self.cursor = 0;
         }
+        sync_standard_tabs(self);
     }
 }
 
@@ -463,55 +519,17 @@ fn build_entries() -> Vec<ThemeEntry> {
 fn build_order(entries: &[ThemeEntry]) -> Vec<usize> {
     let mut order = Vec::new();
     for region in REGIONS {
-        for (i, e) in entries.iter().enumerate() {
-            if e.region == region {
-                order.push(i);
-            }
+        let mut region_entries: Vec<usize> = entries
+            .iter()
+            .enumerate()
+            .filter_map(|(i, e)| (e.region == region).then_some(i))
+            .collect();
+        if region == Region::User {
+            region_entries.sort_by_key(|&i| entries[i].name.to_lowercase());
         }
+        order.extend(region_entries);
     }
     order
-}
-
-/// Lay `order` out into a column grid: a full-width header per region, then
-/// rows of up to `cols` themes. Returns the visual rows and an order-index ->
-/// (vrow, col) map for grid navigation.
-fn build_grid(
-    entries: &[ThemeEntry],
-    order: &[usize],
-    cols: usize,
-) -> (Vec<VRow>, Vec<(usize, usize)>) {
-    let cols = cols.max(1);
-    let mut vrows: Vec<VRow> = Vec::new();
-    let mut pos = vec![(0usize, 0usize); order.len()];
-
-    let mut oi = 0;
-    for region in REGIONS {
-        let start = oi;
-        while oi < order.len() && entries[order[oi]].region == region {
-            oi += 1;
-        }
-        let end = oi;
-        if start == end {
-            continue;
-        }
-        vrows.push(VRow::Header(region));
-        let mut k = start;
-        while k < end {
-            // The row we're about to fill will land at index `vrows.len()`.
-            let vr = vrows.len();
-            let mut row = Vec::new();
-            for c in 0..cols {
-                if k < end {
-                    pos[k] = (vr, c);
-                    row.push(k);
-                    k += 1;
-                }
-            }
-            vrows.push(VRow::Themes(row));
-        }
-    }
-
-    (vrows, pos)
 }
 
 /// How many theme columns fit in the given total width. Capped for readability.
@@ -533,6 +551,277 @@ fn hex_to_rgb(hex: &str) -> Option<(u8, u8, u8)> {
     let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
     let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
     Some((r, g, b))
+}
+
+fn theme_group(entry: &ThemeEntry) -> (ThemeTone, BgFamily) {
+    let Some(colors) = &entry.colors else {
+        return (ThemeTone::Dark, BgFamily::Other);
+    };
+    let Some((r, g, b)) = hex_to_rgb(&colors[0]) else {
+        return (ThemeTone::Dark, BgFamily::Other);
+    };
+
+    let tone = if (0.2126 * r as f32 + 0.7152 * g as f32 + 0.0722 * b as f32) / 255.0 >= 0.5 {
+        ThemeTone::Light
+    } else {
+        ThemeTone::Dark
+    };
+
+    let max = r.max(g).max(b) as f32;
+    let min = r.min(g).min(b) as f32;
+    let delta = max - min;
+    let saturation = delta / max.max(1.0);
+    let family = if max <= 64.0 && saturation <= 0.25 {
+        // Reserve Black for genuinely near-neutral dark backgrounds.  A low
+        // value alone is not enough: solarized-dark (#002B36), for example,
+        // is dark but strongly blue.
+        BgFamily::Black
+    } else if saturation < 0.04 {
+        // Only nearly achromatic backgrounds belong to the neutral families.
+        // Subtle tints such as sage-mist (#E4EDD8) still retain a meaningful
+        // hue and should remain discoverable under that color.
+        if max >= 220.0 {
+            BgFamily::White
+        } else {
+            BgFamily::Gray
+        }
+    } else {
+        let rf = r as f32;
+        let gf = g as f32;
+        let bf = b as f32;
+        let hue = if max == rf {
+            60.0 * ((gf - bf) / delta).rem_euclid(6.0)
+        } else if max == gf {
+            60.0 * ((bf - rf) / delta + 2.0)
+        } else {
+            60.0 * ((rf - gf) / delta + 4.0)
+        };
+        match hue {
+            h if !(15.0..345.0).contains(&h) => BgFamily::Red,
+            h if h < 45.0 => BgFamily::Orange,
+            h if h < 70.0 => BgFamily::Yellow,
+            h if h < 170.0 => BgFamily::Green,
+            h if h < 190.0 => BgFamily::Cyan,
+            h if h < 255.0 => BgFamily::Blue,
+            h if h < 295.0 => BgFamily::Purple,
+            _ => BgFamily::Pink,
+        }
+    };
+
+    (tone, family)
+}
+
+fn standard_families(entries: &[ThemeEntry], tone: ThemeTone) -> Vec<BgFamily> {
+    let mut families = Vec::new();
+    for entry in entries.iter().filter(|entry| entry.region != Region::User) {
+        let (entry_tone, family) = theme_group(entry);
+        if entry_tone == tone && !families.contains(&family) {
+            families.push(family);
+        }
+    }
+    families.sort();
+    families
+}
+
+fn first_standard_tone(entries: &[ThemeEntry]) -> ThemeTone {
+    if standard_families(entries, ThemeTone::Dark).is_empty() {
+        ThemeTone::Light
+    } else {
+        ThemeTone::Dark
+    }
+}
+
+fn active_standard_family(state: &PickerState) -> Option<BgFamily> {
+    match state.standard_tone {
+        ThemeTone::Dark => state.standard_dark_family,
+        ThemeTone::Light => state.standard_light_family,
+    }
+}
+
+fn set_active_standard_family(state: &mut PickerState, family: BgFamily) {
+    match state.standard_tone {
+        ThemeTone::Dark => state.standard_dark_family = Some(family),
+        ThemeTone::Light => state.standard_light_family = Some(family),
+    }
+}
+
+fn standard_group_positions(state: &PickerState, tone: ThemeTone, family: BgFamily) -> Vec<usize> {
+    state
+        .order
+        .iter()
+        .enumerate()
+        .filter_map(|(oi, &entry_idx)| {
+            let entry = &state.entries[entry_idx];
+            (entry.region != Region::User && theme_group(entry) == (tone, family)).then_some(oi)
+        })
+        .collect()
+}
+
+fn select_first_standard_theme(state: &mut PickerState) {
+    if let Some(family) = active_standard_family(state) {
+        if let Some(&position) =
+            standard_group_positions(state, state.standard_tone, family).first()
+        {
+            state.cursor = position;
+        }
+    }
+}
+
+fn sync_standard_tabs(state: &mut PickerState) {
+    let dark = standard_families(&state.entries, ThemeTone::Dark);
+    let light = standard_families(&state.entries, ThemeTone::Light);
+
+    if dark.is_empty() && light.is_empty() {
+        state.standard_dark_family = None;
+        state.standard_light_family = None;
+        return;
+    }
+    if standard_families(&state.entries, state.standard_tone).is_empty() {
+        state.standard_tone = if dark.is_empty() {
+            ThemeTone::Light
+        } else {
+            ThemeTone::Dark
+        };
+    }
+
+    if state
+        .standard_dark_family
+        .is_some_and(|family| !dark.contains(&family))
+    {
+        state.standard_dark_family = dark.first().copied();
+    }
+    if state
+        .standard_light_family
+        .is_some_and(|family| !light.contains(&family))
+    {
+        state.standard_light_family = light.first().copied();
+    }
+    if state.standard_tone == ThemeTone::Dark && state.standard_dark_family.is_none() {
+        state.standard_dark_family = dark.first().copied();
+    }
+    if state.standard_tone == ThemeTone::Light && state.standard_light_family.is_none() {
+        state.standard_light_family = light.first().copied();
+    }
+}
+
+fn cycle_standard_family(state: &mut PickerState, direction: isize) {
+    let families = standard_families(&state.entries, state.standard_tone);
+    if families.is_empty() {
+        return;
+    }
+    let current = active_standard_family(state)
+        .and_then(|family| families.iter().position(|candidate| *candidate == family))
+        .unwrap_or(0);
+    let next = current as isize + direction;
+    if (0..families.len() as isize).contains(&next) {
+        set_active_standard_family(state, families[next as usize]);
+    } else {
+        // Treat Dark and Light as adjacent portions of one circular color
+        // strip. Crossing either end moves into the corresponding edge of the
+        // other tone instead of wrapping inside the current tone.
+        let target = match state.standard_tone {
+            ThemeTone::Dark => ThemeTone::Light,
+            ThemeTone::Light => ThemeTone::Dark,
+        };
+        let target_families = standard_families(&state.entries, target);
+        if target_families.is_empty() {
+            let wrapped = next.rem_euclid(families.len() as isize) as usize;
+            set_active_standard_family(state, families[wrapped]);
+        } else {
+            state.standard_tone = target;
+            let edge = if direction < 0 {
+                target_families.len() - 1
+            } else {
+                0
+            };
+            set_active_standard_family(state, target_families[edge]);
+        }
+    }
+    select_first_standard_theme(state);
+}
+
+fn toggle_standard_tone(state: &mut PickerState) {
+    let current_family = active_standard_family(state);
+    let target = match state.standard_tone {
+        ThemeTone::Dark => ThemeTone::Light,
+        ThemeTone::Light => ThemeTone::Dark,
+    };
+    let families = standard_families(&state.entries, target);
+    if families.is_empty() {
+        return;
+    }
+
+    let remembered = match target {
+        ThemeTone::Dark => state.standard_dark_family,
+        ThemeTone::Light => state.standard_light_family,
+    };
+    let family = remembered
+        .filter(|family| families.contains(family))
+        .or_else(|| current_family.filter(|family| families.contains(family)))
+        .unwrap_or(families[0]);
+
+    state.standard_tone = target;
+    set_active_standard_family(state, family);
+    select_first_standard_theme(state);
+}
+
+fn move_standard_theme(state: &mut PickerState, direction: isize) -> bool {
+    let Some(family) = active_standard_family(state) else {
+        return false;
+    };
+    let positions = standard_group_positions(state, state.standard_tone, family);
+    if positions.is_empty() {
+        return false;
+    }
+    let current = positions
+        .iter()
+        .position(|position| *position == state.cursor)
+        .unwrap_or(0);
+    let next = current as isize + direction;
+    if next < 0 || next >= positions.len() as isize {
+        return false;
+    }
+    state.cursor = positions[next as usize];
+    true
+}
+
+fn user_positions(state: &PickerState) -> Vec<usize> {
+    state
+        .order
+        .iter()
+        .enumerate()
+        .filter_map(|(position, &entry_idx)| {
+            (state.entries[entry_idx].region == Region::User).then_some(position)
+        })
+        .collect()
+}
+
+fn select_first_user_theme(state: &mut PickerState) {
+    if let Some(&position) = user_positions(state).first() {
+        state.cursor = position;
+    }
+}
+
+fn select_last_user_theme(state: &mut PickerState) {
+    if let Some(&position) = user_positions(state).last() {
+        state.cursor = position;
+    }
+}
+
+fn move_user_theme(state: &mut PickerState, delta: isize) -> bool {
+    let positions = user_positions(state);
+    let Some(current) = positions
+        .iter()
+        .position(|position| *position == state.cursor)
+    else {
+        return false;
+    };
+    let next = current as isize + delta;
+    if next < 0 || next >= positions.len() as isize {
+        return false;
+    }
+    state.cursor = positions[next as usize];
+    true
 }
 
 fn hex_to_color(hex: &str) -> Color {
@@ -568,7 +857,6 @@ struct UiColors {
     accent: Color,
     accent_text: Color,
     border: Color,
-    cat_a: Color,
     cat_b: Color,
     cat_c: Color,
     cat_d: Color,
@@ -635,19 +923,9 @@ fn compute_ui_colors(colors: &Option<[String; 19]>) -> UiColors {
         accent: ensure_contrast(accent_rgb),
         accent_text,
         border: blend_rgb(bg, fg, 0.2),
-        cat_a: ensure_contrast(palette_rgb(6, (249, 226, 175))),
         cat_b: ensure_contrast(palette_rgb(8, (245, 194, 231))),
         cat_c: ensure_contrast(palette_rgb(9, (148, 226, 213))),
         cat_d: ensure_contrast(palette_rgb(5, (166, 227, 161))),
-    }
-}
-
-fn region_ui_color(region: Region, ui: &UiColors) -> Color {
-    match region {
-        Region::EditorDark | Region::EditorLight => ui.cat_a,
-        Region::ChromaticDark | Region::ChromaticLight => ui.cat_b,
-        Region::Semantic => ui.cat_c,
-        Region::User => ui.cat_d,
     }
 }
 
@@ -682,15 +960,36 @@ pub fn run_picker() {
     }
 
     let order = build_order(&entries);
-    let (vrows, pos) = build_grid(&entries, &order, 1);
+    let standard_tone = first_standard_tone(&entries);
+    let standard_dark_family = (standard_tone == ThemeTone::Dark)
+        .then(|| {
+            standard_families(&entries, ThemeTone::Dark)
+                .first()
+                .copied()
+        })
+        .flatten();
+    let standard_light_family = (standard_tone == ThemeTone::Light)
+        .then(|| {
+            standard_families(&entries, ThemeTone::Light)
+                .first()
+                .copied()
+        })
+        .flatten();
+    let browse_focus = if entries.iter().any(|entry| entry.region == Region::User) {
+        BrowseFocus::UserThemes
+    } else {
+        BrowseFocus::StandardHeader
+    };
     let original_theme = std::env::var("TAB_THEME").ok().filter(|s| !s.is_empty());
 
     let mut state = PickerState {
         entries,
         order,
-        vrows,
-        pos,
         cols: 1,
+        standard_tone,
+        standard_dark_family,
+        standard_light_family,
+        browse_focus,
         mode: ViewMode::Browse,
         cursor: 0,
         scroll_offset: 0,
@@ -823,59 +1122,133 @@ fn handle_browse(state: &mut PickerState, key: KeyEvent) {
         return;
     }
 
+    // Dark and Light each remember their own color position. Shift+Arrow is
+    // available from every row in the Standard Themes section so the user
+    // does not need to move focus back to the tone buttons first.
+    if key.modifiers.contains(KeyModifiers::SHIFT)
+        && matches!(key.code, KeyCode::Left | KeyCode::Right)
+        && state.browse_focus != BrowseFocus::UserThemes
+    {
+        toggle_standard_tone(state);
+        return;
+    }
+
     match key.code {
         KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => {
             state.quit = true;
         }
-        KeyCode::Enter => {
-            state.selected = Some(state.current_name().to_string());
-        }
+        KeyCode::Enter => match state.browse_focus {
+            BrowseFocus::UserThemes | BrowseFocus::StandardThemes => {
+                state.selected = Some(state.current_name().to_string());
+            }
+            BrowseFocus::StandardHeader => state.browse_focus = BrowseFocus::Tone,
+            BrowseFocus::Tone => state.browse_focus = BrowseFocus::Color,
+            BrowseFocus::Color => {
+                select_first_standard_theme(state);
+                state.browse_focus = BrowseFocus::StandardThemes;
+            }
+        },
         KeyCode::Char('/') => {
             state.mode = ViewMode::Search;
             state.search_text.clear();
             state.update_search();
         }
-        KeyCode::Left | KeyCode::Char('h') => {
-            // Step back through themes in display order, wrapping to the last
-            // entry from the first. Since `order` is contiguous per section,
-            // this also steps back into the previous section at a boundary.
-            state.cursor = if state.cursor == 0 {
-                len - 1
-            } else {
-                state.cursor - 1
-            };
-        }
-        KeyCode::Right | KeyCode::Char('l') => {
-            // Step forward through themes in display order. At the end of a
-            // section this lands on the first entry of the next section; at the
-            // very end it wraps back to the first entry.
-            state.cursor = if state.cursor + 1 >= len {
-                0
-            } else {
-                state.cursor + 1
-            };
-        }
-        KeyCode::Up | KeyCode::Char('k') => {
-            move_grid_vertical(state, -1);
-        }
-        KeyCode::Down | KeyCode::Char('j') => {
-            move_grid_vertical(state, 1);
-        }
-        KeyCode::PageUp => {
-            for _ in 0..6 {
-                move_grid_vertical(state, -1);
+        KeyCode::Left | KeyCode::Char('h') => match state.browse_focus {
+            BrowseFocus::UserThemes => {
+                move_user_theme(state, -1);
             }
-        }
-        KeyCode::PageDown => {
-            for _ in 0..6 {
-                move_grid_vertical(state, 1);
+            BrowseFocus::Tone => toggle_standard_tone(state),
+            BrowseFocus::Color | BrowseFocus::StandardThemes => cycle_standard_family(state, -1),
+            BrowseFocus::StandardHeader => {}
+        },
+        KeyCode::Right | KeyCode::Char('l') => match state.browse_focus {
+            BrowseFocus::UserThemes => {
+                move_user_theme(state, 1);
             }
-        }
+            BrowseFocus::Tone => toggle_standard_tone(state),
+            BrowseFocus::Color | BrowseFocus::StandardThemes => cycle_standard_family(state, 1),
+            BrowseFocus::StandardHeader => {}
+        },
+        KeyCode::Up | KeyCode::Char('k') => match state.browse_focus {
+            BrowseFocus::UserThemes => {
+                move_user_theme(state, -(state.cols as isize));
+            }
+            BrowseFocus::StandardHeader => {
+                if !user_positions(state).is_empty() {
+                    select_last_user_theme(state);
+                    state.browse_focus = BrowseFocus::UserThemes;
+                }
+            }
+            BrowseFocus::Tone => state.browse_focus = BrowseFocus::StandardHeader,
+            BrowseFocus::Color => state.browse_focus = BrowseFocus::Tone,
+            BrowseFocus::StandardThemes => {
+                if !move_standard_theme(state, -1) {
+                    state.browse_focus = BrowseFocus::Color;
+                }
+            }
+        },
+        KeyCode::Down | KeyCode::Char('j') => match state.browse_focus {
+            BrowseFocus::UserThemes => {
+                if !move_user_theme(state, state.cols as isize) {
+                    select_first_standard_theme(state);
+                    state.browse_focus = BrowseFocus::StandardHeader;
+                }
+            }
+            BrowseFocus::StandardHeader => state.browse_focus = BrowseFocus::Tone,
+            BrowseFocus::Tone => state.browse_focus = BrowseFocus::Color,
+            BrowseFocus::Color => {
+                select_first_standard_theme(state);
+                state.browse_focus = BrowseFocus::StandardThemes;
+            }
+            BrowseFocus::StandardThemes => {
+                move_standard_theme(state, 1);
+            }
+        },
+        KeyCode::PageUp => match state.browse_focus {
+            BrowseFocus::UserThemes => {
+                for _ in 0..6 {
+                    move_user_theme(state, -(state.cols as isize));
+                }
+            }
+            BrowseFocus::StandardThemes => {
+                for _ in 0..6 {
+                    move_standard_theme(state, -1);
+                }
+            }
+            _ => {}
+        },
+        KeyCode::PageDown => match state.browse_focus {
+            BrowseFocus::UserThemes => {
+                for _ in 0..6 {
+                    move_user_theme(state, state.cols as isize);
+                }
+            }
+            BrowseFocus::StandardThemes => {
+                for _ in 0..6 {
+                    move_standard_theme(state, 1);
+                }
+            }
+            _ => {}
+        },
         KeyCode::Home => {
-            state.cursor = 0;
+            if state.browse_focus == BrowseFocus::UserThemes {
+                select_first_user_theme(state);
+            } else {
+                select_first_standard_theme(state);
+                state.browse_focus = BrowseFocus::StandardThemes;
+            }
         }
         KeyCode::End | KeyCode::Char('G') => {
-            state.cursor = len - 1;
+            if state.browse_focus == BrowseFocus::UserThemes {
+                select_last_user_theme(state);
+            } else if let Some(family) = active_standard_family(state) {
+                if let Some(&last) =
+                    standard_group_positions(state, state.standard_tone, family).last()
+                {
+                    state.cursor = last;
+                }
+                state.browse_focus = BrowseFocus::StandardThemes;
+            }
         }
         KeyCode::Char('g') => {
             generate_256(state);
@@ -907,10 +1280,14 @@ fn handle_browse(state: &mut PickerState, key: KeyEvent) {
             state.mode = ViewMode::Help;
         }
         KeyCode::Tab => {
-            jump_to_next_category(state, 1);
+            select_first_standard_theme(state);
+            state.browse_focus = BrowseFocus::StandardHeader;
         }
         KeyCode::BackTab => {
-            jump_to_next_category(state, -1);
+            if !user_positions(state).is_empty() {
+                select_first_user_theme(state);
+                state.browse_focus = BrowseFocus::UserThemes;
+            }
         }
         _ => {}
     }
@@ -987,7 +1364,13 @@ fn handle_edit(state: &mut PickerState, key: KeyEvent) {
             }
             KeyCode::Char(c) => {
                 if state.edit_slot >= COLOR_SLOT_COUNT {
-                    if state.edit_input.len() < 64 {
+                    let semantic_idx = state.edit_slot - COLOR_SLOT_COUNT;
+                    let limit = if SEMANTIC_SLOT_NAMES.get(semantic_idx) == Some(&"ps1") {
+                        256
+                    } else {
+                        64
+                    };
+                    if state.edit_input.len() < limit {
                         state.edit_input.push(c);
                     }
                 } else if state.edit_input.len() < 7 {
@@ -1102,6 +1485,8 @@ fn validate_semantic_input(semantic_idx: usize, input: &str) -> bool {
             input.to_ascii_lowercase().as_str(),
             "true" | "false" | "1" | "0" | "yes" | "no" | "on" | "off"
         ),
+        "ps1_layout" => PS1_LAYOUTS.contains(&input),
+        "ps1" => true,
         _ => crate::color::style_sequence(input).is_some(),
     }
 }
@@ -1109,7 +1494,7 @@ fn validate_semantic_input(semantic_idx: usize, input: &str) -> bool {
 fn is_select_semantic(semantic_idx: usize) -> bool {
     matches!(
         SEMANTIC_SLOT_NAMES.get(semantic_idx).copied().unwrap_or(""),
-        "cursor_style" | "cursor_blink"
+        "cursor_style" | "cursor_blink" | "ps1_layout"
     )
 }
 
@@ -1126,6 +1511,7 @@ fn semantic_options(semantic_idx: usize) -> &'static [&'static str] {
             "default",
         ],
         "cursor_blink" => &["", "true", "false"],
+        "ps1_layout" => PS1_LAYOUTS,
         _ => &[],
     }
 }
@@ -1396,6 +1782,8 @@ fn load_edit_semantics(name: &str) -> Vec<String> {
     for i in 0..6 {
         values[4 + i] = semantics.urgency_styles[i].clone();
     }
+    values[10] = semantics.ps1_layout;
+    values[11] = semantics.ps1;
     values
 }
 
@@ -1476,62 +1864,6 @@ fn generate_256(state: &mut PickerState) {
     match std::fs::write(&path, format!("{}\n", blob)) {
         Ok(_) => state.flash_msg(format!("Generated {}-256 (256-color)", name)),
         Err(e) => state.flash_msg(format!("Generate failed: {}", e)),
-    }
-}
-
-/// Move the cursor one grid row up (-1) or down (+1), keeping the column where
-/// possible and skipping full-width section headers.
-fn move_grid_vertical(state: &mut PickerState, dir: isize) {
-    if state.order.is_empty() {
-        return;
-    }
-    let cur = state.cursor.min(state.order.len() - 1);
-    let (vr, col) = state.pos[cur];
-    let mut tv = vr as isize;
-    loop {
-        tv += dir;
-        if tv < 0 {
-            // Past the top: loop to the very last theme.
-            state.cursor = state.order.len() - 1;
-            return;
-        }
-        if tv as usize >= state.vrows.len() {
-            // Past the bottom: loop back to the first theme.
-            state.cursor = 0;
-            return;
-        }
-        if let VRow::Themes(row) = &state.vrows[tv as usize] {
-            if row.is_empty() {
-                continue;
-            }
-            let c = col.min(row.len() - 1);
-            state.cursor = row[c];
-            return;
-        }
-    }
-}
-
-fn jump_to_next_category(state: &mut PickerState, direction: i32) {
-    if state.order.is_empty() {
-        return;
-    }
-    let cur = state.cursor.min(state.order.len() - 1);
-    let cur_region = state.entries[state.order[cur]].region;
-
-    if direction > 0 {
-        for j in (cur + 1)..state.order.len() {
-            if state.entries[state.order[j]].region != cur_region {
-                state.cursor = j;
-                return;
-            }
-        }
-    } else {
-        for j in (0..cur).rev() {
-            if state.entries[state.order[j]].region != cur_region {
-                state.cursor = j;
-                return;
-            }
-        }
     }
 }
 
@@ -1650,84 +1982,312 @@ fn render_header(f: &mut Frame, area: Rect, state: &PickerState) {
 }
 
 fn render_browse(f: &mut Frame, area: Rect, state: &PickerState) {
-    let visible = area.height as usize;
-    if state.order.is_empty() || visible == 0 {
+    if state.order.is_empty() || area.height == 0 {
         return;
     }
 
-    let cur = state.cursor.min(state.order.len() - 1);
-    let cur_vrow = state.pos[cur].0;
-    let scroll = compute_scroll(cur_vrow, visible, state.vrows.len());
-
     let cols = state.cols.max(1);
+    let users = user_positions(state);
+    let user_rows = users.len().div_ceil(cols);
+    let max_user_height = area.height.saturating_sub(6).max(2) as usize;
+    let user_height = (user_rows + 1).min(max_user_height).max(1) as u16;
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(user_height),
+            Constraint::Length(3),
+            Constraint::Min(1),
+        ])
+        .split(area);
+
+    render_user_section(f, chunks[0], state, &users, cols);
+    render_standard_tabs(f, chunks[1], state);
+    render_standard_themes(f, chunks[2], state);
+}
+
+fn render_user_section(
+    f: &mut Frame,
+    area: Rect,
+    state: &PickerState,
+    users: &[usize],
+    cols: usize,
+) {
+    if area.height == 0 {
+        return;
+    }
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Min(0)])
+        .split(area);
+    let focused = state.browse_focus == BrowseFocus::UserThemes;
+    let label = if focused {
+        " ▸ ★ User Themes "
+    } else {
+        " ★ User Themes "
+    };
+    let rule_width = chunks[0].width.saturating_sub(label.chars().count() as u16) as usize;
+    f.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled(
+                "─".repeat(rule_width / 2),
+                Style::default().fg(state.ui.border),
+            ),
+            Span::styled(
+                label,
+                if focused {
+                    Style::default()
+                        .fg(state.ui.accent_text)
+                        .bg(state.ui.accent)
+                        .bold()
+                } else {
+                    Style::default().fg(state.ui.cat_d).bold()
+                },
+            ),
+            Span::styled(
+                "─".repeat(rule_width - rule_width / 2),
+                Style::default().fg(state.ui.border),
+            ),
+        ])),
+        chunks[0],
+    );
+
+    if chunks[1].height == 0 || users.is_empty() {
+        return;
+    }
     let cell_w = (area.width as usize / cols).max(16);
     let swatch_w = if cell_w >= 34 { 12 } else { 8 };
-    let name_w = cell_w.saturating_sub(3 + 1 + swatch_w + 1).max(6);
+    let name_w = cell_w
+        .saturating_sub(3 + 1 + swatch_w + 1)
+        .clamp(6, BROWSE_NAME_WIDTH);
+    let current_user = users
+        .iter()
+        .position(|position| *position == state.cursor)
+        .unwrap_or(0);
+    let selected_row = current_user / cols;
+    let visible = chunks[1].height as usize;
+    let scroll = compute_scroll(selected_row, visible, users.len().div_ceil(cols));
+    let mut items = Vec::new();
+    for row in users.chunks(cols).skip(scroll).take(visible) {
+        let mut spans = Vec::new();
+        for &position in row {
+            let entry = &state.entries[state.order[position]];
+            let active = focused && position == state.cursor;
+            let name = clipped_theme_name(&entry.name, name_w);
+            spans.push(Span::styled(
+                if active { " ▸ " } else { "   " },
+                Style::default().fg(state.ui.accent),
+            ));
+            spans.push(Span::styled(
+                format!("{:<width$}", name, width = name_w),
+                if active {
+                    Style::default()
+                        .fg(state.ui.accent_text)
+                        .bg(state.ui.accent)
+                        .bold()
+                } else {
+                    Style::default().fg(state.ui.text_dim)
+                },
+            ));
+            spans.push(Span::raw(" "));
+            spans.extend(swatch_spans(&entry.colors, swatch_w));
+            spans.push(Span::raw(" "));
+        }
+        items.push(ListItem::new(Line::from(spans)));
+    }
+    f.render_widget(List::new(items), chunks[1]);
+}
 
-    let mut items: Vec<ListItem> = Vec::new();
-    for vrow in state.vrows.iter().skip(scroll) {
-        if items.len() >= visible {
+fn render_standard_tabs(f: &mut Frame, area: Rect, state: &PickerState) {
+    let mut lines = Vec::new();
+    let title = if state.browse_focus == BrowseFocus::StandardHeader {
+        " ▸ STANDARD THEMES "
+    } else {
+        " STANDARD THEMES "
+    };
+    let rule_width = area.width.saturating_sub(title.len() as u16) as usize;
+    lines.push(Line::from(vec![
+        Span::styled(
+            "─".repeat(rule_width / 2),
+            Style::default().fg(state.ui.border),
+        ),
+        Span::styled(
+            title,
+            if state.browse_focus == BrowseFocus::StandardHeader {
+                Style::default()
+                    .fg(state.ui.accent_text)
+                    .bg(state.ui.accent)
+                    .bold()
+            } else {
+                Style::default().fg(state.ui.text).bold()
+            },
+        ),
+        Span::styled(
+            "─".repeat(rule_width - rule_width / 2),
+            Style::default().fg(state.ui.border),
+        ),
+    ]));
+
+    let dark_available = !standard_families(&state.entries, ThemeTone::Dark).is_empty();
+    let light_available = !standard_families(&state.entries, ThemeTone::Light).is_empty();
+    let mut tone_spans = vec![Span::styled(
+        if state.browse_focus == BrowseFocus::Tone {
+            "▸ "
+        } else {
+            "  "
+        },
+        Style::default().fg(state.ui.border),
+    )];
+    for (tone, available) in [
+        (ThemeTone::Dark, dark_available),
+        (ThemeTone::Light, light_available),
+    ] {
+        let active = state.standard_tone == tone;
+        let label = format!("[{}]", tone.label());
+        let style = if active {
+            Style::default().fg(state.ui.accent).bold().underlined()
+        } else if available {
+            Style::default().fg(state.ui.text_dim)
+        } else {
+            Style::default().fg(state.ui.text_muted).dim()
+        };
+        tone_spans.push(Span::styled(format!("{} ", label), style));
+    }
+    // Balance the focus-marker prefix so the buttons themselves stay centered.
+    tone_spans.push(Span::raw("  "));
+    lines.push(Line::from(tone_spans).alignment(Alignment::Center));
+
+    let families = standard_families(&state.entries, state.standard_tone);
+    let active_family = active_standard_family(state);
+    let mut family_spans = vec![Span::styled(
+        if state.browse_focus == BrowseFocus::Color {
+            "▸ "
+        } else {
+            "  "
+        },
+        Style::default().fg(state.ui.accent),
+    )];
+
+    let active_idx = active_family
+        .and_then(|family| families.iter().position(|candidate| *candidate == family))
+        .unwrap_or(0);
+    let (start, end) = family_tab_window(&families, active_idx, area.width.saturating_sub(2));
+    if start > 0 {
+        family_spans.push(Span::styled("‹ ", Style::default().fg(state.ui.text_muted)));
+    }
+    for family in families[start..end].iter().copied() {
+        let active = active_family == Some(family);
+        let label = format!("[{}]", family.label());
+        let style = if active {
+            Style::default().fg(state.ui.accent).bold().underlined()
+        } else {
+            Style::default().fg(state.ui.text_dim)
+        };
+        family_spans.push(Span::styled(format!("{} ", label), style));
+    }
+    if end < families.len() {
+        family_spans.push(Span::styled("›", Style::default().fg(state.ui.text_muted)));
+    }
+    lines.push(Line::from(family_spans));
+    f.render_widget(Paragraph::new(lines), area);
+}
+
+/// Return a contiguous color-tab window that always contains the active tab.
+/// The caller adds edge markers when tabs are clipped. Navigation itself is
+/// circular, so moving beyond either edge wraps through the complete family
+/// list while this viewport follows the selection.
+fn family_tab_window(families: &[BgFamily], active: usize, available_width: u16) -> (usize, usize) {
+    if families.is_empty() {
+        return (0, 0);
+    }
+
+    // Leave room for both clipping markers. If every tab fits, the expansion
+    // below naturally returns the entire range and the markers are omitted.
+    let budget = available_width.saturating_sub(4).max(1) as usize;
+    let widths: Vec<usize> = families
+        .iter()
+        .map(|family| family.label().chars().count() + 3)
+        .collect();
+    let active = active.min(families.len() - 1);
+    let (mut start, mut end) = (active, active + 1);
+    let mut used = widths[active];
+
+    loop {
+        let mut expanded = false;
+        if start > 0 && used + widths[start - 1] <= budget {
+            start -= 1;
+            used += widths[start];
+            expanded = true;
+        }
+        if end < families.len() && used + widths[end] <= budget {
+            used += widths[end];
+            end += 1;
+            expanded = true;
+        }
+        if !expanded {
             break;
         }
-        match vrow {
-            VRow::Header(region) => {
-                let label = format!(" {} {} ", region.icon(), region.label());
-                let dashes = area.width.saturating_sub(label.chars().count() as u16 + 1) as usize;
-                let line = Line::from(vec![
-                    Span::styled(
-                        label,
-                        Style::default()
-                            .fg(region_ui_color(*region, &state.ui))
-                            .bold(),
-                    ),
-                    Span::styled("─".repeat(dashes), Style::default().fg(state.ui.border)),
-                ]);
-                items.push(ListItem::new(line));
-            }
-            VRow::Themes(row) => {
-                let mut spans: Vec<Span> = Vec::new();
-                for &oi in row {
-                    let entry = &state.entries[state.order[oi]];
-                    let is_cursor = oi == cur;
+    }
+    (start, end)
+}
 
-                    let marker = if is_cursor { " ▸ " } else { "   " };
-                    let name_style = if is_cursor {
+fn render_standard_themes(f: &mut Frame, area: Rect, state: &PickerState) {
+    if area.height == 0 {
+        return;
+    }
+    let Some(family) = active_standard_family(state) else {
+        return;
+    };
+    let positions = standard_group_positions(state, state.standard_tone, family);
+    let current = positions
+        .iter()
+        .position(|position| *position == state.cursor)
+        .unwrap_or(0);
+    let visible = area.height as usize;
+    let scroll = compute_scroll(current, visible, positions.len());
+    let swatch_w = if area.width >= 50 { 12 } else { 8 };
+    let name_w =
+        (area.width.saturating_sub((swatch_w + 6) as u16).max(8) as usize).min(BROWSE_NAME_WIDTH);
+    let focused = state.browse_focus == BrowseFocus::StandardThemes;
+    let items: Vec<ListItem> = positions
+        .iter()
+        .skip(scroll)
+        .take(visible)
+        .map(|&position| {
+            let entry = &state.entries[state.order[position]];
+            let active = focused && position == state.cursor;
+            let name = clipped_theme_name(&entry.name, name_w);
+            let mut spans = vec![
+                Span::styled(
+                    if active { " ▸ " } else { "   " },
+                    Style::default().fg(state.ui.accent),
+                ),
+                Span::styled(
+                    format!("{:<width$}", name, width = name_w),
+                    if active {
                         Style::default()
                             .fg(state.ui.accent_text)
                             .bg(state.ui.accent)
                             .bold()
-                            .add_modifier(Modifier::UNDERLINED | Modifier::SLOW_BLINK)
                     } else {
                         Style::default().fg(state.ui.text_dim)
-                    };
-
-                    let mut name = entry.name.clone();
-                    if is_cursor {
-                        name = format!("<<{}>>", name);
-                    }
-                    if name.chars().count() > name_w {
-                        name.truncate(name_w.saturating_sub(1));
-                        name.push('…');
-                    }
-
-                    spans.push(Span::styled(
-                        marker.to_string(),
-                        Style::default().fg(state.ui.accent),
-                    ));
-                    spans.push(Span::styled(
-                        format!("{:<width$}", name, width = name_w),
-                        name_style,
-                    ));
-                    spans.push(Span::raw(" "));
-                    spans.extend(swatch_spans(&entry.colors, swatch_w));
-                    spans.push(Span::raw(" "));
-                }
-                items.push(ListItem::new(Line::from(spans)));
-            }
-        }
-    }
-
+                    },
+                ),
+                Span::raw(" "),
+            ];
+            spans.extend(swatch_spans(&entry.colors, swatch_w));
+            ListItem::new(Line::from(spans))
+        })
+        .collect();
     f.render_widget(List::new(items), area);
+}
+
+fn clipped_theme_name(name: &str, width: usize) -> String {
+    if name.chars().count() <= width {
+        return name.to_string();
+    }
+    let mut clipped: String = name.chars().take(width.saturating_sub(1)).collect();
+    clipped.push('…');
+    clipped
 }
 
 fn render_search(f: &mut Frame, area: Rect, state: &PickerState) {
@@ -1887,7 +2447,20 @@ fn render_edit(f: &mut Frame, area: Rect, state: &PickerState) {
     f.render_widget(palette, left_chunks[1]);
 
     let mut semantic_lines: Vec<Line> = Vec::new();
-    for (i, name) in SEMANTIC_SLOT_NAMES.iter().enumerate() {
+    let semantic_visible = left_chunks[2].height.saturating_sub(2).max(1) as usize;
+    let selected_semantic = state
+        .edit_slot
+        .saturating_sub(COLOR_SLOT_COUNT)
+        .min(SEMANTIC_SLOT_NAMES.len() - 1);
+    let semantic_scroll = selected_semantic
+        .saturating_add(1)
+        .saturating_sub(semantic_visible);
+    for (i, name) in SEMANTIC_SLOT_NAMES
+        .iter()
+        .enumerate()
+        .skip(semantic_scroll)
+        .take(semantic_visible)
+    {
         semantic_lines.push(Line::from(vec![
             Span::styled(
                 format!("   {:<15}", name),
@@ -1899,7 +2472,11 @@ fn render_edit(f: &mut Frame, area: Rect, state: &PickerState) {
     let semantic = Paragraph::new(semantic_lines).block(
         Block::default()
             .title(Span::styled(
-                " Semantic ",
+                format!(
+                    " Semantic {}/{} ",
+                    selected_semantic + 1,
+                    SEMANTIC_SLOT_NAMES.len()
+                ),
                 Style::default().fg(state.ui.cat_c).bold(),
             ))
             .borders(Borders::ALL)
@@ -1925,6 +2502,7 @@ fn render_semantic_slot<'a>(state: &PickerState, semantic_idx: usize) -> Span<'a
             "false" => "[ ] false".to_string(),
             _ => "[-] (default)".to_string(),
         },
+        "ps1_layout" => format!("[ {} ]", display),
         _ => display.to_string(),
     };
     let is_selected = state.edit_slot == slot;
@@ -2416,7 +2994,7 @@ fn render_wheel(f: &mut Frame, area: Rect, state: &PickerState) {
 
 fn render_help_overlay(f: &mut Frame, area: Rect, state: &PickerState) {
     let width = 56u16.min(area.width.saturating_sub(4));
-    let height = 22u16.min(area.height.saturating_sub(2));
+    let height = 23u16.min(area.height.saturating_sub(2));
     let x = area.x + (area.width.saturating_sub(width)) / 2;
     let y = area.y + (area.height.saturating_sub(height)) / 2;
     let modal_area = Rect::new(x, y, width, height);
@@ -2450,8 +3028,8 @@ fn render_help_overlay(f: &mut Frame, area: Rect, state: &PickerState) {
             " Navigation",
             Style::default().fg(accent).bold(),
         )),
-        h("↑/k  ↓/j", "Move up / down a row"),
-        h("←/h  →/l", "Move left / right a column"),
+        h("↑/k  ↓/j", "Move User grid / Standard controls/results"),
+        h("←/h  →/l", "Move User item / change Standard tab"),
         h("Tab/S-Tab", "Next / previous category"),
         h("PgUp/PgDn", "Page up / down"),
         h("Home/End", "First / last theme"),
@@ -2706,58 +3284,69 @@ mod tests {
     use super::*;
 
     #[test]
-    fn grid_places_every_theme_exactly_once() {
-        let entries = build_entries();
-        let order = build_order(&entries);
-        assert!(!order.is_empty());
+    fn compute_cols_scales_and_clamps() {
+        assert_eq!(compute_cols(20), 1);
+        assert_eq!(compute_cols(60), 2);
+        assert_eq!(compute_cols(95), 2);
+        assert_eq!(compute_cols(400), 2); // capped for readable user-theme rows
+    }
 
-        for cols in 1..=4usize {
-            let (vrows, pos) = build_grid(&entries, &order, cols);
-            assert_eq!(pos.len(), order.len());
+    fn user_entry(name: &str, bg: &str) -> ThemeEntry {
+        let mut colors = default_colors();
+        colors[0] = bg.to_string();
+        ThemeEntry {
+            name: name.to_string(),
+            region: Region::User,
+            colors: Some(colors),
+        }
+    }
 
-            // Collect every order-index that appears in a Themes row.
-            let mut seen = vec![false; order.len()];
-            let mut header_count = 0usize;
-            for (vi, vrow) in vrows.iter().enumerate() {
-                match vrow {
-                    VRow::Header(_) => header_count += 1,
-                    VRow::Themes(row) => {
-                        assert!(row.len() <= cols, "row wider than {cols} cols");
-                        for (c, &oi) in row.iter().enumerate() {
-                            assert!(!seen[oi], "order idx {oi} placed twice");
-                            seen[oi] = true;
-                            // pos must point back to this exact cell.
-                            assert_eq!(pos[oi], (vi, c));
-                        }
-                    }
-                }
-            }
-            assert!(
-                seen.iter().all(|&b| b),
-                "some theme not placed at cols={cols}"
-            );
-            assert!(header_count >= 5, "expected a header per populated region");
+    fn standard_entry(name: &str, bg: &str) -> ThemeEntry {
+        let mut colors = default_colors();
+        colors[0] = bg.to_string();
+        ThemeEntry {
+            name: name.to_string(),
+            region: Region::EditorDark,
+            colors: Some(colors),
         }
     }
 
     #[test]
-    fn compute_cols_scales_and_clamps() {
-        assert_eq!(compute_cols(20), 1);
-        assert_eq!(compute_cols(60), 2);
-        assert_eq!(compute_cols(95), 3);
-        assert_eq!(compute_cols(400), 4); // capped
+    fn user_themes_sort_first_alphabetically() {
+        let entries = vec![
+            standard_entry("builtin", "#111116"),
+            user_entry("z-light", "#E8DDF8"),
+            user_entry("a-dark", "#3B185F"),
+            user_entry("m-black", "#111116"),
+        ];
+
+        let order = build_order(&entries);
+        let names: Vec<&str> = order.iter().map(|&i| entries[i].name.as_str()).collect();
+        assert_eq!(names, vec!["a-dark", "m-black", "z-light", "builtin"]);
+    }
+
+    #[test]
+    fn browse_names_are_capped_at_32_characters() {
+        let short = "solarized-dark";
+        assert_eq!(clipped_theme_name(short, BROWSE_NAME_WIDTH), short);
+
+        let long = "a-theme-name-that-is-much-longer-than-thirty-two-characters";
+        let clipped = clipped_theme_name(long, BROWSE_NAME_WIDTH);
+        assert_eq!(clipped.chars().count(), BROWSE_NAME_WIDTH);
+        assert!(clipped.ends_with('…'));
     }
 
     fn test_state(mode: ViewMode, cols: usize) -> PickerState {
         let entries = build_entries();
         let order = build_order(&entries);
-        let (vrows, pos) = build_grid(&entries, &order, cols);
         PickerState {
             entries,
             order,
-            vrows,
-            pos,
             cols,
+            standard_tone: ThemeTone::Dark,
+            standard_dark_family: None,
+            standard_light_family: None,
+            browse_focus: BrowseFocus::UserThemes,
             mode,
             cursor: 5,
             scroll_offset: 0,
@@ -2783,6 +3372,278 @@ mod tests {
             flash: None,
             ui: compute_ui_colors(&None),
         }
+    }
+
+    #[test]
+    fn standard_tabs_loop_colors_and_remember_each_tone() {
+        let mut state = test_state(ViewMode::Browse, 2);
+        state.entries = vec![
+            user_entry("custom", "#101014"),
+            standard_entry("dark-black", "#101014"),
+            standard_entry("dark-red", "#5F1818"),
+            standard_entry("light-red", "#F8DADA"),
+            standard_entry("light-blue", "#DADFF8"),
+        ];
+        state.standard_tone = ThemeTone::Dark;
+        state.standard_dark_family = Some(BgFamily::Red);
+        state.standard_light_family = None;
+        state.rebuild_grid();
+        select_first_standard_theme(&mut state);
+
+        toggle_standard_tone(&mut state);
+        assert_eq!(state.standard_tone, ThemeTone::Light);
+        assert_eq!(active_standard_family(&state), Some(BgFamily::Red));
+
+        cycle_standard_family(&mut state, 1);
+        assert_eq!(active_standard_family(&state), Some(BgFamily::Blue));
+
+        toggle_standard_tone(&mut state);
+        assert_eq!(state.standard_tone, ThemeTone::Dark);
+        assert_eq!(active_standard_family(&state), Some(BgFamily::Red));
+
+        cycle_standard_family(&mut state, -1);
+        assert_eq!(state.standard_tone, ThemeTone::Dark);
+        assert_eq!(active_standard_family(&state), Some(BgFamily::Black));
+        cycle_standard_family(&mut state, -1);
+        assert_eq!(state.standard_tone, ThemeTone::Light);
+        assert_eq!(active_standard_family(&state), Some(BgFamily::Blue));
+        cycle_standard_family(&mut state, 1);
+        assert_eq!(state.standard_tone, ThemeTone::Dark);
+        assert_eq!(active_standard_family(&state), Some(BgFamily::Black));
+
+        toggle_standard_tone(&mut state);
+        assert_eq!(state.standard_tone, ThemeTone::Light);
+        assert_eq!(active_standard_family(&state), Some(BgFamily::Blue));
+    }
+
+    #[test]
+    fn arrows_cycle_colors_from_results_and_shift_arrows_toggle_tone() {
+        let mut state = test_state(ViewMode::Browse, 2);
+        state.entries = vec![
+            standard_entry("dark-black", "#101014"),
+            standard_entry("dark-red", "#5F1818"),
+            standard_entry("light-red", "#F8DADA"),
+            standard_entry("light-blue", "#DADFF8"),
+        ];
+        state.standard_tone = ThemeTone::Dark;
+        state.standard_dark_family = Some(BgFamily::Red);
+        state.standard_light_family = Some(BgFamily::Blue);
+        state.browse_focus = BrowseFocus::StandardThemes;
+        state.rebuild_grid();
+        select_first_standard_theme(&mut state);
+
+        handle_browse(
+            &mut state,
+            KeyEvent::new(KeyCode::Right, KeyModifiers::NONE),
+        );
+        assert_eq!(state.standard_tone, ThemeTone::Light);
+        assert_eq!(active_standard_family(&state), Some(BgFamily::Red));
+        handle_browse(&mut state, KeyEvent::new(KeyCode::Left, KeyModifiers::NONE));
+        assert_eq!(state.standard_tone, ThemeTone::Dark);
+        assert_eq!(active_standard_family(&state), Some(BgFamily::Red));
+
+        handle_browse(
+            &mut state,
+            KeyEvent::new(KeyCode::Right, KeyModifiers::SHIFT),
+        );
+        assert_eq!(state.standard_tone, ThemeTone::Light);
+        assert_eq!(active_standard_family(&state), Some(BgFamily::Red));
+        assert_eq!(state.browse_focus, BrowseFocus::StandardThemes);
+    }
+
+    #[test]
+    fn tinted_backgrounds_are_grouped_by_actual_hue() {
+        let entries = build_entries();
+        let group = |name: &str| {
+            theme_group(
+                entries
+                    .iter()
+                    .find(|entry| entry.name == name)
+                    .unwrap_or_else(|| panic!("missing built-in theme {name}")),
+            )
+        };
+
+        assert_eq!(group("sage-mist"), (ThemeTone::Light, BgFamily::Green));
+        assert_eq!(group("solarized-dark"), (ThemeTone::Dark, BgFamily::Blue));
+    }
+
+    #[test]
+    fn standard_family_inventory() {
+        let entries = build_entries();
+        let expected = [
+            (
+                ThemeTone::Dark,
+                vec![
+                    BgFamily::Black,
+                    BgFamily::Red,
+                    BgFamily::Orange,
+                    BgFamily::Yellow,
+                    BgFamily::Green,
+                    BgFamily::Cyan,
+                    BgFamily::Blue,
+                    BgFamily::Purple,
+                    BgFamily::Pink,
+                ],
+            ),
+            (
+                ThemeTone::Light,
+                vec![
+                    BgFamily::Gray,
+                    BgFamily::White,
+                    BgFamily::Red,
+                    BgFamily::Orange,
+                    BgFamily::Yellow,
+                    BgFamily::Green,
+                    BgFamily::Cyan,
+                    BgFamily::Blue,
+                    BgFamily::Purple,
+                    BgFamily::Pink,
+                ],
+            ),
+        ];
+
+        for (tone, expected_families) in expected {
+            assert_eq!(standard_families(&entries, tone), expected_families);
+            for family in expected_families {
+                let count = entries
+                    .iter()
+                    .filter(|entry| {
+                        entry.region != Region::User && theme_group(entry) == (tone, family)
+                    })
+                    .count();
+                assert!(
+                    count >= 7,
+                    "{} {} has only {count} standard themes",
+                    tone.label(),
+                    family.label()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn clipped_color_tabs_keep_the_active_family_visible() {
+        let families = vec![
+            BgFamily::Black,
+            BgFamily::Red,
+            BgFamily::Orange,
+            BgFamily::Yellow,
+            BgFamily::Green,
+            BgFamily::Blue,
+            BgFamily::Purple,
+        ];
+
+        for active in 0..families.len() {
+            let (start, end) = family_tab_window(&families, active, 28);
+            assert!(start <= active && active < end);
+            assert!(start < end);
+        }
+    }
+
+    #[test]
+    fn browser_renders_user_grid_then_standard_tabs_and_single_column_results() {
+        use ratatui::backend::TestBackend;
+        use ratatui::Terminal;
+
+        let mut state = test_state(ViewMode::Browse, 2);
+        state.entries = vec![
+            user_entry("custom-dark", "#5F1818"),
+            user_entry("custom-light", "#F8DADA"),
+            standard_entry("std-dark-red", "#5F1818"),
+            standard_entry("std-dark-red-2", "#681C1C"),
+            standard_entry("std-dark-black", "#101014"),
+            standard_entry("std-light-red", "#F8DADA"),
+        ];
+        state.standard_tone = ThemeTone::Dark;
+        state.standard_dark_family = Some(BgFamily::Red);
+        state.standard_light_family = None;
+        state.browse_focus = BrowseFocus::UserThemes;
+        state.rebuild_grid();
+        select_first_user_theme(&mut state);
+
+        let backend = TestBackend::new(100, 20);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal.draw(|frame| ui(frame, &state)).unwrap();
+        let rendered: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect();
+
+        assert!(rendered.contains("User Themes"));
+        assert!(rendered.contains("custom-dark"));
+        assert!(rendered.contains("custom-light"));
+        assert!(rendered.contains("STANDARD THEMES"));
+        assert!(rendered.contains("[Dark]"));
+        assert!(rendered.contains("[Light]"));
+        assert!(rendered.contains("[Red]"));
+        assert!(!rendered.contains("[X"));
+        assert!(!rendered.contains("[x"));
+        assert!(rendered.contains("std-dark-red"));
+        assert!(!rendered.contains("std-light-red"));
+
+        let buffer = terminal.backend().buffer();
+        let rows: Vec<String> = (0..buffer.area.height)
+            .map(|y| {
+                (0..buffer.area.width)
+                    .map(|x| buffer[(x, y)].symbol())
+                    .collect()
+            })
+            .collect();
+        let first_row = rows
+            .iter()
+            .position(|row| row.contains("std-dark-red "))
+            .unwrap();
+        let second_row = rows
+            .iter()
+            .position(|row| row.contains("std-dark-red-2"))
+            .unwrap();
+        assert_ne!(
+            first_row, second_row,
+            "filtered standard themes must render one per row"
+        );
+    }
+
+    #[test]
+    fn down_navigation_moves_from_user_grid_into_standard_controls_and_results() {
+        let mut state = test_state(ViewMode::Browse, 2);
+        state.entries = vec![
+            user_entry("custom-a", "#5F1818"),
+            user_entry("custom-b", "#681C1C"),
+            user_entry("custom-c", "#101014"),
+            standard_entry("std-dark-red", "#5F1818"),
+            standard_entry("std-dark-red-2", "#681C1C"),
+            standard_entry("std-light-red", "#F8DADA"),
+        ];
+        state.standard_tone = ThemeTone::Dark;
+        state.standard_dark_family = Some(BgFamily::Red);
+        state.standard_light_family = None;
+        state.browse_focus = BrowseFocus::UserThemes;
+        state.rebuild_grid();
+        select_first_user_theme(&mut state);
+
+        let down = KeyEvent::new(KeyCode::Down, KeyModifiers::NONE);
+        handle_browse(&mut state, down);
+        assert_eq!(state.current_name(), "custom-c");
+        handle_browse(&mut state, down);
+        assert_eq!(state.browse_focus, BrowseFocus::StandardHeader);
+        handle_browse(&mut state, down);
+        assert_eq!(state.browse_focus, BrowseFocus::Tone);
+        handle_browse(&mut state, down);
+        assert_eq!(state.browse_focus, BrowseFocus::Color);
+        handle_browse(&mut state, down);
+        assert_eq!(state.browse_focus, BrowseFocus::StandardThemes);
+        assert_eq!(state.current_name(), "std-dark-red");
+        handle_browse(&mut state, down);
+        assert_eq!(state.current_name(), "std-dark-red-2");
+
+        let up = KeyEvent::new(KeyCode::Up, KeyModifiers::NONE);
+        handle_browse(&mut state, up);
+        assert_eq!(state.current_name(), "std-dark-red");
+        handle_browse(&mut state, up);
+        assert_eq!(state.browse_focus, BrowseFocus::Color);
     }
 
     #[test]

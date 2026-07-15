@@ -24,6 +24,35 @@ source "${_tabbing_root}/lib/theme-data.sh"
 source "${_tabbing_root}/lib/dc.sh"
 export TABBING_ROOT="${_tabbing_root}"
 
+if [[ -z "${_TABBING_ORIGINAL_PS1+x}" ]]; then
+  _TABBING_ORIGINAL_PS1="${PS1:-}"
+fi
+
+_tabbing_set_prompt_layout() {
+  local layout="${1:-}" custom="${2:-}"
+  if [[ -n "$custom" ]]; then
+    PS1="$custom"
+    return
+  fi
+  case "$layout" in
+    ""|default) PS1="$_TABBING_ORIGINAL_PS1" ;;
+    minimal) PS1='%1~ %# ' ;;
+    compact) PS1='%n@%m %1~ %# ' ;;
+    full) PS1='%n@%m:%~ %# ' ;;
+    two-line) PS1=$'%n@%m %~\n%# ' ;;
+    git)
+      setopt prompt_subst
+      PS1='%1~$(git branch --show-current 2>/dev/null | sed "s/^/  /") %# '
+      ;;
+    tab-status)
+      setopt prompt_subst
+      PS1='$(_tabbing_get_indicator) ${TAB_TITLE:-tab}${TAB_STATUS:+: $TAB_STATUS}  %1~ %# '
+      ;;
+    custom) PS1="$_TABBING_ORIGINAL_PS1" ;;
+    *) PS1="$_TABBING_ORIGINAL_PS1" ;;
+  esac
+}
+
 # Capture the interactive shell's TTY early so the dc daemon can use it
 if [ -z "${TABBING_TTY:-}" ]; then
   TABBING_TTY="$(tty 2>/dev/null)" || TABBING_TTY="/dev/tty"
@@ -99,7 +128,7 @@ unset -f _tabbing_install_ssh_shim 2>/dev/null
 # ---------------------------------------------------------------------------
 if [ "${_TABBING_OWNER_PID:-}" != "$$" ]; then
   unset TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE \
-        TAB_URGENCY TAB_EMOJI TAB_BG TAB_THEME TAB_THEME_DATA TAB_ID TAB_MARQUEE \
+        TAB_URGENCY TAB_EMOJI TAB_BG TAB_THEME TAB_THEME_DATA TAB_PS1_LAYOUT TAB_PS1_CUSTOM TAB_ID TAB_MARQUEE \
         _TABBING_WAS_ACTIVE 2>/dev/null
   unset DC_TAB_NS 2>/dev/null
   TAB_SESSION=""
@@ -715,6 +744,26 @@ tabbing-doctor() {
 
 tabbing-theme() {
   command tabbing-theme "$@"
+  local rc=$?
+  [[ $rc -eq 0 ]] || return $rc
+  case "${1:-pick}" in
+    pick|select|apply|reset|clear|"") ;;
+    list|ls|layouts|preview|clone|copy|edit|delete|rm|export|save|envrc|help|--help|-h|get|set|emit|gen-ramp|x11) return 0 ;;
+    *) ;;
+  esac
+  local _sf="${XDG_STATE_HOME:-$HOME/.local/state}/tabbing/sessions/${TAB_SESSION:-}.env"
+  local _theme=""
+  [[ -f "$_sf" ]] && _theme="$(sed -n 's/^TAB_THEME=//p' "$_sf" | tail -n 1)"
+  _theme="${_theme#\'}"; _theme="${_theme%\'}"
+  _theme="${_theme#\"}"; _theme="${_theme%\"}"
+  TAB_THEME="$_theme"
+  export TAB_THEME
+  if [[ -n "$TAB_THEME" ]]; then
+    _tabbing_apply_named_theme "$TAB_THEME" 2>/dev/null
+  else
+    _tabbing_apply_theme_prompt ""
+  fi
+  return 0
 }
 
 # ---------------------------------------------------------------------------

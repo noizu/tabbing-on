@@ -13,12 +13,54 @@ pub struct ThemeSemantics {
     pub urgency_styles: [String; 6],
     pub cursor_style: String,
     pub cursor_blink: Option<bool>,
+    pub ps1_layout: String,
+    pub ps1: String,
 }
 
 // ============================================================================
 // Theme data: 19 hex values per theme
 // Index layout: [bg, fg, cursor, color0..color15]
 // ============================================================================
+
+macro_rules! expanded_dark_theme {
+    ($name:literal, $bg:literal, aurora) => { expanded_dark_theme!(@palette $name, $bg, "#E06C75", "#98C379", "#61AFEF", "#C678DD", "#56B6C2") };
+    ($name:literal, $bg:literal, neon) => { expanded_dark_theme!(@palette $name, $bg, "#FF5F87", "#87D75F", "#5F87FF", "#D75FFF", "#5FD7D7") };
+    ($name:literal, $bg:literal, earth) => { expanded_dark_theme!(@palette $name, $bg, "#D16D5B", "#7D9B5A", "#5B82A8", "#9B6B91", "#5B9A91") };
+    ($name:literal, $bg:literal, pastel) => { expanded_dark_theme!(@palette $name, $bg, "#F38BA8", "#A6E3A1", "#89B4FA", "#F5C2E7", "#94E2D5") };
+    ($name:literal, $bg:literal, jewel) => { expanded_dark_theme!(@palette $name, $bg, "#D64C4C", "#4FAE72", "#4169B1", "#9B59B6", "#2AA198") };
+    ($name:literal, $bg:literal, muted) => { expanded_dark_theme!(@palette $name, $bg, "#BF616A", "#A3BE8C", "#81A1C1", "#B48EAD", "#88C0D0") };
+    ($name:literal, $bg:literal, vivid) => { expanded_dark_theme!(@palette $name, $bg, "#FF5555", "#50FA7B", "#6C8CFF", "#FF79C6", "#8BE9FD") };
+    (@palette $name:literal, $bg:literal, $red:literal, $green:literal, $blue:literal, $magenta:literal, $cyan:literal) => {
+        (
+            $name,
+            &[
+                $bg, "#E6E8EC", $blue, "#111318", $red, $green, "#E5C07B", $blue, $magenta,
+                $cyan, "#ABB2BF", "#4B5263", $red, $green, "#F2D18A", $blue, $magenta, $cyan,
+                "#F4F6F8",
+            ],
+        )
+    };
+}
+
+macro_rules! expanded_light_theme {
+    ($name:literal, $bg:literal, classic) => { expanded_light_theme!(@palette $name, $bg, "#B33A3A", "#347A3A", "#315F9E", "#7A3E8E", "#24777D") };
+    ($name:literal, $bg:literal, ink) => { expanded_light_theme!(@palette $name, $bg, "#A8324A", "#3F7D32", "#315FA8", "#884A92", "#277E86") };
+    ($name:literal, $bg:literal, earth) => { expanded_light_theme!(@palette $name, $bg, "#9E493C", "#5E7139", "#426789", "#76536F", "#3D746D") };
+    ($name:literal, $bg:literal, pastel) => { expanded_light_theme!(@palette $name, $bg, "#A84461", "#4D824A", "#426CA8", "#8B5483", "#387A73") };
+    ($name:literal, $bg:literal, jewel) => { expanded_light_theme!(@palette $name, $bg, "#A52F35", "#2D754B", "#355C9A", "#70408A", "#1F747D") };
+    ($name:literal, $bg:literal, muted) => { expanded_light_theme!(@palette $name, $bg, "#8F4A50", "#5F714D", "#526B82", "#715A70", "#4E777A") };
+    ($name:literal, $bg:literal, vivid) => { expanded_light_theme!(@palette $name, $bg, "#B62032", "#277A36", "#245FAD", "#873596", "#147980") };
+    (@palette $name:literal, $bg:literal, $red:literal, $green:literal, $blue:literal, $magenta:literal, $cyan:literal) => {
+        (
+            $name,
+            &[
+                $bg, "#252A34", $blue, "#E3E5E8", $red, $green, "#9A6A12", $blue, $magenta,
+                $cyan, "#3F4652", "#BEC2C8", $red, $green, "#AD7B20", $blue, $magenta, $cyan,
+                "#171B22",
+            ],
+        )
+    };
+}
 
 /// Each entry is (name, &[bg, fg, cursor, c0..c15]).
 pub const BUILTIN_THEMES: &[(&str, &[&str; 19])] = &[
@@ -660,6 +702,79 @@ pub const BUILTIN_THEMES: &[(&str, &[&str; 19])] = &[
             "#B090D0", "#70C0C0", "#E0E8F0",
         ],
     ),
+    // --- Expanded Dark · every displayed family has at least seven themes ---
+    expanded_dark_theme!("obsidian-ink", "#121212", aurora),
+    expanded_dark_theme!("carbon-night", "#202124", neon),
+    expanded_dark_theme!("garnet-night", "#3B1118", earth),
+    expanded_dark_theme!("oxblood", "#45151B", pastel),
+    expanded_dark_theme!("ember-red", "#321018", jewel),
+    expanded_dark_theme!("burnt-sienna", "#3A1D0D", muted),
+    expanded_dark_theme!("copper-night", "#44200F", vivid),
+    expanded_dark_theme!("russet-glow", "#2F190D", aurora),
+    expanded_dark_theme!("cedar-ember", "#4A2612", neon),
+    expanded_dark_theme!("brass-night", "#332A0C", earth),
+    expanded_dark_theme!("ochre-night", "#3A300E", pastel),
+    expanded_dark_theme!("mustard-shadow", "#403510", jewel),
+    expanded_dark_theme!("antique-gold", "#2E270C", muted),
+    expanded_dark_theme!("saffron-night", "#483B12", vivid),
+    expanded_dark_theme!("wheat-shadow", "#382E0A", aurora),
+    expanded_dark_theme!("pine-needle", "#12351F", neon),
+    expanded_dark_theme!("moss-cavern", "#183D24", earth),
+    expanded_dark_theme!("deep-lagoon", "#0B3434", pastel),
+    expanded_dark_theme!("cyanotype", "#103B3B", jewel),
+    expanded_dark_theme!("petrol-glass", "#123232", muted),
+    expanded_dark_theme!("tidal-cave", "#0E4040", vivid),
+    expanded_dark_theme!("verdigris-night", "#173A3A", aurora),
+    expanded_dark_theme!("harbor-teal", "#124848", neon),
+    expanded_dark_theme!("amethyst-night", "#25133F", earth),
+    expanded_dark_theme!("aubergine", "#30154A", pastel),
+    expanded_dark_theme!("royal-plum", "#281440", jewel),
+    expanded_dark_theme!("orchid-shadow", "#361750", muted),
+    expanded_dark_theme!("grape-ink", "#211038", vivid),
+    expanded_dark_theme!("mulberry-night", "#3D1235", aurora),
+    expanded_dark_theme!("raspberry-ink", "#45153A", neon),
+    expanded_dark_theme!("fuchsia-shadow", "#34102D", earth),
+    expanded_dark_theme!("wine-rose", "#4A183F", pastel),
+    // --- Expanded Light · every displayed family has at least seven themes ---
+    expanded_light_theme!("pearl-gray", "#D0D0D0", classic),
+    expanded_light_theme!("silver-mist", "#C4C6C5", ink),
+    expanded_light_theme!("dove-gray", "#D4D2D3", earth),
+    expanded_light_theme!("cloud-gray", "#BFC1C0", pastel),
+    expanded_light_theme!("ash-paper", "#D8D6D7", jewel),
+    expanded_light_theme!("stonewash", "#CAC8C9", muted),
+    expanded_light_theme!("rosewater", "#F3C7CC", vivid),
+    expanded_light_theme!("cherry-blossom", "#EBC0C5", classic),
+    expanded_light_theme!("shell-pink", "#F6D0D4", ink),
+    expanded_light_theme!("adobe-blush", "#E7B8BE", earth),
+    expanded_light_theme!("watermelon-milk", "#F1C2C8", pastel),
+    expanded_light_theme!("parchment-gold", "#F2E8B8", jewel),
+    expanded_light_theme!("buttercream", "#EDE2AC", muted),
+    expanded_light_theme!("primrose", "#F7EDC4", vivid),
+    expanded_light_theme!("mint-paper", "#CDE8D2", classic),
+    expanded_light_theme!("eucalyptus-mist", "#C2E3CA", ink),
+    expanded_light_theme!("fern-frost", "#D5EDD8", earth),
+    expanded_light_theme!("pistachio-cream", "#B8DEC2", pastel),
+    expanded_light_theme!("aqua-mist", "#BFE8E8", jewel),
+    expanded_light_theme!("glacier-water", "#C8EEEE", muted),
+    expanded_light_theme!("robin-egg", "#B5E0E0", vivid),
+    expanded_light_theme!("ice-cyan", "#D0F2F2", classic),
+    expanded_light_theme!("sea-glass", "#BCE3E3", ink),
+    expanded_light_theme!("lagoon-mist", "#C5E7E7", earth),
+    expanded_light_theme!("powder-blue", "#C7DAF2", pastel),
+    expanded_light_theme!("cornflower-mist", "#BDD3EE", jewel),
+    expanded_light_theme!("winter-sky", "#D0DDF3", muted),
+    expanded_light_theme!("periwinkle-cloud", "#B8CDEA", vivid),
+    expanded_light_theme!("lilac-paper", "#DDCEF2", classic),
+    expanded_light_theme!("wisteria-mist", "#D7C4ED", ink),
+    expanded_light_theme!("orchid-frost", "#E3D5F5", earth),
+    expanded_light_theme!("mauve-cloud", "#D1BCE8", pastel),
+    expanded_light_theme!("violet-cream", "#E8DCF6", jewel),
+    expanded_light_theme!("peony-mist", "#F0C8E5", muted),
+    expanded_light_theme!("candy-floss", "#EBC0DD", vivid),
+    expanded_light_theme!("sakura-pink", "#F5D0E9", classic),
+    expanded_light_theme!("orchid-pink", "#E8B8D8", ink),
+    expanded_light_theme!("ballet-slipper", "#F2C3E2", earth),
+    expanded_light_theme!("rose-lilac", "#EFCFE5", pastel),
 ];
 
 /// Theme aliases: (alias_name, canonical_name)
@@ -675,6 +790,16 @@ pub struct ThemeCategory {
     pub label: &'static str,
     pub kind: &'static str,    // "editor", "chromatic", "semantic"
     pub variant: &'static str, // "dark", "light"
+}
+
+macro_rules! expanded_theme_meta {
+    ($label:literal, $variant:literal) => {
+        ThemeCategory {
+            label: $label,
+            kind: "chromatic",
+            variant: $variant,
+        }
+    };
 }
 
 /// Map each built-in theme to its category. Order matches BUILTIN_THEMES.
@@ -1080,6 +1205,77 @@ pub const THEME_META: &[ThemeCategory] = &[
         kind: "semantic",
         variant: "dark",
     },
+    expanded_theme_meta!("obsidian-ink", "dark"),
+    expanded_theme_meta!("carbon-night", "dark"),
+    expanded_theme_meta!("garnet-night", "dark"),
+    expanded_theme_meta!("oxblood", "dark"),
+    expanded_theme_meta!("ember-red", "dark"),
+    expanded_theme_meta!("burnt-sienna", "dark"),
+    expanded_theme_meta!("copper-night", "dark"),
+    expanded_theme_meta!("russet-glow", "dark"),
+    expanded_theme_meta!("cedar-ember", "dark"),
+    expanded_theme_meta!("brass-night", "dark"),
+    expanded_theme_meta!("ochre-night", "dark"),
+    expanded_theme_meta!("mustard-shadow", "dark"),
+    expanded_theme_meta!("antique-gold", "dark"),
+    expanded_theme_meta!("saffron-night", "dark"),
+    expanded_theme_meta!("wheat-shadow", "dark"),
+    expanded_theme_meta!("pine-needle", "dark"),
+    expanded_theme_meta!("moss-cavern", "dark"),
+    expanded_theme_meta!("deep-lagoon", "dark"),
+    expanded_theme_meta!("cyanotype", "dark"),
+    expanded_theme_meta!("petrol-glass", "dark"),
+    expanded_theme_meta!("tidal-cave", "dark"),
+    expanded_theme_meta!("verdigris-night", "dark"),
+    expanded_theme_meta!("harbor-teal", "dark"),
+    expanded_theme_meta!("amethyst-night", "dark"),
+    expanded_theme_meta!("aubergine", "dark"),
+    expanded_theme_meta!("royal-plum", "dark"),
+    expanded_theme_meta!("orchid-shadow", "dark"),
+    expanded_theme_meta!("grape-ink", "dark"),
+    expanded_theme_meta!("mulberry-night", "dark"),
+    expanded_theme_meta!("raspberry-ink", "dark"),
+    expanded_theme_meta!("fuchsia-shadow", "dark"),
+    expanded_theme_meta!("wine-rose", "dark"),
+    expanded_theme_meta!("pearl-gray", "light"),
+    expanded_theme_meta!("silver-mist", "light"),
+    expanded_theme_meta!("dove-gray", "light"),
+    expanded_theme_meta!("cloud-gray", "light"),
+    expanded_theme_meta!("ash-paper", "light"),
+    expanded_theme_meta!("stonewash", "light"),
+    expanded_theme_meta!("rosewater", "light"),
+    expanded_theme_meta!("cherry-blossom", "light"),
+    expanded_theme_meta!("shell-pink", "light"),
+    expanded_theme_meta!("adobe-blush", "light"),
+    expanded_theme_meta!("watermelon-milk", "light"),
+    expanded_theme_meta!("parchment-gold", "light"),
+    expanded_theme_meta!("buttercream", "light"),
+    expanded_theme_meta!("primrose", "light"),
+    expanded_theme_meta!("mint-paper", "light"),
+    expanded_theme_meta!("eucalyptus-mist", "light"),
+    expanded_theme_meta!("fern-frost", "light"),
+    expanded_theme_meta!("pistachio-cream", "light"),
+    expanded_theme_meta!("aqua-mist", "light"),
+    expanded_theme_meta!("glacier-water", "light"),
+    expanded_theme_meta!("robin-egg", "light"),
+    expanded_theme_meta!("ice-cyan", "light"),
+    expanded_theme_meta!("sea-glass", "light"),
+    expanded_theme_meta!("lagoon-mist", "light"),
+    expanded_theme_meta!("powder-blue", "light"),
+    expanded_theme_meta!("cornflower-mist", "light"),
+    expanded_theme_meta!("winter-sky", "light"),
+    expanded_theme_meta!("periwinkle-cloud", "light"),
+    expanded_theme_meta!("lilac-paper", "light"),
+    expanded_theme_meta!("wisteria-mist", "light"),
+    expanded_theme_meta!("orchid-frost", "light"),
+    expanded_theme_meta!("mauve-cloud", "light"),
+    expanded_theme_meta!("violet-cream", "light"),
+    expanded_theme_meta!("peony-mist", "light"),
+    expanded_theme_meta!("candy-floss", "light"),
+    expanded_theme_meta!("sakura-pink", "light"),
+    expanded_theme_meta!("orchid-pink", "light"),
+    expanded_theme_meta!("ballet-slipper", "light"),
+    expanded_theme_meta!("rose-lilac", "light"),
 ];
 
 // ============================================================================
@@ -1326,6 +1522,10 @@ pub fn load_user_theme_semantics(name: &str) -> ThemeSemantics {
         return ThemeSemantics::default();
     };
 
+    parse_theme_semantics(&contents)
+}
+
+fn parse_theme_semantics(contents: &str) -> ThemeSemantics {
     let mut semantics = ThemeSemantics::default();
 
     for line in contents.lines() {
@@ -1337,7 +1537,14 @@ pub fn load_user_theme_semantics(name: &str) -> ThemeSemantics {
             continue;
         };
         let key = key.trim();
-        let val = semantic_value(raw_val);
+        let val = if matches!(key, "ps1" | "prompt" | "prompt_template") {
+            raw_val
+                .trim()
+                .trim_matches(|c| c == '"' || c == '\'')
+                .to_string()
+        } else {
+            semantic_value(raw_val)
+        };
         if val.is_empty() {
             continue;
         }
@@ -1352,6 +1559,12 @@ pub fn load_user_theme_semantics(name: &str) -> ThemeSemantics {
                     "0" | "false" | "no" | "off" => Some(false),
                     _ => None,
                 };
+            }
+            "ps1_layout" | "prompt_layout" => {
+                semantics.ps1_layout = val;
+            }
+            "ps1" | "prompt" | "prompt_template" => {
+                semantics.ps1 = val;
             }
             "highlight" | "title" | "title_color" | "title_fg" => {
                 append_style_slot(&mut semantics.title_style, &val);
@@ -1675,5 +1888,15 @@ mod tests {
         assert_eq!(cursor_style_code("blinking_beam", Some(false)), Some(5));
         assert_eq!(cursor_style_code("steady_underline", Some(true)), Some(4));
         assert_eq!(cursor_style_code("hollow-block", None), None);
+    }
+
+    #[test]
+    fn test_parse_theme_ps1_layout_and_custom_prompt() {
+        let semantics = parse_theme_semantics(
+            "ps1_layout=git\nps1='[%n] %~ # custom prompt'\ntitle_style=bold blue\n",
+        );
+        assert_eq!(semantics.ps1_layout, "git");
+        assert_eq!(semantics.ps1, "[%n] %~ # custom prompt");
+        assert_eq!(semantics.title_style, "bold blue");
     }
 }

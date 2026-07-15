@@ -85,18 +85,22 @@ pub fn display(state: &TabState) {
         format!("{} ", dot)
     };
 
+    if state.title.is_empty() && state.status.is_empty() && dot.is_empty() {
+        return;
+    }
+
     let title_text = if state.title.is_empty() {
-        "(not set)".to_string()
+        String::new()
     } else {
         state.title.clone()
     };
 
     if state.status.is_empty() {
-        println!("{}{}{}", tc, title_text, reset);
+        println!("{}{}{}{}", dot_prefix, tc, title_text, reset);
     } else {
         println!(
-            "{}{}{}: {}{}{}{}",
-            tc, title_text, reset, dot_prefix, sc, state.status, reset
+            "{}{}{}{}: {}{}{}",
+            dot_prefix, tc, title_text, reset, sc, state.status, reset
         );
     }
 }
@@ -138,18 +142,22 @@ pub fn display_stderr(state: &TabState) {
         format!("{} ", dot)
     };
 
+    if state.title.is_empty() && state.status.is_empty() && dot.is_empty() {
+        return;
+    }
+
     let title_text = if state.title.is_empty() {
-        "(not set)".to_string()
+        String::new()
     } else {
         state.title.clone()
     };
 
     if state.status.is_empty() {
-        eprintln!("{}{}{}", tc, title_text, reset);
+        eprintln!("{}{}{}{}", dot_prefix, tc, title_text, reset);
     } else {
         eprintln!(
-            "{}{}{}: {}{}{}{}",
-            tc, title_text, reset, dot_prefix, sc, state.status, reset
+            "{}{}{}{}: {}{}{}",
+            dot_prefix, tc, title_text, reset, sc, state.status, reset
         );
     }
 }

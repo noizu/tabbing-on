@@ -1456,6 +1456,17 @@ fn cmd_tabbing_theme() {
             theme_picker::run_picker();
         }
         "list" | "ls" => theme::theme_list(),
+        "layouts" | "ps1-layouts" => {
+            println!("Standard PS1 layouts:");
+            println!("  default     Restore the shell's original prompt");
+            println!("  minimal     Current directory and prompt character");
+            println!("  compact     user@host, short directory, prompt character");
+            println!("  full        user@host and full working directory");
+            println!("  two-line    Identity/path above a clean input line");
+            println!("  git         Short directory with the current Git branch");
+            println!("  tab-status  tabbing-on title/status plus working directory");
+            println!("  custom      Use the theme's ps1= value");
+        }
         "apply" => {
             if args.len() < 2 {
                 eprintln!("Usage: tabbing-theme apply <name>");
@@ -1539,6 +1550,7 @@ fn cmd_tabbing_theme() {
             println!("  tabbing-theme               Interactive theme picker");
             println!("  tabbing-theme <name>         Apply a theme by name");
             println!("  tabbing-theme list           List all available themes");
+            println!("  tabbing-theme layouts        List standard PS1 layouts");
             println!("  tabbing-theme apply <name>   Apply a theme");
             println!("  tabbing-theme preview <name> Preview a theme");
             println!("  tabbing-theme clone <src> <name>  Clone to user themes");
@@ -1549,7 +1561,8 @@ fn cmd_tabbing_theme() {
             println!("  tabbing-theme reset          Clear theme, restore defaults");
             println!();
             println!("Interactive picker keys:");
-            println!("  ↑↓←→/hjkl   Navigate (columns + categories)");
+            println!("  ↑↓/jk       Move User grid / Standard controls and results");
+            println!("  ←→/hl       Move User item / change focused Standard tab");
             println!("  /            Search/filter themes by name");
             println!("  Enter        Apply selected theme");
             println!("  c            Clone selected theme");

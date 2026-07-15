@@ -962,6 +962,13 @@ _tabbing_render() {
 # Internal: colored console display of current state
 # ---------------------------------------------------------------------------
 _tabbing_display() {
+  # An entirely empty state has nothing useful to display. Check before theme
+  # helpers because shell-global helpers may themselves write diagnostic text.
+  if [ -z "${TAB_TITLE:-}" ] && [ -z "${TAB_STATUS:-}" ] && \
+     [ -z "${TAB_EMOJI:-}" ] && [ -z "${TAB_URGENCY:-}" ]; then
+    return 0
+  fi
+
   local reset
   reset="$(printf '\033[0m')"
 
@@ -1003,10 +1010,10 @@ _tabbing_display() {
     dot="$dot "
   fi
 
-  local title_text="${TAB_TITLE:-(not set)}"
-  local line="${tc}${title_text}${reset}"
+  local title_text="${TAB_TITLE:-}"
+  local line="${dot}${tc}${title_text}${reset}"
   if [ -n "${TAB_STATUS:-}" ]; then
-    line="${line}: ${dot}${sc}${TAB_STATUS}${reset}"
+    line="${line}: ${sc}${TAB_STATUS}${reset}"
   fi
 
   printf '%s\n' "$line"
@@ -1479,6 +1486,32 @@ _tabbing_theme_dir() {
   echo "${XDG_CONFIG_HOME:-$HOME/.config}/tabbing-on/themes"
 }
 
+# Apply per-theme prompt metadata. The shell adapters provide
+# _tabbing_set_prompt_layout because Bash and Zsh use different PS1 syntax.
+_tabbing_apply_theme_prompt() {
+  local name="${1:-}" layout="" custom="" file=""
+  [ -n "$name" ] && file="$(_tabbing_theme_dir)/${name}.theme"
+  if [ -f "$file" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in \#*|"") continue ;; esac
+      local key="${line%%=*}"
+      local value="${line#*=}"
+      key="$(printf '%s' "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+      value="$(printf '%s' "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^['"'"']//;s/['"'"']$//')"
+      case "$key" in
+        ps1_layout|prompt_layout) layout="$value" ;;
+        ps1|prompt|prompt_template) custom="$value" ;;
+      esac
+    done < "$file"
+  fi
+  TAB_PS1_LAYOUT="$layout"
+  TAB_PS1_CUSTOM="$custom"
+  export TAB_PS1_LAYOUT TAB_PS1_CUSTOM
+  if command -v _tabbing_set_prompt_layout >/dev/null 2>&1; then
+    _tabbing_set_prompt_layout "$layout" "$custom"
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # Load and apply a user-defined .theme file
 # File format (key=value, one per line, # comments):
@@ -1625,6 +1658,7 @@ _tabbing_load_user_theme() {
     *) [ -n "$status_style" ] && export TAB_STATUS_STYLE="$status_style" ;;
   esac
   [ -z "${TAB_STATUS_STYLE:-}" ] && [ -n "$status_style" ] && export TAB_STATUS_STYLE="$status_style"
+  _tabbing_apply_theme_prompt "$name"
   return 0
 }
 
@@ -1638,7 +1672,10 @@ _tabbing_load_user_theme() {
 _tabbing_apply_named_theme() {
   # Try a saved line-indexed blob (.themedata) first, then a .theme file
   if command -v _tabbing_load_theme_data >/dev/null 2>&1; then
-    _tabbing_load_theme_data "$1" 2>/dev/null && return 0
+    if _tabbing_load_theme_data "$1" 2>/dev/null; then
+      _tabbing_apply_theme_prompt "$1"
+      return 0
+    fi
   fi
   _tabbing_load_user_theme "$1" 2>/dev/null && return 0
 
@@ -2241,6 +2278,7 @@ _tabbing_apply_named_theme() {
       return 1
       ;;
   esac
+  _tabbing_apply_theme_prompt ""
   return 0
 }
 

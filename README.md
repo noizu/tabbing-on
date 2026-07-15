@@ -241,6 +241,8 @@ tabbing-doctor
 
 Full terminal recoloring via OSC escape sequences. Themes set the background, foreground, cursor color, and the entire 16-color palette. Works on Ghostty, iTerm2, Kitty, WezTerm, xterm, and any terminal supporting OSC 4/10/11/12.
 
+The interactive picker groups standard themes by background hue. Every displayed Dark and Light color family contains at least seven palettes; expanded themes rotate through distinct Aurora, Neon, Earth, Pastel, Jewel, Muted, and Vivid ANSI color systems.
+
 ```bash
 tabbing-on "Deploy" --theme=catppuccin         # apply theme
 tabbing-on "Prod" --theme=danger               # semantic theme for production
@@ -332,9 +334,18 @@ warning_style = bright-yellow
 attention_style = yellow
 success_style = bright-green
 muted_style = dim bright-black
+
+# Optional shell prompt. Choose a standard layout, or set a literal PS1.
+ps1_layout = git
+# ps1_layout = custom
+# ps1 = '%n@%m %~ %# '
 ```
 
-Only `bg` and `fg` are required — a minimal two-line theme file works fine. User themes override built-in themes of the same name. If `cursor_style` or `cursor_blink` are unset, tabbing leaves the terminal default alone and the editor shows `(default)`. `cursor_style` accepts `default`, `block`, `bar`/`beam`, `underline`, `steady-*`, `blinking-*`; `cursor_blink` accepts `true`/`false`. Semantic styles accept ANSI color/effect tokens: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `bright-*`, `bold`, `dim`, `italic`, `underline`, `blink`, `inverse`, `strikethrough`, and background tokens like `bg-black`. See `examples/themes/` for templates.
+Only `bg` and `fg` are required — a minimal two-line theme file works fine. User themes override built-in themes of the same name. If `cursor_style` or `cursor_blink` are unset, tabbing leaves the terminal default alone and the editor shows `(default)`. `cursor_style` accepts `default`, `block`, `bar`/`beam`, `underline`, `steady-*`, `blinking-*`; `cursor_blink` accepts `true`/`false`. Semantic styles accept ANSI color/effect tokens: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `bright-*`, `bold`, `dim`, `italic`, `underline`, `blink`, `inverse`, `strikethrough`, and background tokens like `bg-black`.
+
+`ps1_layout` accepts `default`, `minimal`, `compact`, `full`, `two-line`, `git`, `tab-status`, or `custom`. Run `tabbing-theme layouts` for the catalog. A non-empty `ps1` value is treated as the theme's custom prompt and takes precedence over the named layout. Switching to a theme without prompt metadata restores the prompt that existed when tabbing-on initialized.
+
+See `examples/themes/` for templates.
 
 ## Background Colors
 

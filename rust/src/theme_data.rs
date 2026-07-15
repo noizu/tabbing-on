@@ -163,7 +163,9 @@ fn x11_data_path() -> Option<PathBuf> {
             candidates.push(PathBuf::from(root).join("data/colors.txt"));
         }
     }
-    let xdg = std::env::var("XDG_DATA_HOME").ok().filter(|s| !s.is_empty());
+    let xdg = std::env::var("XDG_DATA_HOME")
+        .ok()
+        .filter(|s| !s.is_empty());
     let base = match xdg {
         Some(x) => PathBuf::from(x),
         None => {
@@ -173,9 +175,8 @@ fn x11_data_path() -> Option<PathBuf> {
     };
     candidates.push(base.join("tabbing-on/data/colors.txt"));
     // relative to the crate (in-repo layout): ../shell-impl/data/colors.txt
-    candidates.push(
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../shell-impl/data/colors.txt"),
-    );
+    candidates
+        .push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../shell-impl/data/colors.txt"));
 
     candidates.into_iter().find(|p| p.is_file())
 }
@@ -253,9 +254,8 @@ pub fn gen_ramp(from: &str, to: &str, steps: usize) -> Vec<String> {
     let mut out = Vec::with_capacity(n);
     for i in 0..n {
         let frac = i as f64 / (n - 1) as f64;
-        let lerp = |a: u16, b: u16| -> u16 {
-            (a as f64 + (b as f64 - a as f64) * frac + 0.5) as u16
-        };
+        let lerp =
+            |a: u16, b: u16| -> u16 { (a as f64 + (b as f64 - a as f64) * frac + 0.5) as u16 };
         out.push(format!(
             "#{:02X}{:02X}{:02X}",
             lerp(ar, br),
@@ -348,7 +348,10 @@ pub fn emit_bg_seq(color: &str) -> String {
 /// Mirrors the shell `_tabbing_cursor_style_code` mapping.
 pub fn cursor_style_code(style: &str, blink: &str) -> Option<u8> {
     let s = style.trim().to_ascii_lowercase().replace('_', "-");
-    let steady = matches!(blink.trim().to_ascii_lowercase().as_str(), "false" | "0" | "no" | "off");
+    let steady = matches!(
+        blink.trim().to_ascii_lowercase().as_str(),
+        "false" | "0" | "no" | "off"
+    );
     match s.as_str() {
         "" => None,
         "default" => Some(0),
@@ -566,8 +569,11 @@ mod tests {
         assert!(seq.contains("]11;#1e1e2e\u{7}"));
         assert!(seq.contains("]10;#cdd6f4\u{7}"));
         assert!(!seq.contains("]17;")); // selection only in --all
-        // --all: includes selection (OSC 17) + cursor shape (DECSCUSR bar=5)
-        let extras = EmitExtras { title: Some("build"), ..Default::default() };
+                                        // --all: includes selection (OSC 17) + cursor shape (DECSCUSR bar=5)
+        let extras = EmitExtras {
+            title: Some("build"),
+            ..Default::default()
+        };
         let all = emit_all_seq(&blob, &extras);
         assert!(all.contains("]17;#45475a\u{7}"));
         assert!(all.contains("[5 q"));
