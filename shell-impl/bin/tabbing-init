@@ -63,18 +63,44 @@ CHECKS
       fi
       ;;
     xterm-ghostty)
-      for _tabbing_init_conf in \
-        "$HOME/Library/Application Support/com.mitchellh.ghostty/config" \
-        "${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config"; do
-        if [ -f "$_tabbing_init_conf" ]; then
-          if grep -v '^ *#' "$_tabbing_init_conf" | grep -q 'no-title' 2>/dev/null; then
-            _tabbing_init_notitle=1
+      # GHOSTTY_SHELL_FEATURES is the ground truth: Ghostty stamps it at app
+      # launch, so it reflects what the running instance actually enabled —
+      # a config patched after launch is not in effect yet.
+      if [ -n "${GHOSTTY_SHELL_FEATURES:-}" ]; then
+        case ",${GHOSTTY_SHELL_FEATURES}," in
+          *,title,*|*,title:*) _tabbing_init_notitle=0 ;;
+          *) _tabbing_init_notitle=1 ;;
+        esac
+      else
+        for _tabbing_init_conf in \
+          "$HOME/Library/Application Support/com.mitchellh.ghostty/config" \
+          "${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config"; do
+          if [ -f "$_tabbing_init_conf" ]; then
+            if grep -v '^ *#' "$_tabbing_init_conf" | grep -q 'no-title' 2>/dev/null; then
+              _tabbing_init_notitle=1
+            fi
           fi
-        fi
-      done
+        done
+      fi
       if [ "$_tabbing_init_notitle" -eq 0 ]; then
-        _tabbing_init_warn "Ghostty shell-integration-features missing 'no-title' — tab titles will be overwritten"
-        _tabbing_init_warn "Fix: add 'shell-integration-features = no-title' to ghostty config, or run: tabbing-doctor"
+        _tabbing_init_confpatched=0
+        for _tabbing_init_conf in \
+          "$HOME/Library/Application Support/com.mitchellh.ghostty/config" \
+          "${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/config"; do
+          if [ -f "$_tabbing_init_conf" ]; then
+            if grep -v '^ *#' "$_tabbing_init_conf" | grep -q 'no-title' 2>/dev/null; then
+              _tabbing_init_confpatched=1
+            fi
+          fi
+        done
+        if [ "$_tabbing_init_confpatched" -eq 1 ]; then
+          _tabbing_init_warn "Ghostty title integration still ACTIVE in this session — config has no-title but was read at app launch"
+          _tabbing_init_warn "Fix: fully restart Ghostty (all windows) to apply shell-integration-features = no-title"
+        else
+          _tabbing_init_warn "Ghostty shell-integration-features missing 'no-title' — tab titles will be overwritten"
+          _tabbing_init_warn "Fix: add 'shell-integration-features = no-title' to ghostty config, or run: tabbing-doctor"
+        fi
+        unset _tabbing_init_confpatched
 CHECKS
   printf '        _tabbing_init_warn "Suppress: export TABBING_NO_WARN=1 in %s before tabbing-init"\n' "$_rcfile"
   cat <<'CHECKS'

@@ -24,26 +24,42 @@ source "${_tabbing_root}/lib/theme-data.sh"
 source "${_tabbing_root}/lib/dc.sh"
 export TABBING_ROOT="${_tabbing_root}"
 
-if [[ -z "${_TABBING_ORIGINAL_PS1+x}" ]]; then
-  _TABBING_ORIGINAL_PS1="${PS1:-}"
-fi
+# PS1 is only touched when a theme actually defines a prompt. The pre-theme
+# value is saved at override time and restored when the override goes away
+# (theme without ps1, --no-theme, tabbing-off). A theme with no ps1/ps1_layout
+# never alters the prompt beyond undoing a previous theme's override.
+_tabbing_save_prior_ps1() {
+  if [[ -z "${_TABBING_PRIOR_PS1+x}" ]]; then
+    _TABBING_PRIOR_PS1="${PS1:-}"
+  fi
+}
+
+_tabbing_restore_prior_ps1() {
+  if [[ -n "${_TABBING_PRIOR_PS1+x}" ]]; then
+    PS1="$_TABBING_PRIOR_PS1"
+    unset _TABBING_PRIOR_PS1
+  fi
+}
 
 _tabbing_set_prompt_layout() {
   local layout="${1:-}" custom="${2:-}"
   if [[ -n "$custom" ]]; then
+    _tabbing_save_prior_ps1
     PS1="$custom"
     return
   fi
   case "$layout" in
-    ""|default) PS1="$_TABBING_ORIGINAL_PS1" ;;
+    ""|default|custom) _tabbing_restore_prior_ps1; return ;;
+  esac
+  _tabbing_save_prior_ps1
+  case "$layout" in
     minimal) PS1='\W \$ ' ;;
     compact) PS1='\u@\h \W \$ ' ;;
     full) PS1='\u@\h:\w \$ ' ;;
     two-line) PS1='\u@\h \w\n\$ ' ;;
     git) PS1='\W$(git branch --show-current 2>/dev/null | sed "s/^/  /") \$ ' ;;
     tab-status) PS1='$(_tabbing_get_indicator) ${TAB_TITLE:-tab}${TAB_STATUS:+: $TAB_STATUS}  \W \$ ' ;;
-    custom) PS1="$_TABBING_ORIGINAL_PS1" ;;
-    *) PS1="$_TABBING_ORIGINAL_PS1" ;;
+    *) _tabbing_restore_prior_ps1 ;;
   esac
 }
 
@@ -955,7 +971,7 @@ tabbing-off() {
   if [[ -n "${TAB_SESSION:-}" ]]; then
     rm -f "${XDG_STATE_HOME:-$HOME/.local/state}/tabbing/sessions/${TAB_SESSION}.env"
   fi
-  unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_BG TAB_THEME TAB_THEME_DATA TAB_MARQUEE TAB_ID TAB_RECORDING
+  unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_BG TAB_THEME TAB_THEME_DATA TAB_PS1_LAYOUT TAB_PS1_CUSTOM TAB_MARQUEE TAB_ID TAB_RECORDING
   unset TABBING_DC_UUID DC_TAB_NS TABBING_DC_DAEMON_PID _TABBING_OWNER_PID _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE
   _tabbing_out 'tabbing: off\n'
 }

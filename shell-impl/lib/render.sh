@@ -1447,6 +1447,8 @@ _tabbing_clear_theme() {
   _tabbing_tty_eval "$("$TABBING_THEME_BIN" emit --clear 2>/dev/null)"
   # Drop the cached blob so _tabbing_persist_theme stops re-asserting it.
   unset TAB_THEME_DATA 2>/dev/null
+  # Drop any theme prompt override, restoring the pre-theme PS1.
+  _tabbing_apply_theme_prompt ""
 }
 
 # ---------------------------------------------------------------------------

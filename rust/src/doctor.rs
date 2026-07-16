@@ -267,6 +267,29 @@ pub fn run_doctor() {
         }
     }
 
+    // Check 4: live session — GHOSTTY_SHELL_FEATURES is stamped when the
+    // Ghostty app launches, NOT when a tab opens. A config patched with
+    // no-title after Ghostty started still spawns shells with the title
+    // feature active, and its shell integration overwrites the tab title
+    // every prompt/command. Only a full Ghostty restart picks up the change.
+    if is_ghostty {
+        if let Ok(features) = env::var("GHOSTTY_SHELL_FEATURES") {
+            let title_active = features
+                .split(',')
+                .any(|f| f == "title" || f.starts_with("title:"));
+            if title_active {
+                warn(&format!(
+                    "This session has title integration ACTIVE (GHOSTTY_SHELL_FEATURES={})",
+                    features
+                ));
+                info("Ghostty stamps shell features at app launch \u{2014} fully restart Ghostty (all windows) so no-title takes effect");
+                issues += 1;
+            } else {
+                check("Live session: title integration disabled");
+            }
+        }
+    }
+
     println!();
 
     // -----------------------------------------------------------------------
