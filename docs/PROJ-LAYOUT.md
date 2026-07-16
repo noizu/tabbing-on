@@ -1,132 +1,78 @@
 # Project Layout
 
-Shell utility for managing terminal tab titles, status, todos, and recordings.
-Supports Bash 4.0+ and Zsh 5.0+ with a shared POSIX library foundation.
-
-## Installation Paths
-
-| Source | Installed |
-|--------|-----------|
-| `bin/*` | `~/.local/bin/` |
-| `lib/*.sh` | `~/.local/share/tabbing-on/lib/` |
-| `shell/tabbing.{bash,zsh}` | `~/.local/share/tabbing-on/shell/` |
+Terminal tab title/status/todo/recording manager. Two parallel implementations —
+the original pure-shell version (`shell-impl/`, Bash 4.0+/Zsh 5.0+ on a POSIX lib
+foundation) and the primary Rust multi-call binary (`rust/`, v0.2.0) — plus an
+Ink/React TUI for voice-memo-to-ticket capture (`ink-plan/`).
+Feature parity between shell and Rust is tracked in [FEATURE-PARITY.md](FEATURE-PARITY.md).
 
 ```
 tabbing-on/
-├── bin/                            # Entry points & CLI wrappers → ~/.local/bin/
-│   ├── tabbing-init                #   Shell bootstrapper — eval "$(tabbing-init bash|zsh)"
-│   ├── tabbing-daemon              #   Background daemon: polls dc, renders title, marquees long status
-│   ├── demo-runner                 #   Typewriter-style interactive demo runner
-│   ├── _tabbing-wrapper            #   Shared setup: sources adapter + all libs, loads session
-│   ├── _tabbing-commit             #   Side-effects helper: history, display, session save
-│   ├── tabbing-on                  #   CLI: set/display tab title & status
-│   ├── tabbing-status              #   CLI: update status
-│   ├── tabbing-style               #   CLI: adjust appearance without changing title/status
-│   ├── tabbing-theme               #   CLI: theme browser and selector
-│   ├── tabbing-marquee             #   CLI: scrolling marquee text in tab title
-│   ├── tabbing-todo                #   CLI: manage todos (supports --list-pending, --export-switch)
-│   ├── tabbing-report              #   CLI: time-in-state reports
-│   ├── tabbing-history             #   CLI: search/browse history
-│   ├── tabbing-recordings          #   CLI: manage recordings
-│   ├── tabbing-info                #   CLI: full state dump
-│   ├── tabbing-clear               #   CLI: clear history/todos/recordings
-│   ├── tabbing-claude-statusline   #   CLI: Claude Code IDE statusline bridge
-│   └── tabbing-doctor              #   CLI: check/fix terminal config (Ghostty/Kitty title conflicts)
-├── lib/                            # POSIX-compatible shared libraries → ~/.local/share/tabbing-on/lib/
-│   ├── render.sh                   #   Render pipeline: emoji, color, display, title escape sequences, version
-│   ├── core.sh                     #   Supplementary: emoji list, color list, help, YAML escape
-│   ├── terminal.sh                 #   Terminal detection, badge, clear (non-render functions)
-│   ├── history.sh                  #   Tab ID generation, YAML history tracking
-│   ├── recording.sh                #   asciinema recording lifecycle
-│   ├── session.sh                  #   Per-session state persistence (TAB_SESSION-keyed files)
-│   ├── todo.sh                     #   Per-tab todo management (provider pattern)
-│   ├── theme.sh                    #   Theme loading, listing, custom theme file support
-│   ├── dc.sh                       #   direnv-config integration: read/write dc tab state, daemon lifecycle
-│   ├── claude.sh                   #   Claude Code IDE bridge via named pipes + state files
-│   └── toggl.sh                    #   Toggl time tracking integration
-├── shell/                          # Shell-specific thin adapters → ~/.local/share/tabbing-on/shell/
-│   ├── tabbing.bash                #   Bash: sources render.sh + dc.sh, defines public functions
-│   └── tabbing.zsh                 #   Zsh: sources render.sh + dc.sh, defines public functions
-├── examples/                       # Example config files
-│   └── themes/                     #   User theme templates
-│       ├── my-dark.theme           #     Full 19-key theme example
-│       └── minimal.theme           #     Minimal 2-key theme (bg + fg only)
-├── demo/                           # Demo scripts
-│   ├── showcase.demo               #   Interactive feature walkthrough
-│   ├── showcase.cast               #   asciinema recording of demo
-│   └── showcase.gif                #   GIF render of demo
-├── docs/                           # Documentation
-│   ├── PROJ-ARCH.md                #   Architecture: components, diagrams, design decisions
-│   ├── PROJ-ARCH.summary.md       #   Architecture quick-reference
-│   ├── PROJ-LAYOUT.md              #   This file
-│   ├── PROJ-LAYOUT.summary.md     #   Quick-reference tree
-│   └── assets/                     #   Documentation images
-│       └── title-bar.png           #     Screenshot of tab title bar
-├── Makefile                        # make install / make uninstall
-├── .gitignore                      # Git ignore rules
-├── CLAUDE.md                       # Claude Code project instructions
-├── LICENSE                         # MIT (Copyright 2026 Keith Brings)
-├── README.md                       # Project entry point
-└── TODO.md                         # Roadmap & known limitations
+├── rust/                       # Primary implementation → [layout/rust.md](layout/rust.md)
+│   ├── Cargo.toml              #   Crate manifest (bin `tabbing`, v0.2.0)
+│   └── src/                    #   Multi-call binary: one module per subcommand
+│       └── plan/               #   tabbing-plan: voice memo → PM ticket pipeline
+├── shell-impl/                 # Pure-shell implementation → [layout/shell-impl.md](layout/shell-impl.md)
+│   ├── bin/                    #   CLI entry points & wrappers (17 scripts)
+│   ├── lib/                    #   POSIX shared libraries (12 files)
+│   └── shell/                  #   Bash/Zsh thin adapters
+├── ink-plan/                   # tabbing-plan TUI prototype (Ink/React, Node >= 20)
+│   ├── bin.ts                  #   CLI entry point
+│   ├── src/                    #   app.tsx, components/, hooks/, services/, prompts/
+│   ├── package.json            #   Dependencies (node_modules/, dist/ gitignored)
+│   ├── tsconfig.json           #   TypeScript config
+│   ├── Makefile                #   Build/install targets
+│   └── README.md               #   Prereqs (SoX, LiteLLM/Whisper) & usage
+├── docs/                       # Documentation
+│   ├── PROJ-ARCH.md            #   Architecture: components, diagrams, decisions
+│   ├── PROJ-ARCH.summary.md    #   Architecture quick-reference
+│   ├── PROJ-LAYOUT.md          #   This file
+│   ├── PROJ-LAYOUT.summary.md  #   Quick-reference tree
+│   ├── FEATURE-PARITY.md       #   Shell vs Rust feature matrix
+│   ├── theme-data-format.md    #   TAB_THEME_DATA 383-line blob format spec
+│   ├── layout/                 #   Detailed layout breakdowns (rust.md, shell-impl.md)
+│   └── assets/                 #   Documentation images (title-bar.png)
+├── tmp-xdg/                    # Scratch XDG config tree for local testing (themes/)
+├── .claude/                    # Claude Code agents & commands (gitignored)
+├── .envrc                      # direnv — TAB_THEME + NPL_PROJECT (gitignored; run `direnv allow`)
+├── .gitignore                  # Ignores .claude, .tmp, .envrc, rust/target, ink-plan artifacts
+├── Makefile                    # make install: cargo build + applet symlinks + shell libs
+├── CLAUDE.md                   # Claude Code project instructions
+├── LICENSE                     # MIT (Copyright 2026 Keith Brings)
+├── README.md                   # Project entry point
+├── TODO.md                     # Roadmap & known limitations
+├── plan-a.md                   # Design plan: feature extensions 1-10
+├── plan-b.md                   # Design plan: _tabbing_out output conversion
+├── plan-c.md                   # Design note: claude pipe listener
+└── script.md                   # Demo recording script
 ```
 
-## Commands
+## Installation (root Makefile)
 
-After `make install` and `eval "$(tabbing-init bash|zsh)"`:
+`make install` compiles the Rust binary and installs it as `tabbing` with
+argv0-dispatch symlinks, alongside shell-impl support files:
 
-| Command | Purpose |
-|---------|---------|
-| `tabbing-on [args]` | Set/display tab title, status, color, urgency, emoji |
-| `tabbing-status` | Update status with emoji/urgency |
-| `tabbing-style` | Adjust appearance without changing title/status |
-| `tabbing-theme` | Browse and select themes interactively |
-| `tabbing-marquee` | Scrolling marquee text in tab title |
-| `tabbing-todo` | Add/list/pick/done todo items |
-| `tabbing-report` | ASCII/Mermaid reports of time-in-state |
-| `tabbing-history` | Search/browse tab history |
-| `tabbing-recordings` | Manage asciinema recordings |
-| `tabbing-info` | Full state dump + file paths |
-| `tabbing-clear` | Clear history, todos, or recordings |
-| `tabbing-daemon` | Background daemon (dc mode): start/stop/status |
-| `tabbing-claude-statusline` | Claude Code IDE statusline bridge |
-| `tabbing-doctor` | Check/fix terminal config for title conflicts |
-| `tabbing-on --version` | Print version (works on all commands) |
+| Source | Installed |
+|--------|-----------|
+| `rust/` build → `tabbing` binary | `~/.local/bin/tabbing` |
+| Applet symlinks (`tabbing-on`, `tabbing-status`, `tabbing-todo`, `tabbing-theme`, `tabbing-plan`, `task-memo`, ...) | `~/.local/bin/` → `tabbing` |
+| `shell-impl/bin/_tabbing-commit` | `~/.local/bin/` (real script, not symlink) |
+| `shell-impl/lib/*.sh` | `~/.local/share/tabbing-on/lib/` |
+| `shell-impl/shell/tabbing.{bash,zsh}` | `~/.local/share/tabbing-on/shell/` |
+| `shell-impl/direnv/tabbing.sh` | `~/.config/direnv/lib/` (`use_tabbing` helper) |
+
+Activate in shell rc: `eval "$(tabbing-init bash|zsh)"`.
 
 ## Data Storage
 
-XDG-compliant (`~/.local/state/tabbing/`):
+Runtime state is XDG-compliant under `~/.local/state/tabbing/`
+(`history/`, `todos/`, `recordings/`, `sessions/`); user themes live in
+`~/.config/tabbing-on/themes/`. See [PROJ-ARCH.md](PROJ-ARCH.md) for the state
+model and `TAB_*` environment variables.
 
-```
-~/.local/state/tabbing/
-├── history/{TAB_ID}.yaml           # Title/status change log
-├── todos/{TAB_ID}.yaml             # Todo items per tab
-├── recordings/{TAB_ID}/*.cast      # asciinema recordings
-└── sessions/{TAB_SESSION}.env      # Persisted env state for CLI wrappers
-```
+## Key Files Requiring Setup
 
-User config (`~/.config/tabbing-on/` or `$XDG_CONFIG_HOME/tabbing-on/`):
-
-```
-~/.config/tabbing-on/
-└── themes/*.theme                  # User-defined color themes
-```
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `TAB_TITLE` | Tab title text |
-| `TAB_STATUS` | Tab status text |
-| `TAB_HIGHLIGHT` | Color name for title highlight |
-| `TAB_URGENCY` | 0-5 (0=critical/red, 5=nominal/green) |
-| `TAB_EMOJI` | Named emoji (overrides urgency dot) |
-| `TAB_BG` | Terminal background color (name or `#RRGGBB`) |
-| `TAB_THEME` | Active terminal color theme name |
-| `TAB_MARQUEE` | Set to `1` to enable scrolling marquee |
-| `TAB_TERMINAL` | Detected terminal emulator |
-| `TAB_ID` | Unique tab fingerprint (hex) |
-| `TAB_SESSION` | Session fingerprint for state file scoping (hex) |
-| `TABBING_ROOT` | Library root directory (set by tabbing-init) |
-| `TABBING_ON_DC_MODE` | Set to `1` to enable direnv-config mode |
-| `TABBING_DC_DAEMON_PID` | PID of running daemon (set automatically) |
-| `TABBING_VERSION` | Version string (defined in lib/render.sh) |
+| File | Action |
+|------|--------|
+| `.envrc` | Run `direnv allow` (gitignored; sets TAB_THEME, NPL_PROJECT) |
+| `ink-plan/` | `npm install`; needs SoX + LiteLLM endpoint for tabbing-plan TUI |
