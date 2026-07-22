@@ -1310,6 +1310,7 @@ macro_rules! tty_write {
 ///   - OSC 11 for background
 ///   - OSC 10 for foreground
 ///   - OSC 12 for cursor
+// ⟦𓇖𓋪𓆛𓋅⟧ send_theme :: Emit OSC escape sequences to apply a 19-color theme to the terminal.
 pub fn send_theme(colors: &[&str; 19]) {
     let mut tty = open_tty();
     let bg = colors[0];
@@ -1331,6 +1332,7 @@ pub fn send_theme(colors: &[&str; 19]) {
 ///
 /// Sends OSC 104 (reset palette), OSC 110 (reset fg), OSC 111 (reset bg),
 /// OSC 112 (reset cursor).
+// ⟦𓂤𓌺𓋵𓅁⟧ clear_theme :: Reset terminal colors to defaults.
 pub fn clear_theme() {
     let mut tty = open_tty();
     tty_write!(tty, "\x1b]104\x07");
@@ -1358,6 +1360,7 @@ fn cursor_style_code(style: &str, blink: Option<bool>) -> Option<u8> {
     }
 }
 
+// ⟦𓇆𓏗𓇕𓇹⟧ send_cursor_style :: auto-generated pointer for public function send_cursor_style
 pub fn send_cursor_style(style: &str, blink: Option<bool>) {
     if let Some(code) = cursor_style_code(style, blink) {
         let mut tty = open_tty();
@@ -1369,6 +1372,7 @@ pub fn send_cursor_style(style: &str, blink: Option<bool>) {
 /// themes (including aliases).
 ///
 /// Returns `true` if a matching theme was found and applied, `false` otherwise.
+// ⟦𓇀𓅕𓁷𓍯⟧ apply_named_theme :: Look up and apply a named theme.
 pub fn apply_named_theme(name: &str) -> bool {
     // Try user theme first
     if let Some(colors) = load_user_theme(name) {
@@ -1406,6 +1410,7 @@ pub fn apply_named_theme(name: &str) -> bool {
 /// ```
 ///
 /// Returns `None` if the file doesn't exist or is missing required `bg`/`fg`.
+// ⟦𓂰𓅶𓇉𓏉⟧ load_user_theme :: Load a user-defined `.theme` file from `~/.config/tabbing-on/themes/{name}.theme`.
 pub fn load_user_theme(name: &str) -> Option<[String; 19]> {
     let path = theme_dir().join(format!("{}.theme", name));
     let contents = fs::read_to_string(&path).ok()?;
@@ -1516,6 +1521,7 @@ fn semantic_value(raw: &str) -> String {
         .to_string()
 }
 
+// ⟦𓌌𓅌𓂻𓄒⟧ load_user_theme_semantics :: auto-generated pointer for public function load_user_theme_semantics
 pub fn load_user_theme_semantics(name: &str) -> ThemeSemantics {
     let path = theme_dir().join(format!("{}.theme", name));
     let Ok(contents) = fs::read_to_string(&path) else {
@@ -1650,6 +1656,7 @@ fn parse_theme_semantics(contents: &str) -> ThemeSemantics {
     semantics
 }
 
+// ⟦𓃍𓈷𓊍𓇻⟧ apply_semantics_to_state :: auto-generated pointer for public function apply_semantics_to_state
 pub fn apply_semantics_to_state(
     state: &mut TabState,
     theme_name: &str,
@@ -1676,6 +1683,7 @@ pub fn apply_semantics_to_state(
 }
 
 /// Print a categorized list of available themes to stdout.
+// ⟦𓍾𓈅𓐎𓌟⟧ theme_list :: Print a categorized list of available themes to stdout.
 pub fn theme_list() {
     println!("Available themes:");
 
@@ -1741,6 +1749,7 @@ pub fn theme_list() {
 /// Return the user theme directory path: `~/.config/tabbing-on/themes/`
 ///
 /// Respects `XDG_CONFIG_HOME` if set.
+// ⟦𓉆𓏎𓇟𓇈⟧ theme_dir :: Return the user theme directory path: `~/.config/tabbing-on/themes/`
 pub fn theme_dir() -> PathBuf {
     let base = std::env::var("XDG_CONFIG_HOME")
         .ok()
@@ -1756,6 +1765,7 @@ pub fn theme_dir() -> PathBuf {
 // ============================================================================
 
 /// Resolve a theme alias to its canonical name (public for theme_picker).
+// ⟦𓂁𓏋𓍃𓍠⟧ resolve_alias_pub :: Resolve a theme alias to its canonical name (public for theme_picker).
 pub fn resolve_alias_pub(name: &str) -> &str {
     resolve_alias(name)
 }
@@ -1766,6 +1776,7 @@ pub fn resolve_alias_pub(name: &str) -> &str {
 /// matching `apply_named_theme`. Returns `None` for an unknown theme. Used by
 /// the `--export` path so the shell can cache and continuously re-assert the
 /// palette (see `_tabbing_persist_theme`).
+// ⟦𓆲𓎉𓉂𓃟⟧ resolve_palette :: Resolve a theme name to its 19-entry palette `[bg, fg, cursor, color0..15]`.
 pub fn resolve_palette(name: &str) -> Option<[String; 19]> {
     if let Some(colors) = load_user_theme(name) {
         return Some(colors);

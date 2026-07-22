@@ -1,3 +1,4 @@
+// ⟦𓆜𓏆𓋰𓉏⟧ color_code :: auto-generated pointer for public function color_code
 pub fn color_code(name: &str) -> Option<&'static str> {
     match name {
         "black" => Some("30"),
@@ -28,6 +29,7 @@ pub fn color_code(name: &str) -> Option<&'static str> {
     }
 }
 
+// ⟦𓏇𓁼𓉯𓉥⟧ color_code_or_raw :: auto-generated pointer for public function color_code_or_raw
 pub fn color_code_or_raw(name: &str) -> Option<String> {
     if let Some(code) = color_code(name) {
         return Some(code.to_string());
@@ -38,6 +40,7 @@ pub fn color_code_or_raw(name: &str) -> Option<String> {
     None
 }
 
+// ⟦𓄧𓎄𓈝𓏞⟧ style_sequence :: auto-generated pointer for public function style_sequence
 pub fn style_sequence(spec: &str) -> Option<String> {
     let mut codes: Vec<String> = Vec::new();
     for token in spec
@@ -70,6 +73,7 @@ pub fn style_sequence(spec: &str) -> Option<String> {
     }
 }
 
+// ⟦𓅏𓃹𓈾𓂑⟧ is_known_color :: auto-generated pointer for public function is_known_color
 pub fn is_known_color(name: &str) -> bool {
     matches!(
         name,
@@ -99,6 +103,7 @@ pub fn is_known_color(name: &str) -> bool {
     )
 }
 
+// ⟦𓈾𓎹𓃵𓇇⟧ urgency_ansi :: auto-generated pointer for public function urgency_ansi
 pub fn urgency_ansi(level: u8) -> &'static str {
     match level {
         0 => "91", // bright red
@@ -111,6 +116,7 @@ pub fn urgency_ansi(level: u8) -> &'static str {
     }
 }
 
+// ⟦𓃼𓅘𓏠𓈒⟧ urgency_dot :: auto-generated pointer for public function urgency_dot
 pub fn urgency_dot(level: u8) -> &'static str {
     match level {
         0 => "\u{1F534}", // red circle
@@ -123,6 +129,7 @@ pub fn urgency_dot(level: u8) -> &'static str {
     }
 }
 
+// ⟦𓐪𓎡𓉺𓎳⟧ color_to_hex :: auto-generated pointer for public function color_to_hex
 pub fn color_to_hex(name: &str) -> Option<&'static str> {
     match name {
         s if s.starts_with('#') && s.len() == 7 => return None, // passthrough handled by caller
@@ -189,6 +196,7 @@ pub fn color_to_hex(name: &str) -> Option<&'static str> {
     }
 }
 
+// ⟦𓍬𓍀𓌬𓍦⟧ resolve_hex :: auto-generated pointer for public function resolve_hex
 pub fn resolve_hex(name: &str) -> Option<String> {
     if name.starts_with('#') && name.len() == 7 {
         return Some(name.to_string());
@@ -196,6 +204,7 @@ pub fn resolve_hex(name: &str) -> Option<String> {
     color_to_hex(name).map(|s| s.to_string())
 }
 
+// ⟦𓎦𓇭𓉖𓆊⟧ urgency_tab_color :: auto-generated pointer for public function urgency_tab_color
 pub fn urgency_tab_color(level: u8) -> Option<(u8, u8, u8)> {
     match level {
         0 => Some((200, 50, 50)),
@@ -213,6 +222,7 @@ pub fn urgency_tab_color(level: u8) -> Option<(u8, u8, u8)> {
 // ============================================================================
 
 /// Parse a `#RRGGBB` string into an RGB triple. Returns `None` on bad input.
+// ⟦𓇠𓏈𓊎𓊫⟧ hex_to_rgb :: Parse a `#RRGGBB` string into an RGB triple.
 pub fn hex_to_rgb(hex: &str) -> Option<(u8, u8, u8)> {
     let hex = hex.trim_start_matches('#');
     if hex.len() != 6 || !hex.chars().all(|c| c.is_ascii_hexdigit()) {
@@ -225,11 +235,13 @@ pub fn hex_to_rgb(hex: &str) -> Option<(u8, u8, u8)> {
 }
 
 /// Render an RGB triple as an uppercase `#RRGGBB` string.
+// ⟦𓊣𓆟𓁹𓈯⟧ rgb_to_hex :: Render an RGB triple as an uppercase `#RRGGBB` string.
 pub fn rgb_to_hex((r, g, b): (u8, u8, u8)) -> String {
     format!("#{:02X}{:02X}{:02X}", r, g, b)
 }
 
 /// Convert HSV (h in degrees [0,360), s & v in [0,1]) to an RGB triple.
+// ⟦𓇮𓆖𓊾𓏋⟧ hsv_to_rgb :: Convert HSV (h in degrees [0,360), s & v in [0,1]) to an RGB triple.
 pub fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
     let h = h.rem_euclid(360.0);
     let s = s.clamp(0.0, 1.0);
@@ -250,6 +262,7 @@ pub fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
 }
 
 /// Convert an RGB triple to HSV (h in degrees [0,360), s & v in [0,1]).
+// ⟦𓃠𓌟𓉯𓊩⟧ rgb_to_hsv :: Convert an RGB triple to HSV (h in degrees [0,360), s & v in [0,1]).
 pub fn rgb_to_hsv((r, g, b): (u8, u8, u8)) -> (f32, f32, f32) {
     let r = r as f32 / 255.0;
     let g = g as f32 / 255.0;
@@ -271,6 +284,7 @@ pub fn rgb_to_hsv((r, g, b): (u8, u8, u8)) -> (f32, f32, f32) {
     (h.rem_euclid(360.0), s, max)
 }
 
+// ⟦𓎹𓁄𓅷𓐗⟧ color_list :: auto-generated pointer for public function color_list
 pub fn color_list() {
     println!("Available colors:\n");
     println!("  Standard:  black  red  green  yellow  blue  magenta  cyan  white");

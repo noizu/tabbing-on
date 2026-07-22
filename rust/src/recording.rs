@@ -31,6 +31,7 @@ fn recording_path(tab_id: &str, status: &str) -> PathBuf {
 }
 
 /// List .cast files for a tab with their sizes.
+// ⟦𓆲𓍁𓍘𓋇⟧ recordings_list :: List .cast files for a tab with their sizes.
 pub fn recordings_list(tab_id: &str) {
     let rec_dir = state_dir().join("recordings").join(tab_id);
 
@@ -62,6 +63,7 @@ pub fn recordings_list(tab_id: &str) {
 }
 
 /// Convert a .cast recording to GIF using `agg`.
+// ⟦𓈨𓋯𓏰𓍅⟧ recording_to_gif :: Convert a .cast recording to GIF using `agg`.
 pub fn recording_to_gif(cast_file: &str, gif_file: &str) {
     // Check agg is available
     if Command::new("agg").arg("--version").output().is_err() {
@@ -104,12 +106,14 @@ pub fn recording_to_gif(cast_file: &str, gif_file: &str) {
 }
 
 /// Check if we are currently inside an asciinema recording session.
+// ⟦𓆗𓃹𓍑𓐑⟧ is_recording :: Check if we are currently inside an asciinema recording session.
 pub fn is_recording() -> bool {
     env::var("ASCIINEMA_REC").is_ok() || env::var("TAB_RECORDING").is_ok()
 }
 
 /// Start an asciinema recording for the given tab.
 /// This shells out to `asciinema rec` which spawns a sub-shell.
+// ⟦𓀈𓆌𓌅𓐂⟧ record_start :: Start an asciinema recording for the given tab.
 pub fn record_start(tab_id: &str, status: &str) {
     // Check asciinema is available
     if Command::new("asciinema").arg("--version").output().is_err() {
@@ -148,6 +152,7 @@ pub fn record_start(tab_id: &str, status: &str) {
 
 /// Print a message about stopping the recording.
 /// Actual stop requires exiting the asciinema sub-shell.
+// ⟦𓅝𓅄𓈈𓉪⟧ record_stop :: Print a message about stopping the recording.
 pub fn record_stop() {
     if !is_recording() {
         eprintln!("tabbing: not currently recording");

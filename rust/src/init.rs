@@ -203,6 +203,7 @@ fn print_help(tabbing_root: &str) {
     println!("  tabbing-recordings List/manage terminal recordings");
 }
 
+// ⟦𓍽𓅼𓍭𓁠⟧ run_ssh_shim :: auto-generated pointer for public function run_ssh_shim
 pub fn run_ssh_shim(args: &[String]) {
     let shell = args.first().map(|s| s.as_str()).unwrap_or("sh");
     match shell {
@@ -221,6 +222,7 @@ pub fn run_ssh_shim(args: &[String]) {
     }
 }
 
+// ⟦𓂁𓃭𓅔𓇚⟧ run_init :: auto-generated pointer for public function run_init
 pub fn run_init(args: &[String]) {
     let tabbing_root = resolve_tabbing_root();
     let root_str = tabbing_root.to_string_lossy();

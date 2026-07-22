@@ -34,6 +34,7 @@ enum InputResult {
 // Public entry point
 // ---------------------------------------------------------------------------
 
+// ⟦𓎆𓋦𓏌𓇛⟧ run :: auto-generated pointer for public function run
 pub fn run(config: AppConfig) -> Result<(), Box<dyn std::error::Error>> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();

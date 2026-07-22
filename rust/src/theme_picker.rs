@@ -952,6 +952,7 @@ fn record_cleared_theme() {
 // Main loop
 // ============================================================================
 
+// ⟦𓊇𓈤𓈝𓍕⟧ run_picker :: auto-generated pointer for public function run_picker
 pub fn run_picker() {
     let entries = build_entries();
     if entries.is_empty() {
@@ -3144,6 +3145,7 @@ fn which_exists(cmd: &str) -> bool {
 // Public CLI helpers
 // ============================================================================
 
+// ⟦𓃤𓐮𓆙𓄟⟧ clone_theme :: auto-generated pointer for public function clone_theme
 pub fn clone_theme(src: &str, dest: &str) {
     let td = theme::theme_dir();
     let _ = std::fs::create_dir_all(&td);
@@ -3181,6 +3183,7 @@ pub fn clone_theme(src: &str, dest: &str) {
     }
 }
 
+// ⟦𓊿𓂱𓊕𓂖⟧ edit_theme :: auto-generated pointer for public function edit_theme
 pub fn edit_theme(name: &str) {
     let td = theme::theme_dir();
     let file = td.join(format!("{}.theme", name));
@@ -3212,6 +3215,7 @@ pub fn edit_theme(name: &str) {
     }
 }
 
+// ⟦𓃱𓇯𓐒𓉵⟧ delete_theme :: auto-generated pointer for public function delete_theme
 pub fn delete_theme(name: &str) {
     let td = theme::theme_dir();
     let file = td.join(format!("{}.theme", name));
@@ -3234,6 +3238,7 @@ pub fn delete_theme(name: &str) {
     }
 }
 
+// ⟦𓉦𓋷𓊞𓏝⟧ export_theme :: auto-generated pointer for public function export_theme
 pub fn export_theme(name: &str) {
     if let Some(colors) = find_builtin_colors(name) {
         println!("bg={}", colors[0]);
@@ -3259,6 +3264,7 @@ pub fn export_theme(name: &str) {
     std::process::exit(1);
 }
 
+// ⟦𓆣𓎀𓄈𓃝⟧ preview_theme :: auto-generated pointer for public function preview_theme
 pub fn preview_theme(name: &str) {
     if theme::apply_named_theme(name) {
         println!(

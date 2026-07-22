@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use crate::state::state_dir;
 
 /// Return the todo file path for a given tab ID.
+// ⟦𓋄𓐄𓃄𓆾⟧ todo_file :: Return the todo file path for a given tab ID.
 pub fn todo_file(tab_id: &str) -> PathBuf {
     let dir = state_dir().join("todos");
     let _ = fs::create_dir_all(&dir);
@@ -70,6 +71,7 @@ fn init_file(tab_id: &str, tab_title: &str) {
 }
 
 /// Add a new todo item to the tab's todo file.
+// ⟦𓄩𓊀𓅑𓌯⟧ todo_add :: Add a new todo item to the tab's todo file.
 pub fn todo_add(
     tab_id: &str,
     tab_title: &str,
@@ -186,6 +188,7 @@ fn read_task_title(content: &str) -> String {
 }
 
 /// Print a formatted list of todos with status icons.
+// ⟦𓏍𓉱𓌳𓇂⟧ todo_list :: Print a formatted list of todos with status icons.
 pub fn todo_list(tab_id: &str, tab_title: &str) {
     let path = todo_file(tab_id);
     let content = match fs::read_to_string(&path) {
@@ -217,6 +220,7 @@ pub fn todo_list(tab_id: &str, tab_title: &str) {
 }
 
 /// Print pending todos as "id title" lines (for interactive selection).
+// ⟦𓎓𓃦𓉬𓆏⟧ todo_pending :: Print pending todos as "id title" lines (for interactive selection).
 pub fn todo_pending(tab_id: &str) {
     let path = todo_file(tab_id);
     let content = match fs::read_to_string(&path) {
@@ -233,6 +237,7 @@ pub fn todo_pending(tab_id: &str) {
 }
 
 /// Mark a todo as done. If target_id is empty, find the currently active todo.
+// ⟦𓌕𓂟𓐘𓍋⟧ todo_done :: Mark a todo as done.
 pub fn todo_done(tab_id: &str, target_id: &str) {
     let path = todo_file(tab_id);
     let content = match fs::read_to_string(&path) {
@@ -266,6 +271,7 @@ pub fn todo_done(tab_id: &str, target_id: &str) {
 
 /// Switch to a todo: deactivate current active, activate target.
 /// Returns (title, emoji, urgency) of the switched-to todo, or None if not found.
+// ⟦𓆔𓉎𓉊𓆞⟧ todo_switch :: Switch to a todo: deactivate current active, activate target.
 pub fn todo_switch(tab_id: &str, target_id: &str) -> Option<(String, String, String)> {
     let path = todo_file(tab_id);
     let content = match fs::read_to_string(&path) {
@@ -302,6 +308,7 @@ pub fn todo_switch(tab_id: &str, target_id: &str) -> Option<(String, String, Str
 /// Mirrors `bin/tabbing-todo --export-switch`: a subprocess cannot mutate the parent
 /// shell's environment, so it hands the shell adapter the exports to apply itself.
 /// Returns true on success.
+// ⟦𓊻𓏸𓂓𓂙⟧ todo_export_switch :: Adapter-facing switch: rewrite the todo file to activate `target_id`, then emit
 pub fn todo_export_switch(tab_id: &str, target_id: &str) -> bool {
     let path = todo_file(tab_id);
     let content = match fs::read_to_string(&path) {
@@ -506,6 +513,7 @@ todos:
 
 /// Interactive picker for pending todos.
 /// Displays a navigable list; Enter switches to the selected todo.
+// ⟦𓆩𓏺𓁙𓃦⟧ todo_pick :: Interactive picker for pending todos.
 pub fn todo_pick(tab_id: &str) {
     use crossterm::event::{self, Event, KeyCode};
     use crossterm::terminal::{disable_raw_mode, enable_raw_mode};

@@ -27,6 +27,7 @@ fn cube_level(ch: &str) -> Option<u16> {
 }
 
 /// cube hex RRGGBB -> palette slot 16..231 (None if not a canonical cube color)
+// ⟦𓇦𓌻𓎯𓉨⟧ cube_slot :: cube hex RRGGBB -> palette slot 16..231 (None if not a canonical cube color)
 pub fn cube_slot(hex: &str) -> Option<u16> {
     let h = hex.strip_prefix('#').unwrap_or(hex);
     if h.len() != 6 {
@@ -39,6 +40,7 @@ pub fn cube_slot(hex: &str) -> Option<u16> {
 }
 
 /// logical handle -> 1-based line number
+// ⟦𓅤𓉫𓌛𓄕⟧ handle_to_line :: logical handle -> 1-based line number
 pub fn handle_to_line(handle: &str) -> Option<usize> {
     match handle {
         "foreground" | "fg" => return Some(110),
@@ -105,6 +107,7 @@ fn pad_lines(mut lines: Vec<String>) -> Vec<String> {
 }
 
 /// get the value at `handle` (empty -> None)
+// ⟦𓄂𓎛𓎡𓅥⟧ get :: get the value at `handle` (empty -> None)
 pub fn get(blob: &str, handle: &str) -> Option<String> {
     let line = handle_to_line(handle)?;
     if line == 0 {
@@ -121,6 +124,7 @@ pub fn get(blob: &str, handle: &str) -> Option<String> {
 
 /// resolve a value: #RRGGBB / on / off / empty pass through; else named ANSI ->
 /// hex, then X11 db -> hex, else leave untouched.
+// ⟦𓋪𓃂𓎾𓀯⟧ resolve_value :: resolve a value: #RRGGBB / on / off / empty pass through; else named ANSI ->
 pub fn resolve_value(v: &str) -> String {
     // #RRGGBB passthrough
     if let Some(h) = v.strip_prefix('#') {
@@ -141,6 +145,7 @@ pub fn resolve_value(v: &str) -> String {
 }
 
 /// set the value at `handle`, padding to 383 lines, returning the new blob.
+// ⟦𓐌𓍑𓂦𓇥⟧ set :: set the value at `handle`, padding to 383 lines, returning the new blob.
 pub fn set(blob: &str, handle: &str, value: &str) -> String {
     let line = match handle_to_line(handle) {
         Some(l) if l >= 1 => l,
@@ -203,6 +208,7 @@ fn x11_map() -> &'static HashMap<String, String> {
 }
 
 /// normalize an X11/Tk color name and look it up in colors.txt
+// ⟦𓏖𓊣𓅯𓀽⟧ x11_to_hex :: normalize an X11/Tk color name and look it up in colors.txt
 pub fn x11_to_hex(name: &str) -> Option<String> {
     let normalized = normalize_x11_name(name);
     x11_map().get(&normalized).cloned()
@@ -235,6 +241,7 @@ fn hex_channel(hex: &str, start: usize) -> u16 {
 
 /// integer RGB lerp between two #RRGGBB at `steps` evenly-spaced points,
 /// inclusive of both endpoints. Round-half-up; uppercase #RRGGBB.
+// ⟦𓍐𓍹𓆰𓇩⟧ gen_ramp :: integer RGB lerp between two #RRGGBB at `steps` evenly-spaced points,
 pub fn gen_ramp(from: &str, to: &str, steps: usize) -> Vec<String> {
     // Resolve named / X11 colors to hex first; otherwise a 6-char name like
     // "purple" passes the length check and hex_channel's unwrap_or(0) silently
@@ -270,6 +277,7 @@ pub fn gen_ramp(from: &str, to: &str, steps: usize) -> Vec<String> {
 
 /// fill blob lines 144..359 with the canonical 6x6x6 cube and 360..383 with the
 /// 24-step grayscale ramp, leaving all other lines untouched.
+// ⟦𓆈𓍧𓌴𓄁⟧ gen_standard_palette :: fill blob lines 144..359 with the canonical 6x6x6 cube and 360..383 with the
 pub fn gen_standard_palette(blob: &str) -> String {
     const LV: [u16; 6] = [0, 95, 135, 175, 215, 255];
     let mut lines = pad_lines(blob_lines(blob));
@@ -289,6 +297,7 @@ pub fn gen_standard_palette(blob: &str) -> String {
 }
 
 /// a blob of 383 blank lines
+// ⟦𓆜𓄦𓎭𓁫⟧ empty_blob :: a blob of 383 blank lines
 pub fn empty_blob() -> String {
     vec![""; THEME_DATA_LINES].join("\n")
 }
@@ -305,6 +314,7 @@ const BEL: char = '\u{7}';
 ///   line 110 -> OSC 10 (fg), 111 -> OSC 11 (bg), 112 -> OSC 12 (cursor),
 ///   lines 128..=383 -> OSC 4;slot;color (palette slots 0..255).
 /// Empty lines are skipped. Returns "" when nothing is set.
+// ⟦𓅖𓄷𓏈𓃤⟧ emit_theme_seq :: OSC stream that paints a populated theme blob:
 pub fn emit_theme_seq(blob: &str) -> String {
     let lines = blob_lines(blob);
     let mut out = String::new();
@@ -326,16 +336,19 @@ pub fn emit_theme_seq(blob: &str) -> String {
 
 /// Reset stream: OSC 104 (palette), 110 (fg), 111 (bg), 112 (cursor),
 /// and DECSCUSR 0 (restore default cursor shape).
+// ⟦𓀙𓁯𓃲𓂥⟧ emit_clear_seq :: Reset stream: OSC 104 (palette), 110 (fg), 111 (bg), 112 (cursor),
 pub fn emit_clear_seq() -> String {
     format!("{ESC}]104{BEL}{ESC}]110{BEL}{ESC}]111{BEL}{ESC}]112{BEL}{ESC}[0 q")
 }
 
 /// Reset background only (OSC 111).
+// ⟦𓐎𓍮𓆈𓍆⟧ emit_clear_bg_seq :: Reset background only (OSC 111).
 pub fn emit_clear_bg_seq() -> String {
     format!("{ESC}]111{BEL}")
 }
 
 /// Background-only OSC 11 for a resolved color name/hex. "" if unresolvable.
+// ⟦𓁰𓆴𓐖𓅵⟧ emit_bg_seq :: Background-only OSC 11 for a resolved color name/hex.
 pub fn emit_bg_seq(color: &str) -> String {
     let hex = resolve_value(color);
     if hex.is_empty() {
@@ -346,6 +359,7 @@ pub fn emit_bg_seq(color: &str) -> String {
 
 /// DECSCUSR cursor-shape code (0..6) for a style name, or None if unknown.
 /// Mirrors the shell `_tabbing_cursor_style_code` mapping.
+// ⟦𓃳𓏪𓍫𓈱⟧ cursor_style_code :: DECSCUSR cursor-shape code (0..6) for a style name, or None if unknown.
 pub fn cursor_style_code(style: &str, blink: &str) -> Option<u8> {
     let s = style.trim().to_ascii_lowercase().replace('_', "-");
     let steady = matches!(
@@ -370,6 +384,7 @@ pub fn cursor_style_code(style: &str, blink: &str) -> Option<u8> {
 
 /// DECSCUSR escape for a cursor style, or "" if the style is unknown.
 /// A bare 0..=6 passes through as the raw DECSCUSR code.
+// ⟦𓊂𓏖𓁸𓊠⟧ emit_cursor_seq :: DECSCUSR escape for a cursor style, or "" if the style is unknown.
 pub fn emit_cursor_seq(style: &str, blink: &str) -> String {
     let code = style
         .trim()
@@ -384,6 +399,7 @@ pub fn emit_cursor_seq(style: &str, blink: &str) -> String {
 }
 
 /// Window/tab title via OSC 0 (sets both icon name and title). "" if empty.
+// ⟦𓎲𓊀𓊂𓈏⟧ emit_title_seq :: Window/tab title via OSC 0 (sets both icon name and title).
 pub fn emit_title_seq(title: &str) -> String {
     if title.is_empty() {
         String::new()
@@ -395,6 +411,7 @@ pub fn emit_title_seq(title: &str) -> String {
 /// iTerm2 tab background color via OSC 6 (one sequence per channel). Resolves a
 /// name/hex to RGB; "" if unresolvable. Harmless no-op on terminals that ignore
 /// OSC 6 — callers gate by terminal type.
+// ⟦𓇒𓏞𓁪𓏍⟧ emit_tab_color_seq :: iTerm2 tab background color via OSC 6 (one sequence per channel).
 pub fn emit_tab_color_seq(color: &str) -> String {
     let hex = resolve_value(color);
     let h = hex.strip_prefix('#').unwrap_or(&hex);
@@ -424,6 +441,7 @@ pub struct EmitExtras<'a> {
 ///   3. DECSCUSR cursor shape   (extras.cursor override, else blob line 113)
 ///   4. OSC 0 title             (extras.title)
 ///   5. iTerm OSC 6 tab color   (extras.tab_color)
+// ⟦𓊼𓂱𓀬𓋳⟧ emit_all_seq :: The full supported escape bundle for a theme blob plus optional extras.
 pub fn emit_all_seq(blob: &str, extras: &EmitExtras) -> String {
     let lines = blob_lines(blob);
     let line = |n: usize| lines.get(n - 1).map(|s| s.as_str()).unwrap_or("");

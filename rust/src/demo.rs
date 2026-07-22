@@ -133,6 +133,7 @@ fn print_help() {
     println!("  @speed fast|medium|slow  Change typing speed");
 }
 
+// ⟦𓌛𓋦𓌀𓌷⟧ run_demo :: auto-generated pointer for public function run_demo
 pub fn run_demo(args: &[String]) {
     let mut speed = Speed::Medium;
     let mut file_path: Option<String> = None;

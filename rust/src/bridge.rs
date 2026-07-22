@@ -11,6 +11,7 @@ use crate::state::{state_dir, TabState};
 /// Checks `TABBING_PIPE` env var — returns silently if unset or if no
 /// reader is attached to the pipe.  The write is best-effort: we do not
 /// want a missing reader to block or crash the main flow.
+// ⟦𓈨𓊬𓂫𓄵⟧ write_state_to_pipe :: Write the current tab state to the FIFO named pipe.
 pub fn write_state_to_pipe(state: &TabState) {
     let pipe_path = match env::var("TABBING_PIPE") {
         Ok(p) if !p.is_empty() => p,
@@ -69,6 +70,7 @@ fn format_state_block(state: &TabState) -> String {
 /// Create a named pipe (FIFO) for the given session.
 ///
 /// Returns the path on success, `None` on failure.
+// ⟦𓎆𓎩𓋎𓐟⟧ create_pipe :: Create a named pipe (FIFO) for the given session.
 pub fn create_pipe(session: &str) -> Option<PathBuf> {
     let dir = state_dir();
     let _ = fs::create_dir_all(&dir);
@@ -89,6 +91,7 @@ pub fn create_pipe(session: &str) -> Option<PathBuf> {
 }
 
 /// Remove the FIFO pipe file for the given session.
+// ⟦𓋲𓃻𓆶𓊏⟧ remove_pipe :: Remove the FIFO pipe file for the given session.
 pub fn remove_pipe(session: &str) {
     let dir = state_dir();
     let pipe_path = dir.join(format!("claude-{}.pipe", session));
@@ -107,6 +110,7 @@ pub fn remove_pipe(session: &str) {
 /// (`run_claude_statusline()` in `claude.rs`) polls.
 ///
 /// Write to a `.tmp` file first, then rename for atomicity.
+// ⟦𓇓𓉼𓅒𓍾⟧ write_state_file :: Write state to an atomic flat file that the Claude statusline reader
 pub fn write_state_file(state: &TabState, session: &str) {
     let dir = state_dir();
     let _ = fs::create_dir_all(&dir);

@@ -43,10 +43,12 @@ impl fmt::Display for TicketType {
 
 impl TicketType {
     #[allow(dead_code)]
+    // ⟦𓀚𓅐𓁎𓄹⟧ all :: auto-generated pointer for public function all
     pub fn all() -> &'static [Self] {
         &[TicketType::UserStory, TicketType::Bug, TicketType::Task]
     }
 
+    // ⟦𓇯𓉄𓐭𓈱⟧ next :: auto-generated pointer for public function next
     pub fn next(&self) -> Self {
         match self {
             TicketType::UserStory => TicketType::Bug,
@@ -55,6 +57,7 @@ impl TicketType {
         }
     }
 
+    // ⟦𓉺𓁾𓈓𓃦⟧ prev :: auto-generated pointer for public function prev
     pub fn prev(&self) -> Self {
         match self {
             TicketType::UserStory => TicketType::Task,
@@ -89,10 +92,12 @@ impl fmt::Display for Priority {
 
 impl Priority {
     #[allow(dead_code)]
+    // ⟦𓐗𓁎𓍠𓍀⟧ all :: auto-generated pointer for public function all
     pub fn all() -> &'static [Self] {
         &[Priority::P0, Priority::P1, Priority::P2, Priority::P3]
     }
 
+    // ⟦𓂼𓀆𓄒𓌨⟧ next :: auto-generated pointer for public function next
     pub fn next(&self) -> Self {
         match self {
             Priority::P0 => Priority::P1,
@@ -102,6 +107,7 @@ impl Priority {
         }
     }
 
+    // ⟦𓍚𓈎𓇑𓍿⟧ prev :: auto-generated pointer for public function prev
     pub fn prev(&self) -> Self {
         match self {
             Priority::P0 => Priority::P3,

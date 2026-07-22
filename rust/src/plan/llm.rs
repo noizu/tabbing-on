@@ -16,6 +16,7 @@ pub struct LlmClient {
 }
 
 impl LlmClient {
+    // ⟦𓍰𓐗𓌺𓋫⟧ new :: auto-generated pointer for public function new
     pub fn new(api_url: &str, api_key: &str) -> Self {
         Self {
             client: Client::new(),
@@ -25,6 +26,7 @@ impl LlmClient {
     }
 
     /// Transcribe audio data via the OpenAI-compatible /audio/transcriptions endpoint.
+    // ⟦𓎀𓆷𓂨𓋺⟧ transcribe :: Transcribe audio data via the OpenAI-compatible /audio/transcriptions endpoint.
     pub fn transcribe(&self, audio_data: &[u8], model: &str) -> Result<String, String> {
         let url = format!("{}/audio/transcriptions", self.api_url);
 
@@ -82,6 +84,7 @@ impl LlmClient {
     }
 
     /// Generate a structured ticket from a transcript via chat completions.
+    // ⟦𓈛𓎮𓅂𓃄⟧ generate_ticket :: Generate a structured ticket from a transcript via chat completions.
     pub fn generate_ticket(
         &self,
         transcript: &str,
