@@ -1,7 +1,9 @@
 # Changelog — utilities/shell/tabbing-on
 
 ## [Unreleased]
-- No changes since the last milestone.
+- Fixed: `tabbing-init` purge now also clears `DC_TAB_NS`, `_TABBING_OWNER_PID`, `_TABBING_WAS_ACTIVE`, `TAB_THEME_DATA`, `TAB_BG`, `TAB_MARQUEE`, and style vars so inherited tab state cannot leak into a new shell
+- Fixed: `use_tabbing_dc` reads `${DC_TAB_NS:-tab}` instead of hardcoded global `tab`
+- Companion: `direnv-config` `dc-init` protects `TAB_*` from `tab.*: TAB_*` flatten clobber (see direnv-config CHANGELOG)
 
 ## [m6-arch-layout-docs] — 2026-07-16 — tag: `utilities-shell-tabbing-on/m6-arch-layout-docs`
 Milestone summary: PROJ-ARCH/PROJ-LAYOUT docs (and per-tier summaries) rewritten to reflect the current rust + shell-impl split, with new per-directory layout docs for each subsystem.

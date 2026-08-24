@@ -87,11 +87,15 @@ use_tabbing_dc() {
 
   command -v dc >/dev/null 2>&1 || return 0
 
+  # Prefer the session-scoped namespace when tabbing-on has exported it;
+  # only fall back to the shared global `tab` for cold direnv loads with
+  # no interactive session yet.
+  local _ns="${DC_TAB_NS:-tab}"
   local _val
-  _val="$(dc get tab title --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_TITLE="$_val"
-  _val="$(dc get tab status --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_STATUS="$_val"
-  _val="$(dc get tab theme --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_THEME="$_val"
-  _val="$(dc get tab highlight --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_HIGHLIGHT="$_val"
-  _val="$(dc get tab emoji --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_EMOJI="$_val"
-  _val="$(dc get tab urgency --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_URGENCY="$_val"
+  _val="$(dc get "$_ns" title --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_TITLE="$_val"
+  _val="$(dc get "$_ns" status --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_STATUS="$_val"
+  _val="$(dc get "$_ns" theme --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_THEME="$_val"
+  _val="$(dc get "$_ns" highlight --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_HIGHLIGHT="$_val"
+  _val="$(dc get "$_ns" emoji --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_EMOJI="$_val"
+  _val="$(dc get "$_ns" urgency --raw 2>/dev/null)" && [ -n "$_val" ] && export TAB_URGENCY="$_val"
 }
