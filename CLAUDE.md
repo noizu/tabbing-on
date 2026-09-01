@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Decision Records
+
+When this repo is checked out under `gnp-infra`, follow the shared decision-recording rules in `../../docs/decision-log-conventions.md`.
+
+- Use `../../docs/arch/decisions.md` for durable Architecture Decision Records.
+- Use `../../docs/decision-logs.md` for task-level approach and trade-off decisions.
+- If a task triggers the convention, update the appropriate decision record before the final response and mention the path changed.
+
 ## Project Overview
 
 **tabbing-on** is a pure-shell terminal tab title/status/task manager for macOS and Linux. It sets tab titles, colors, status text, emojis, urgency levels, manages per-tab todos, tracks history, and records terminal sessions. Supports iTerm2, Ghostty, Kitty, WezTerm, Alacritty, Apple Terminal, and others.
