@@ -8,7 +8,7 @@ sessions via asciinema; applies terminal color themes; and bridges state to the
 Claude Code IDE statusline and Toggl Track. It supports iTerm2, Ghostty, Kitty,
 WezTerm, Alacritty, Apple Terminal, and others.
 
-The project carries **two parallel implementations** plus a prototype:
+The project carries **two parallel implementations**:
 
 1. **Rust** (`rust/`, v0.2.0) — the primary implementation. A single multi-call
    binary (`tabbing-on`) that dispatches on argv0; installed applet symlinks
@@ -18,9 +18,9 @@ The project carries **two parallel implementations** plus a prototype:
    under Bash/Zsh adapters. Still authoritative for the pieces that must run *in*
    the interactive shell (adapters, `_tabbing-commit`, `tabbing-daemon`) and
    co-installed alongside the Rust binary.
-3. **Ink TUI prototype** (`ink-plan/`) — an Ink/React (Node ≥ 20) exploration of
-   the `tabbing-plan` voice-memo-to-ticket flow, since reimplemented in Rust
-   (`rust/src/plan/`).
+
+(A third exploration, the Ink/React `tabbing-plan` TUI prototype, was removed
+after its Rust port in `rust/src/plan/` superseded it.)
 
 Shell/Rust feature coverage is tracked in [FEATURE-PARITY.md](FEATURE-PARITY.md);
 file-level breakdowns live in [PROJ-LAYOUT.md](PROJ-LAYOUT.md) and
@@ -90,7 +90,7 @@ graph TB
 | Doctor | `rust/src/doctor.rs`, `shell-impl/bin/tabbing-doctor` | Detect/patch Kitty & Ghostty configs that override titles |
 | Claude bridge | `rust/src/claude.rs`, `bridge.rs`, `shell-impl/lib/claude.sh` | Claude Code IDE statusline via FIFO + state file |
 | Toggl | `rust/src/toggl.rs`, `shell-impl/lib/toggl.sh` | Toggl Track time-entry lifecycle |
-| Plan | `rust/src/plan/`, `ink-plan/` | `tabbing-plan`/`task-memo`: mic capture → Whisper transcription → LLM classification → PM ticket files |
+| Plan | `rust/src/plan/` | `tabbing-plan`/`task-memo`: mic capture → Whisper transcription → LLM classification → PM ticket files |
 | Shell adapters | `shell-impl/shell/tabbing.{bash,zsh}` | In-shell user functions so `TAB_*` exports persist; precmd/PROMPT_COMMAND hooks |
 | Daemon | `shell-impl/bin/tabbing-daemon` | dc-mode background renderer + status marquee (shell-only; Rust symlink exists) |
 | Bootstrap | `rust/src/init.rs`, `shell-impl/bin/tabbing-init` | Emits shell-appropriate `source`/setup code for `eval` |
@@ -199,6 +199,6 @@ repo `.envrc` sets `TAB_THEME` and `NPL_PROJECT` for tobor session tooling.
   Claude bridge
 - **Claude bridge via FIFO**: named pipe decouples the render pipeline from the
   IDE statusline consumer
-- **Prototype-then-port**: `tabbing-plan` was explored in Ink/React
-  (`ink-plan/`, needs SoX + LiteLLM/Whisper) before landing in Rust; the
-  prototype is retained for reference
+- **Prototype-then-port**: `tabbing-plan` was explored in Ink/React (needs
+  SoX + LiteLLM/Whisper) before landing in Rust; the prototype was retired once
+  the Rust port (`rust/src/plan/`) covered it

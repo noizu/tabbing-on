@@ -15,15 +15,17 @@ tabbing-on/
 │   ├── examples/themes/        #   User theme templates
 │   ├── demo/                   #   Demo scripts & recordings
 │   └── terminal-utils.zshrc    #   Legacy shim
-├── ink-plan/                   # tabbing-plan TUI prototype (Ink/React)
-├── docs/                       # PROJ-ARCH, FEATURE-PARITY, theme-data-format, layout/, assets/
+├── docs/                       # PROJ-ARCH/HOWTO/FAQ/LAYOUT (+ summaries), FEATURE-PARITY,
+│                               #   theme-data-format, howto/, layout/, assets/
 ├── tmp-xdg/                    # Scratch XDG config tree for testing
 ├── .envrc                      # direnv (gitignored) — TAB_THEME, NPL_PROJECT
 ├── Makefile                    # make install: cargo build + symlinks + shell libs
+├── CHANGELOG.md                # Milestone-tagged change history
 ├── CLAUDE.md                   # Claude Code instructions
 ├── LICENSE                     # MIT
 ├── README.md                   # Project entry point
 ├── TODO.md                     # Roadmap
 ├── plan-a.md / plan-b.md / plan-c.md  # Design plans
+├── merge-notes.md              # Branch-sweep / merge sequence notes
 └── script.md                   # Demo recording script
 ```
