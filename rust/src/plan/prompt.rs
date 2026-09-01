@@ -3,6 +3,7 @@ use chrono::Local;
 use super::types::TicketType;
 
 /// Build the system prompt for the ticket-generation LLM call.
+// ⟦𓆳𓅐𓄎𓏰⟧ build_system_prompt :: Build the system prompt for the ticket-generation LLM call.
 pub fn build_system_prompt(type_override: Option<&TicketType>) -> String {
     let type_constraint = match type_override {
         Some(tt) => format!("The ticket type is: {tt}. Do not change it."),

@@ -28,3 +28,8 @@ color12 = #7AA2F7   # bright blue
 color13 = #BB9AF7   # bright magenta
 color14 = #7DCFFF   # bright cyan
 color15 = #C0CAF5   # bright white
+
+# Optional shell prompt layout:
+# default, minimal, compact, full, two-line, git, tab-status, custom
+ps1_layout = git
+# ps1 = '%n@%m %~ %# '

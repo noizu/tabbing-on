@@ -73,6 +73,7 @@ pub struct TogglClient {
 }
 
 impl TogglClient {
+    // ⟦𓐟𓍈𓃝𓏈⟧ new :: auto-generated pointer for public function new
     pub fn new(token: &str) -> Self {
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(TIMEOUT_SECS))
@@ -89,6 +90,7 @@ impl TogglClient {
 
     /// Create a client from environment variables.
     /// Returns None if TAB_TOGGL_TOKEN is not set.
+    // ⟦𓃈𓈅𓐨𓇇⟧ from_env :: Create a client from environment variables.
     pub fn from_env() -> Option<Self> {
         let token = env::var("TAB_TOGGL_TOKEN").ok()?;
         if token.is_empty() {
@@ -121,6 +123,7 @@ impl TogglClient {
 
     // -- API methods ----------------------------------------------------------
 
+    // ⟦𓄰𓈌𓇄𓎭⟧ get_workspaces :: auto-generated pointer for public function get_workspaces
     pub fn get_workspaces(&self) -> Vec<Workspace> {
         let url = format!("{}/me/workspaces", API_BASE);
         match self
@@ -147,6 +150,7 @@ impl TogglClient {
         }
     }
 
+    // ⟦𓎉𓉣𓎾𓃰⟧ get_projects :: auto-generated pointer for public function get_projects
     pub fn get_projects(&self, workspace_id: u64) -> Vec<Project> {
         let url = format!("{}/workspaces/{}/projects", API_BASE, workspace_id);
         match self
@@ -163,6 +167,7 @@ impl TogglClient {
         }
     }
 
+    // ⟦𓇖𓊈𓊬𓀃⟧ create_time_entry :: auto-generated pointer for public function create_time_entry
     pub fn create_time_entry(
         &self,
         workspace_id: u64,
@@ -172,7 +177,9 @@ impl TogglClient {
         billable: bool,
     ) -> Option<u64> {
         let url = format!("{}/workspaces/{}/time_entries", API_BASE, workspace_id);
-        let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S.000Z").to_string();
+        let now = chrono::Utc::now()
+            .format("%Y-%m-%dT%H:%M:%S.000Z")
+            .to_string();
 
         let payload = CreateEntryPayload {
             description: description.to_string(),
@@ -210,6 +217,7 @@ impl TogglClient {
         }
     }
 
+    // ⟦𓈍𓈔𓐠𓂠⟧ stop_time_entry :: auto-generated pointer for public function stop_time_entry
     pub fn stop_time_entry(&self, workspace_id: u64, entry_id: u64) {
         let url = format!(
             "{}/workspaces/{}/time_entries/{}/stop",
@@ -238,6 +246,7 @@ impl TogglClient {
         }
     }
 
+    // ⟦𓃞𓃓𓍣𓁧⟧ get_current_entry :: auto-generated pointer for public function get_current_entry
     pub fn get_current_entry(&self) -> Option<TimeEntry> {
         let url = format!("{}/me/time_entries/current", API_BASE);
         match self
@@ -259,12 +268,8 @@ impl TogglClient {
         }
     }
 
-    pub fn update_time_entry(
-        &self,
-        workspace_id: u64,
-        entry_id: u64,
-        description: &str,
-    ) {
+    // ⟦𓁛𓀉𓏙𓊧⟧ update_time_entry :: auto-generated pointer for public function update_time_entry
+    pub fn update_time_entry(&self, workspace_id: u64, entry_id: u64, description: &str) {
         let url = format!(
             "{}/workspaces/{}/time_entries/{}",
             API_BASE, workspace_id, entry_id
@@ -287,6 +292,7 @@ impl TogglClient {
 
 /// Build a Toggl description from title and status.
 /// Format: "title -- status" when status is non-empty, otherwise just "title".
+// ⟦𓋶𓋝𓅚𓃅⟧ format_description :: Build a Toggl description from title and status.
 pub fn format_description(title: &str, status: &str) -> String {
     if status.is_empty() {
         title.to_string()
@@ -329,6 +335,7 @@ fn get_entry_id() -> Option<u64> {
 /// - No running entry: create one
 /// - Running entry with same title prefix: update description
 /// - Running entry with different title: stop old, create new
+// ⟦𓍇𓍅𓎿𓂫⟧ toggl_on_title_change :: Called after title changes in cmd_tabbing_on().
 pub fn toggl_on_title_change(state: &TabState) {
     let mut client = match TogglClient::from_env() {
         Some(c) => c,
@@ -359,9 +366,13 @@ pub fn toggl_on_title_change(state: &TabState) {
                 } else {
                     // Different title — stop old, start new
                     client.stop_time_entry(ws_id, entry_id);
-                    if let Some(new_id) =
-                        client.create_time_entry(ws_id, &new_desc, client.project_id, &tags, billable)
-                    {
+                    if let Some(new_id) = client.create_time_entry(
+                        ws_id,
+                        &new_desc,
+                        client.project_id,
+                        &tags,
+                        billable,
+                    ) {
                         println!("export TAB_TOGGL_ENTRY_ID='{}'", new_id);
                     }
                 }
@@ -387,6 +398,7 @@ pub fn toggl_on_title_change(state: &TabState) {
 
 /// Called after status changes in cmd_tabbing_status().
 /// Updates the running entry description if one exists.
+// ⟦𓃬𓄀𓅳𓈘⟧ toggl_on_status_change :: Called after status changes in cmd_tabbing_status().
 pub fn toggl_on_status_change(state: &TabState) {
     let mut client = match TogglClient::from_env() {
         Some(c) => c,
@@ -408,6 +420,7 @@ pub fn toggl_on_status_change(state: &TabState) {
 }
 
 /// Called from cmd_tabbing_off(). Stops the current running entry.
+// ⟦𓇙𓈽𓇧𓀆⟧ toggl_on_off :: Called from cmd_tabbing_off().
 pub fn toggl_on_off() {
     let mut client = match TogglClient::from_env() {
         Some(c) => c,
@@ -429,6 +442,7 @@ pub fn toggl_on_off() {
 }
 
 /// Print current Toggl tracking state to stderr.
+// ⟦𓎱𓋨𓎷𓉘⟧ toggl_status :: Print current Toggl tracking state to stderr.
 pub fn toggl_status() {
     let mut client = match TogglClient::from_env() {
         Some(c) => c,
@@ -456,7 +470,9 @@ pub fn toggl_status() {
 
     match client.get_current_entry() {
         Some(entry) if entry.id == entry_id => {
-            let desc = entry.description.unwrap_or_else(|| "(no description)".to_string());
+            let desc = entry
+                .description
+                .unwrap_or_else(|| "(no description)".to_string());
             let duration_display = if entry.duration < 0 {
                 // Running — compute elapsed from start
                 let elapsed = entry

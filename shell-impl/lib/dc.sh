@@ -32,6 +32,8 @@ _tabbing_dc_ns() {
 # ---------------------------------------------------------------------------
 # Generate a dc UUID for this terminal session. Called once at shell init
 # (by tabbing.zsh/tabbing.bash) to establish the session's dc scope.
+# Keeps DC_TAB_NS in lockstep so the direnv `dc-init` bridge always reads
+# THIS session's tab namespace rather than the shared global `tab`.
 # ---------------------------------------------------------------------------
 _tabbing_dc_gen_uuid() {
   if [ -r /dev/urandom ]; then
@@ -41,6 +43,17 @@ _tabbing_dc_gen_uuid() {
     TABBING_DC_UUID="$(printf '%04x%04x%04x%04x' $$ "$(date +%s)" $RANDOM $RANDOM | cut -c1-16)"
   fi
   export TABBING_DC_UUID
+  _tabbing_dc_export_ns
+}
+
+# ---------------------------------------------------------------------------
+# Export DC_TAB_NS mirroring _tabbing_dc_ns. The direnv-config `dc-init`
+# precmd bridge reads `${DC_TAB_NS:-tab}`; exporting the session-scoped
+# namespace here stops it from re-applying another tab's global state.
+# ---------------------------------------------------------------------------
+_tabbing_dc_export_ns() {
+  DC_TAB_NS="$(_tabbing_dc_ns)"
+  export DC_TAB_NS
 }
 
 # ---------------------------------------------------------------------------
@@ -53,11 +66,14 @@ _tabbing_dc_load() {
   _val="$(dc get "$_ns" title --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_TITLE="$_val"
   _val="$(dc get "$_ns" status --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_STATUS="$_val"
   _val="$(dc get "$_ns" highlight --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_HIGHLIGHT="$_val"
+  _val="$(dc get "$_ns" title_style --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_TITLE_STYLE="$_val"
+  _val="$(dc get "$_ns" status_style --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_STATUS_STYLE="$_val"
   _val="$(dc get "$_ns" urgency --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_URGENCY="$_val"
   _val="$(dc get "$_ns" emoji --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_EMOJI="$_val"
+  _val="$(dc get "$_ns" bg --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_BG="$_val"
   _val="$(dc get "$_ns" theme --raw 2>/dev/null)" && [ -n "$_val" ] && TAB_THEME="$_val"
 
-  export TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_THEME
+  export TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_URGENCY TAB_EMOJI TAB_BG TAB_THEME
   unset _val _ns
 }
 
@@ -68,7 +84,11 @@ _tabbing_dc_set() {
   _tabbing_dc_enabled || return 0
   _key="$1"
   _value="$2"
-  dc set "$(_tabbing_dc_ns)" "$_key" "$_value" 2>/dev/null
+  # Write the `base` layer to match _tabbing_dc_save (dc yaml --replace, base).
+  # `dc set` defaults to the `local` layer, which shadows `base` on `dc get` —
+  # so mixing the two would let a `dc set` key permanently mask a later
+  # `dc yaml --replace` of the same key (e.g. a cleared theme never taking).
+  dc set "$(_tabbing_dc_ns)" "$_key" "$_value" --layer base 2>/dev/null
   _tabbing_dc_bump_timestamp
   _tabbing_dc_notify_daemon
 }
@@ -89,20 +109,23 @@ _tabbing_dc_notify_daemon() {
 # ---------------------------------------------------------------------------
 _tabbing_dc_bump_timestamp() {
   _tabbing_dc_enabled || return 0
+  # BSD date accepts +%s%3N but prints a literal "3N" suffix, so exit-code
+  # probing is not enough — verify the output is purely numeric.
   if command -v gdate >/dev/null 2>&1; then
     _ts="$(gdate +%s%3N)"
-  elif date +%s%3N >/dev/null 2>&1; then
-    _ts="$(date +%s%3N)"
   else
-    _ts="$(date +%s)000"
+    _ts="$(date +%s%3N 2>/dev/null)"
   fi
-  dc set "$(_tabbing_dc_ns)" last_update "$_ts" 2>/dev/null
+  case "$_ts" in
+    ''|*[!0-9]*) _ts="$(date +%s)000" ;;
+  esac
+  dc set "$(_tabbing_dc_ns)" last_update "$_ts" --layer base 2>/dev/null
 }
 
 # ---------------------------------------------------------------------------
 # Set a TAB_* variable and write-through to dc if dc mode is active.
 # Usage: _tabbing_set <key> <value>
-#   key: lowercase dc key name (title, status, highlight, urgency, emoji, theme)
+#   key: lowercase dc key name (title, status, highlight, title_style, status_style, urgency, emoji, bg, theme)
 # Sets the corresponding TAB_* env var AND calls dc set immediately.
 # ---------------------------------------------------------------------------
 _tabbing_set() {
@@ -112,8 +135,11 @@ _tabbing_set() {
     title)     export TAB_TITLE="$_value" ;;
     status)    export TAB_STATUS="$_value" ;;
     highlight) export TAB_HIGHLIGHT="$_value" ;;
+    title_style) export TAB_TITLE_STYLE="$_value" ;;
+    status_style) export TAB_STATUS_STYLE="$_value" ;;
     urgency)   export TAB_URGENCY="$_value" ;;
     emoji)     export TAB_EMOJI="$_value" ;;
+    bg)        export TAB_BG="$_value" ;;
     theme)     export TAB_THEME="$_value" ;;
   esac
   _tabbing_dc_set "$_key" "$_value"
@@ -128,10 +154,10 @@ _tabbing_dc_save() {
   _ns="$(_tabbing_dc_ns)"
   _tabbing_dc_bump_timestamp
   _ts="$(dc get "$_ns" last_update --raw 2>/dev/null)"
-  printf 'title: %s\nstatus: %s\nhighlight: %s\nurgency: %s\nemoji: %s\ntheme: %s\nlast_update: %s\n' \
-    "${TAB_TITLE:-}" "${TAB_STATUS:-}" "${TAB_HIGHLIGHT:-}" \
-    "${TAB_URGENCY:-}" "${TAB_EMOJI:-}" "${TAB_THEME:-}" "${_ts:-0}" \
-    | dc yaml "$_ns" --replace 2>/dev/null
+  printf 'title: %s\nstatus: %s\nhighlight: %s\ntitle_style: %s\nstatus_style: %s\nurgency: %s\nemoji: %s\nbg: %s\ntheme: %s\nlast_update: %s\n' \
+    "${TAB_TITLE:-}" "${TAB_STATUS:-}" "${TAB_HIGHLIGHT:-}" "${TAB_TITLE_STYLE:-}" "${TAB_STATUS_STYLE:-}" \
+    "${TAB_URGENCY:-}" "${TAB_EMOJI:-}" "${TAB_BG:-}" "${TAB_THEME:-}" "${_ts:-0}" \
+    | dc yaml "$_ns" --replace --layer base 2>/dev/null
   _tabbing_dc_notify_daemon
 }
 

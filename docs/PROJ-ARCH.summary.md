@@ -2,44 +2,44 @@
 
 ## Overview
 
-Shell utility for terminal tab management. Layered architecture: POSIX shared libraries + shell-specific adapters (Bash/Zsh). Two runtime modes: env mode (shell variables) and dc mode (direnv-config store + background daemon). Integrates with Claude Code IDE and Toggl Track.
+Terminal tab title/status/todo/theme/recording manager with two parallel implementations: primary Rust multi-call binary (rust/, v0.2.0, argv0 applet dispatch) and the original pure-shell tree (shell-impl/, POSIX libs + Bash/Zsh adapters), plus a retained Ink/React prototype of tabbing-plan (ink-plan/). Integrates with Claude Code IDE statusline, Toggl Track, and Whisper/LLM (voice memo → PM ticket). Two runtime modes: env mode (TAB_* shell variables) and dc mode (direnv-config store + background daemon rendering titles).
 
 ## Components
 
-- **lib/render.sh** -- Render pipeline, color/emoji validation, version string
-- **lib/core.sh** -- Color/emoji mapping, urgency levels, help, YAML escape
-- **lib/terminal.sh** -- Terminal detection (10+ emulators), escape sequence abstraction
-- **lib/history.sh** -- Tab ID generation, YAML event logging, search, reporting
-- **lib/recording.sh** -- asciinema recording lifecycle
-- **lib/session.sh** -- Per-session state persistence via TAB_SESSION-keyed env files
-- **lib/todo.sh** -- Per-tab todo CRUD with provider pattern
-- **lib/theme.sh** -- Theme loading, listing, custom .theme file support
-- **lib/dc.sh** -- direnv-config integration: state read/write, timestamps, daemon lifecycle, SIGUSR1 notification
-- **lib/claude.sh** -- Claude Code IDE bridge via FIFO + state file
-- **lib/toggl.sh** -- Toggl Track API integration for time entry lifecycle
-- **bin/tabbing-daemon** -- Background daemon: polls dc last_update at 200ms, renders title, marquees long status
-- **shell/tabbing.zsh** -- Zsh adapter (sources render.sh + dc.sh, 1-based arrays, precmd hook)
-- **shell/tabbing.bash** -- Bash adapter (sources render.sh + dc.sh, 0-based arrays, PROMPT_COMMAND hook)
-- **bin/tabbing-init** -- Bootstrap: outputs `source` command + TABBING_ROOT export
+- **rust/src/main.rs** — argv0 multi-call dispatch to subcommand modules
+- **rust/src/** modules — render, state (dc write-through), terminal, theme + ratatui theme picker, history, todo, recording, doctor, claude/bridge, toggl, marquee, init, demo
+- **rust/src/plan/** — tabbing-plan / task-memo: mic capture → Whisper transcription → LLM classification → ticket files
+- **shell-impl/lib/*.sh** — POSIX libraries (_tabbing_* prefix): render, core, terminal, history, session, todo, theme, theme-data, dc, claude, toggl, recording
+- **shell-impl/shell/tabbing.{bash,zsh}** — in-shell adapters (env exports persist; precmd/PROMPT_COMMAND hooks)
+- **shell-impl/bin/** — CLI wrappers, _tabbing-commit (real script, not symlink), tabbing-daemon (dc-mode poller/marquee, shell-only), demo-runner
+- **ink-plan/** — Ink/React (Node >= 20) tabbing-plan prototype; needs SoX + LiteLLM/Whisper
 
-## Installation
+## Dual Implementation
 
-`make install` copies: bin/ → ~/.local/bin/, lib/ → ~/.local/share/tabbing-on/lib/, shell/ → ~/.local/share/tabbing-on/shell/. `tabbing-init` resolves TABBING_ROOT from its own location (source tree or installed).
+Rust owns the CLI surface and interactive-heavy features (ratatui theme picker, plan TUI, HTTP). Shell owns what must run in the interactive shell: adapters, _tabbing-commit, daemon, demo-runner. Both share state files, dc keys, and escape sequences. Parity matrix: FEATURE-PARITY.md.
 
 ## State
 
-- **Env mode**: TAB_* environment variables in the current shell session
-- **DC mode**: direnv-config key-value store (`dc tab {title,status,highlight,urgency,emoji,theme,last_update}`). `_tabbing_set` writes through to both env var and dc store, bumps last_update, sends SIGUSR1 to daemon
-- **Persistent**: YAML files under `$XDG_STATE_HOME/tabbing/` (history, todos, recordings per tab; session env files)
-- **Claude bridge**: FIFO pipe + flat state file + PID file per session
+- **Env mode**: TAB_TITLE/STATUS/HIGHLIGHT/URGENCY/EMOJI/THEME + auto TAB_ID (per tab), TAB_SESSION, TAB_TERMINAL
+- **DC mode** (TABBING_ON_DC_MODE=1): write-through to dc `tab` namespace; single mutation path bumps last_update (ms epoch) and SIGUSR1s the daemon; daemon polls at 200ms, marquees status > 20 chars
+- **Persistent**: XDG `~/.local/state/tabbing/` (history/, todos/, recordings/, sessions/, claude bridge FIFO + state + pid); user themes in `~/.config/tabbing-on/themes/`
+
+## Terminal Abstraction
+
+Env-var detection (iTerm2 > Ghostty > Kitty > WezTerm > ... > xterm); OSC 0 titles universal, OSC 6 tab color + OSC 1337 badge (iTerm2), Kitty remote control, OSC 4/10/11/12 theme recoloring. tabbing-doctor patches Kitty/Ghostty configs that override titles.
+
+## Installation & Ecosystem
+
+Lives at utilities/shell/tabbing-on in the Noizu Infra monorepo; a SUBDIR of utilities/shell/Makefile, so repo-root `make install-utilities` recurses into its Makefile. No share/k8-lib or .infra-config.yaml footprint — purely local tool sharing the ~/.local/bin convention. `make install`: cargo build → ~/.local/bin/tabbing-on + ~19 applet symlinks + shell libs to ~/.local/share/tabbing-on/ + direnv use_tabbing helper. `make install-shell` = legacy pure-shell install. Activate via `eval "$(tabbing-init bash|zsh)"`. dc mode depends on sibling direnv-config utility.
 
 ## Key Decisions
 
-- POSIX library layer for portability; shell-specific syntax only in adapters
-- `_tabbing_set` as single mutation path: env export + dc write-through + timestamp + SIGUSR1
-- Render.sh + dc.sh sourced at shell init (lightweight); other libs loaded on demand by bin/ scripts
-- DC daemon uses last_update as single change sentinel; SIGUSR1 for instant refresh, 200ms poll for marquee
-- Environment variables for env-mode session state; dc store for cross-process/directory-scoped state
-- Per-tab isolation via unique TAB_ID; per-session isolation via TAB_SESSION
-- No external dependencies (dc and asciinema optional)
-- Claude bridge uses FIFO to decouple render pipeline from IDE statusline
+- Multi-call binary with argv0 dispatch: one artifact, per-command UX
+- Shell layer retained: compiled binary can't mutate parent shell env; adapters/commit/daemon stay shell, co-installed
+- Single mutation path (_tabbing_set / state.rs): env export + dc write + last_update bump + SIGUSR1
+- last_update as sole change sentinel; SIGUSR1 instant refresh, 200ms poll for marquee
+- POSIX libs, bash/zsh-isms only in adapters; only render.sh + dc.sh sourced at init for fast prompts
+- YAML via sed/awk, no hard external deps (dc, asciinema optional)
+- Per-tab isolation (TAB_ID) and per-session scoping (TAB_SESSION)
+- Claude bridge via FIFO decouples render pipeline from IDE statusline
+- tabbing-plan prototyped in Ink/React before Rust port; prototype retained

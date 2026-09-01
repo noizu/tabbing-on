@@ -22,6 +22,7 @@ fn strip_quotes(s: &str) -> String {
 }
 
 /// List all known tab IDs with started date and latest title.
+// ⟦𓎓𓅛𓀡𓊕⟧ history_list_tabs :: List all known tab IDs with started date and latest title.
 pub fn history_list_tabs() {
     let dir = history_dir();
     let entries = match fs::read_dir(&dir) {
@@ -69,12 +70,7 @@ pub fn history_list_tabs() {
             fs::read_dir(&rec_dir)
                 .map(|rd| {
                     rd.filter_map(|e| e.ok())
-                        .filter(|e| {
-                            e.path()
-                                .extension()
-                                .and_then(|x| x.to_str())
-                                == Some("cast")
-                        })
+                        .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("cast"))
                         .count()
                 })
                 .unwrap_or(0)
@@ -98,6 +94,7 @@ pub fn history_list_tabs() {
 }
 
 /// Search across all history files for a query string (case-insensitive).
+// ⟦𓍖𓆛𓍅𓆽⟧ history_search :: Search across all history files for a query string (case-insensitive).
 pub fn history_search(query: &str) {
     let dir = history_dir();
     let entries = match fs::read_dir(&dir) {
@@ -302,7 +299,20 @@ fn ts_to_seconds(ts: &str) -> i64 {
         total_days += if is_leap(y) { 366 } else { 365 };
     }
     // Months
-    let days_in_month = [31, if is_leap(year) { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let days_in_month = [
+        31,
+        if is_leap(year) { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
     for m in 0..(month - 1) as usize {
         if m < 12 {
             total_days += days_in_month[m];
@@ -519,6 +529,7 @@ entries:
 }
 
 /// Print an ASCII bar chart of time spent in each status for a tab.
+// ⟦𓃪𓋻𓊜𓎂⟧ report :: Print an ASCII bar chart of time spent in each status for a tab.
 pub fn report(tab_id: &str) {
     let hfile = history_dir().join(format!("{}.yaml", tab_id));
     let content = match fs::read_to_string(&hfile) {
@@ -549,8 +560,7 @@ pub fn report(tab_id: &str) {
         let pct = (*dur * 100 / total) as usize;
         let filled = (pct * bar_width / 100).min(bar_width);
 
-        let bar: String = "\u{2588}".repeat(filled)
-            + &" ".repeat(bar_width - filled);
+        let bar: String = "\u{2588}".repeat(filled) + &" ".repeat(bar_width - filled);
 
         println!(
             "  {:<14} [{}] {:>3}%  {}",
@@ -567,12 +577,7 @@ pub fn report(tab_id: &str) {
         let cast_files: Vec<_> = fs::read_dir(&rec_dir)
             .into_iter()
             .flat_map(|rd| rd.filter_map(|e| e.ok()))
-            .filter(|e| {
-                e.path()
-                    .extension()
-                    .and_then(|x| x.to_str())
-                    == Some("cast")
-            })
+            .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("cast"))
             .collect();
 
         if !cast_files.is_empty() {
@@ -596,6 +601,7 @@ pub fn report(tab_id: &str) {
 }
 
 /// Output Mermaid pie chart syntax for a tab's time-in-state.
+// ⟦𓉮𓄓𓉚𓉀⟧ report_mermaid :: Output Mermaid pie chart syntax for a tab's time-in-state.
 pub fn report_mermaid(tab_id: &str) {
     let hfile = history_dir().join(format!("{}.yaml", tab_id));
     let content = match fs::read_to_string(&hfile) {
@@ -622,6 +628,7 @@ pub fn report_mermaid(tab_id: &str) {
 }
 
 /// Run the report for all tabs that have history files.
+// ⟦𓃮𓋱𓌀𓎺⟧ report_all :: Run the report for all tabs that have history files.
 pub fn report_all() {
     let dir = history_dir();
     let entries = match fs::read_dir(&dir) {

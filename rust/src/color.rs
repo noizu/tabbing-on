@@ -1,3 +1,4 @@
+// ⟦𓆜𓏆𓋰𓉏⟧ color_code :: auto-generated pointer for public function color_code
 pub fn color_code(name: &str) -> Option<&'static str> {
     match name {
         "black" => Some("30"),
@@ -28,6 +29,7 @@ pub fn color_code(name: &str) -> Option<&'static str> {
     }
 }
 
+// ⟦𓏇𓁼𓉯𓉥⟧ color_code_or_raw :: auto-generated pointer for public function color_code_or_raw
 pub fn color_code_or_raw(name: &str) -> Option<String> {
     if let Some(code) = color_code(name) {
         return Some(code.to_string());
@@ -38,6 +40,40 @@ pub fn color_code_or_raw(name: &str) -> Option<String> {
     None
 }
 
+// ⟦𓄧𓎄𓈝𓏞⟧ style_sequence :: auto-generated pointer for public function style_sequence
+pub fn style_sequence(spec: &str) -> Option<String> {
+    let mut codes: Vec<String> = Vec::new();
+    for token in spec
+        .split(|c: char| c.is_whitespace() || c == ',' || c == '+')
+        .filter(|s| !s.is_empty())
+    {
+        if let Some(bg_name) = token
+            .strip_prefix("bg-")
+            .or_else(|| token.strip_prefix("bg:"))
+        {
+            let fg = color_code_or_raw(bg_name)?;
+            let fg_code = fg.parse::<u16>().ok()?;
+            let bg_code = match fg_code {
+                30..=37 => fg_code + 10,
+                90..=97 => fg_code + 10,
+                _ => return None,
+            };
+            codes.push(bg_code.to_string());
+        } else if let Some(code) = color_code_or_raw(token) {
+            codes.push(code);
+        } else {
+            return None;
+        }
+    }
+
+    if codes.is_empty() {
+        None
+    } else {
+        Some(codes.join(";"))
+    }
+}
+
+// ⟦𓅏𓃹𓈾𓂑⟧ is_known_color :: auto-generated pointer for public function is_known_color
 pub fn is_known_color(name: &str) -> bool {
     matches!(
         name,
@@ -67,6 +103,7 @@ pub fn is_known_color(name: &str) -> bool {
     )
 }
 
+// ⟦𓈾𓎹𓃵𓇇⟧ urgency_ansi :: auto-generated pointer for public function urgency_ansi
 pub fn urgency_ansi(level: u8) -> &'static str {
     match level {
         0 => "91", // bright red
@@ -79,6 +116,7 @@ pub fn urgency_ansi(level: u8) -> &'static str {
     }
 }
 
+// ⟦𓃼𓅘𓏠𓈒⟧ urgency_dot :: auto-generated pointer for public function urgency_dot
 pub fn urgency_dot(level: u8) -> &'static str {
     match level {
         0 => "\u{1F534}", // red circle
@@ -91,6 +129,7 @@ pub fn urgency_dot(level: u8) -> &'static str {
     }
 }
 
+// ⟦𓐪𓎡𓉺𓎳⟧ color_to_hex :: auto-generated pointer for public function color_to_hex
 pub fn color_to_hex(name: &str) -> Option<&'static str> {
     match name {
         s if s.starts_with('#') && s.len() == 7 => return None, // passthrough handled by caller
@@ -157,6 +196,7 @@ pub fn color_to_hex(name: &str) -> Option<&'static str> {
     }
 }
 
+// ⟦𓍬𓍀𓌬𓍦⟧ resolve_hex :: auto-generated pointer for public function resolve_hex
 pub fn resolve_hex(name: &str) -> Option<String> {
     if name.starts_with('#') && name.len() == 7 {
         return Some(name.to_string());
@@ -164,6 +204,7 @@ pub fn resolve_hex(name: &str) -> Option<String> {
     color_to_hex(name).map(|s| s.to_string())
 }
 
+// ⟦𓎦𓇭𓉖𓆊⟧ urgency_tab_color :: auto-generated pointer for public function urgency_tab_color
 pub fn urgency_tab_color(level: u8) -> Option<(u8, u8, u8)> {
     match level {
         0 => Some((200, 50, 50)),
@@ -176,6 +217,74 @@ pub fn urgency_tab_color(level: u8) -> Option<(u8, u8, u8)> {
     }
 }
 
+// ============================================================================
+// HSV / RGB / hex conversions (used by the theme-picker color wheel)
+// ============================================================================
+
+/// Parse a `#RRGGBB` string into an RGB triple. Returns `None` on bad input.
+// ⟦𓇠𓏈𓊎𓊫⟧ hex_to_rgb :: Parse a `#RRGGBB` string into an RGB triple.
+pub fn hex_to_rgb(hex: &str) -> Option<(u8, u8, u8)> {
+    let hex = hex.trim_start_matches('#');
+    if hex.len() != 6 || !hex.chars().all(|c| c.is_ascii_hexdigit()) {
+        return None;
+    }
+    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+    Some((r, g, b))
+}
+
+/// Render an RGB triple as an uppercase `#RRGGBB` string.
+// ⟦𓊣𓆟𓁹𓈯⟧ rgb_to_hex :: Render an RGB triple as an uppercase `#RRGGBB` string.
+pub fn rgb_to_hex((r, g, b): (u8, u8, u8)) -> String {
+    format!("#{:02X}{:02X}{:02X}", r, g, b)
+}
+
+/// Convert HSV (h in degrees [0,360), s & v in [0,1]) to an RGB triple.
+// ⟦𓇮𓆖𓊾𓏋⟧ hsv_to_rgb :: Convert HSV (h in degrees [0,360), s & v in [0,1]) to an RGB triple.
+pub fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
+    let h = h.rem_euclid(360.0);
+    let s = s.clamp(0.0, 1.0);
+    let v = v.clamp(0.0, 1.0);
+    let c = v * s;
+    let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
+    let m = v - c;
+    let (r1, g1, b1) = match (h / 60.0) as u32 {
+        0 => (c, x, 0.0),
+        1 => (x, c, 0.0),
+        2 => (0.0, c, x),
+        3 => (0.0, x, c),
+        4 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+    let to_u8 = |f: f32| (((f + m) * 255.0).round()).clamp(0.0, 255.0) as u8;
+    (to_u8(r1), to_u8(g1), to_u8(b1))
+}
+
+/// Convert an RGB triple to HSV (h in degrees [0,360), s & v in [0,1]).
+// ⟦𓃠𓌟𓉯𓊩⟧ rgb_to_hsv :: Convert an RGB triple to HSV (h in degrees [0,360), s & v in [0,1]).
+pub fn rgb_to_hsv((r, g, b): (u8, u8, u8)) -> (f32, f32, f32) {
+    let r = r as f32 / 255.0;
+    let g = g as f32 / 255.0;
+    let b = b as f32 / 255.0;
+    let max = r.max(g).max(b);
+    let min = r.min(g).min(b);
+    let delta = max - min;
+
+    let h = if delta < f32::EPSILON {
+        0.0
+    } else if (max - r).abs() < f32::EPSILON {
+        60.0 * (((g - b) / delta).rem_euclid(6.0))
+    } else if (max - g).abs() < f32::EPSILON {
+        60.0 * (((b - r) / delta) + 2.0)
+    } else {
+        60.0 * (((r - g) / delta) + 4.0)
+    };
+    let s = if max < f32::EPSILON { 0.0 } else { delta / max };
+    (h.rem_euclid(360.0), s, max)
+}
+
+// ⟦𓎹𓁄𓅷𓐗⟧ color_list :: auto-generated pointer for public function color_list
 pub fn color_list() {
     println!("Available colors:\n");
     println!("  Standard:  black  red  green  yellow  blue  magenta  cyan  white");
@@ -296,5 +405,35 @@ mod tests {
     #[test]
     fn test_resolve_hex_invalid() {
         assert_eq!(resolve_hex("nope"), None);
+    }
+
+    #[test]
+    fn test_hex_to_rgb_roundtrip() {
+        assert_eq!(hex_to_rgb("#E8A23C"), Some((0xE8, 0xA2, 0x3C)));
+        assert_eq!(rgb_to_hex((0xE8, 0xA2, 0x3C)), "#E8A23C");
+        assert_eq!(hex_to_rgb("#zzzzzz"), None);
+        assert_eq!(hex_to_rgb("#FFF"), None);
+    }
+
+    #[test]
+    fn test_hsv_primaries() {
+        assert_eq!(hsv_to_rgb(0.0, 1.0, 1.0), (255, 0, 0));
+        assert_eq!(hsv_to_rgb(120.0, 1.0, 1.0), (0, 255, 0));
+        assert_eq!(hsv_to_rgb(240.0, 1.0, 1.0), (0, 0, 255));
+        assert_eq!(hsv_to_rgb(0.0, 0.0, 1.0), (255, 255, 255));
+        assert_eq!(hsv_to_rgb(0.0, 0.0, 0.0), (0, 0, 0));
+    }
+
+    #[test]
+    fn test_hsv_rgb_roundtrip() {
+        for &hex in &["#E8A23C", "#1E1E2E", "#89B4FA", "#A6E3A1", "#F38BA8"] {
+            let rgb = hex_to_rgb(hex).unwrap();
+            let (h, s, v) = rgb_to_hsv(rgb);
+            let back = hsv_to_rgb(h, s, v);
+            // allow ±1 per channel for float rounding
+            assert!((back.0 as i32 - rgb.0 as i32).abs() <= 1, "{hex} R");
+            assert!((back.1 as i32 - rgb.1 as i32).abs() <= 1, "{hex} G");
+            assert!((back.2 as i32 - rgb.2 as i32).abs() <= 1, "{hex} B");
+        }
     }
 }

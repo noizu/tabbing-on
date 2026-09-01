@@ -1,3 +1,4 @@
+// ⟦𓎘𓍷𓍸𓐍⟧ emoji_lookup :: auto-generated pointer for public function emoji_lookup
 pub fn emoji_lookup(name: &str) -> Option<&'static str> {
     match name {
         // Build & Deploy
@@ -78,9 +79,7 @@ pub fn emoji_lookup(name: &str) -> Option<&'static str> {
         "thought" | "thought-bubble" => Some("\u{1F4AD}"),
 
         // Data & Infra
-        "db" | "database" | "file-cabinet" | "archive" | "storage" | "vault" => {
-            Some("\u{1F5C4}")
-        }
+        "db" | "database" | "file-cabinet" | "archive" | "storage" | "vault" => Some("\u{1F5C4}"),
         "cloud" => Some("\u{2601}"),
         "link" => Some("\u{1F517}"),
         "electric" | "zap" => Some("\u{26A1}"),
@@ -437,18 +436,28 @@ pub fn emoji_lookup(name: &str) -> Option<&'static str> {
     }
 }
 
+// ⟦𓌕𓂆𓁧𓐕⟧ is_known_emoji :: auto-generated pointer for public function is_known_emoji
 pub fn is_known_emoji(name: &str) -> bool {
     emoji_lookup(name).is_some()
 }
 
+// ⟦𓆊𓈋𓋤𓋵⟧ emoji_search :: auto-generated pointer for public function emoji_search
 pub fn emoji_search(filter: &str) {
     let lc = filter.to_lowercase();
     println!("Emojis matching \"{}\":\n", filter);
     let mut found = false;
-    for (primary, aliases) in EMOJI_DATA.iter() {
-        if aliases.iter().any(|a| a.contains(&lc[..])) {
-            if let Some(ch) = emoji_lookup(primary) {
-                println!("  {}  {:<25} ({})", ch, primary, aliases.join(" "));
+    for (_, names) in EMOJI_CATEGORIES {
+        for primary in *names {
+            let aliases = emoji_aliases(primary).unwrap_or(&[]);
+            if emoji_search_matches(primary, aliases, &lc) {
+                if let Some(ch) = emoji_lookup(primary) {
+                    let search_text = if aliases.is_empty() {
+                        primary.to_string()
+                    } else {
+                        aliases.join(" ")
+                    };
+                    println!("  {}  {:<25} ({})", ch, primary, search_text);
+                }
                 found = true;
             }
         }
@@ -459,55 +468,21 @@ pub fn emoji_search(filter: &str) {
     println!();
 }
 
+fn emoji_aliases(primary: &str) -> Option<&'static [&'static str]> {
+    EMOJI_DATA
+        .iter()
+        .find_map(|(name, aliases)| (*name == primary).then_some(*aliases))
+}
+
+fn emoji_search_matches(primary: &str, aliases: &[&str], filter: &str) -> bool {
+    primary.contains(filter) || aliases.iter().any(|a| a.contains(filter))
+}
+
+// ⟦𓈄𓁅𓂝𓊓⟧ emoji_list :: auto-generated pointer for public function emoji_list
 pub fn emoji_list() {
     println!("Available emojis (use -emoji:FILTER to search):\n");
-    let categories: &[(&str, &[&str])] = &[
-        (
-            "Build & Deploy",
-            &[
-                "rocket",
-                "ship",
-                "package",
-                "construction",
-                "hammer",
-                "hammer-wrench",
-                "nut-bolt",
-                "bricks",
-                "label",
-                "factory",
-            ],
-        ),
-        (
-            "Status",
-            &[
-                "check",
-                "cross",
-                "warning",
-                "stop",
-                "hourglass",
-                "no-entry",
-                "prohibited",
-                "exclamation",
-                "question-mark",
-                "infinity",
-            ],
-        ),
-        (
-            "Activity & Dev",
-            &[
-                "bug", "fire", "test", "search", "wrench", "gear", "lock", "key", "trash",
-                "terminal", "laptop", "keyboard", "toolbox",
-            ],
-        ),
-        (
-            "Progress & Time",
-            &[
-                "sparkle", "star", "coffee", "sleep", "brain", "books", "chart", "alarm", "target",
-                "tada",
-            ],
-        ),
-    ];
-    for (cat, names) in categories {
+
+    for (cat, names) in EMOJI_CATEGORIES {
         println!("  {}:", cat);
         for chunk in names.chunks(3) {
             let mut line = String::from("    ");
@@ -518,9 +493,491 @@ pub fn emoji_list() {
             }
             println!("{}", line.trim_end());
         }
+        println!();
     }
-    println!("\n  ... and 400+ more. Use -emoji:FILTER to search.\n");
+    println!("  Tip: use \"tabbing-on -emoji:FILTER\" to search (e.g. -emoji:fire)\n");
 }
+
+const EMOJI_CATEGORIES: &[(&str, &[&str])] = &[
+    (
+        "Build & Deploy",
+        &[
+            "rocket",
+            "ship",
+            "package",
+            "construction",
+            "hammer",
+            "hammer-wrench",
+            "nut-bolt",
+            "bricks",
+            "label",
+            "factory",
+        ],
+    ),
+    (
+        "Status",
+        &[
+            "check",
+            "cross",
+            "warning",
+            "stop",
+            "hourglass",
+            "no-entry",
+            "prohibited",
+            "exclamation",
+            "question-mark",
+            "infinity",
+        ],
+    ),
+    (
+        "Activity & Dev",
+        &[
+            "bug",
+            "fire",
+            "test",
+            "search",
+            "wrench",
+            "gear",
+            "lock",
+            "key",
+            "trash",
+            "terminal",
+            "laptop",
+            "keyboard",
+            "printer",
+            "disk",
+            "cd",
+            "toolbox",
+            "microscope",
+            "telescope",
+            "crystal-ball",
+            "magnet",
+            "dna",
+            "petri-dish",
+            "abacus",
+            "atom",
+            "hook",
+            "chains",
+            "plug",
+            "battery",
+            "broom",
+            "sponge",
+            "fire-extinguisher",
+            "plunger",
+            "mousetrap",
+            "ladder",
+            "knot",
+            "bucket",
+        ],
+    ),
+    (
+        "Review & Comms",
+        &[
+            "eyes",
+            "chat",
+            "mail",
+            "bell",
+            "phone",
+            "envelope",
+            "inbox",
+            "outbox",
+            "mailbox",
+            "radio",
+            "satellite-dish",
+            "newspaper",
+            "thought",
+        ],
+    ),
+    (
+        "Data & Infra",
+        &[
+            "db",
+            "cloud",
+            "link",
+            "electric",
+            "globe-web",
+            "satellite",
+            "earth",
+            "compass",
+            "folder",
+            "folder-open",
+            "page",
+            "scroll",
+        ],
+    ),
+    (
+        "Progress & Time",
+        &[
+            "sparkle",
+            "star",
+            "coffee",
+            "sleep",
+            "brain",
+            "books",
+            "pin",
+            "clipboard",
+            "chart",
+            "chart-up",
+            "chart-down",
+            "alarm",
+            "watch",
+            "calendar",
+            "target",
+        ],
+    ),
+    (
+        "Celebration & Misc",
+        &[
+            "tada",
+            "art",
+            "bulb",
+            "shield",
+            "recycle",
+            "truck",
+            "memo",
+            "gift",
+            "balloon",
+            "confetti",
+            "trophy",
+            "medal",
+            "ticket",
+            "crown",
+            "gem",
+            "hundred",
+            "boom",
+            "flashlight",
+            "candle",
+            "door",
+            "window-pane",
+            "magician",
+            "mirror-ball",
+            "joker",
+        ],
+    ),
+    (
+        "Smileys & Emotion",
+        &[
+            "smile",
+            "grin",
+            "laugh",
+            "rofl",
+            "wink",
+            "love-eyes",
+            "cool",
+            "hmm",
+            "shush",
+            "sweat",
+            "cry",
+            "angry",
+            "rage",
+            "scream",
+            "sick",
+            "dizzy-face",
+            "nerd",
+            "monocle",
+            "party-face",
+            "yawn",
+            "melting",
+            "peeking",
+        ],
+    ),
+    (
+        "Gestures & Body",
+        &[
+            "wave",
+            "ok",
+            "thumbsup",
+            "thumbsdown",
+            "clap",
+            "pray",
+            "muscle",
+            "fist",
+            "victory",
+            "crossed-fingers",
+            "handshake",
+            "point-right",
+            "point-left",
+            "point-up",
+            "point-down",
+            "raised-hand",
+            "salute",
+        ],
+    ),
+    (
+        "People & Characters",
+        &[
+            "skull",
+            "ghost",
+            "robot",
+            "alien",
+            "clown",
+            "poop",
+            "ninja",
+            "detective",
+        ],
+    ),
+    (
+        "Hearts & Symbols",
+        &[
+            "heart",
+            "broken-heart",
+            "sparkling-heart",
+            "sweat-drops",
+            "anger-symbol",
+            "droplet",
+        ],
+    ),
+    (
+        "Animals",
+        &[
+            "dog",
+            "cat",
+            "fox",
+            "bear",
+            "panda",
+            "monkey",
+            "chicken",
+            "penguin",
+            "bird",
+            "eagle",
+            "owl",
+            "bat",
+            "butterfly",
+            "snake",
+            "dragon",
+            "whale",
+            "dolphin",
+            "octopus",
+            "snail",
+            "turtle",
+            "crab",
+            "spider",
+            "scorpion",
+            "unicorn",
+            "bee",
+            "ant",
+            "ladybug",
+            "shark",
+            "wolf",
+            "horse",
+            "pig",
+            "frog",
+            "gorilla",
+            "deer",
+            "rabbit",
+            "mouse",
+            "camel",
+            "elephant",
+            "lion",
+            "tiger",
+            "crocodile",
+            "parrot",
+            "flamingo",
+            "peacock",
+            "lobster",
+            "shrimp",
+            "squid",
+            "hedgehog",
+            "raccoon",
+            "sloth",
+            "otter",
+            "skunk",
+            "mammoth",
+            "dodo",
+            "microbe",
+        ],
+    ),
+    (
+        "Nature & Weather",
+        &[
+            "tree",
+            "palm-tree",
+            "flower",
+            "rose",
+            "sunflower",
+            "leaf",
+            "herb",
+            "mushroom",
+            "cactus",
+            "sun",
+            "moon",
+            "full-moon",
+            "rainbow",
+            "snowflake",
+            "tornado",
+            "ocean",
+            "volcano",
+            "comet",
+            "umbrella",
+            "lotus",
+            "feather",
+            "coral",
+            "nest",
+        ],
+    ),
+    (
+        "Food & Drink",
+        &[
+            "apple",
+            "banana",
+            "grapes",
+            "watermelon",
+            "lemon",
+            "peach",
+            "cherry",
+            "strawberry",
+            "tomato",
+            "avocado",
+            "eggplant",
+            "pepper",
+            "pizza",
+            "burger",
+            "fries",
+            "hotdog",
+            "taco",
+            "burrito",
+            "sushi",
+            "ramen",
+            "cake",
+            "cookie",
+            "chocolate",
+            "donut",
+            "ice-cream",
+            "honey",
+            "beer",
+            "wine",
+            "cocktail",
+            "popcorn",
+            "bread",
+            "cheese",
+            "meat",
+            "bacon",
+            "candy",
+            "cupcake",
+            "salt",
+            "beans",
+            "jar",
+        ],
+    ),
+    (
+        "Travel & Transport",
+        &[
+            "car",
+            "taxi",
+            "bus",
+            "ambulance",
+            "fire-truck",
+            "police-car",
+            "train",
+            "airplane",
+            "helicopter",
+            "sailboat",
+            "anchor",
+            "fuel",
+            "bike",
+        ],
+    ),
+    (
+        "Places & Buildings",
+        &[
+            "house", "office", "hospital", "school", "castle", "tent", "church",
+        ],
+    ),
+    (
+        "Writing & Office",
+        &[
+            "book",
+            "notebook",
+            "pencil",
+            "pen",
+            "paintbrush",
+            "crayon",
+            "paperclip",
+            "scissors",
+            "ruler",
+            "camera",
+            "clapper",
+            "tv",
+        ],
+    ),
+    (
+        "Music & Sound",
+        &[
+            "music",
+            "guitar",
+            "drum",
+            "trumpet",
+            "microphone",
+            "headphones",
+            "speaker",
+            "mute",
+        ],
+    ),
+    (
+        "Sports & Games",
+        &[
+            "soccer",
+            "basketball",
+            "baseball",
+            "tennis",
+            "golf",
+            "boxing",
+            "bowling",
+            "gaming",
+            "puzzle",
+            "chess",
+            "dice",
+            "fishing",
+            "surfing",
+            "swimming",
+            "running",
+            "eight-ball",
+            "slot-machine",
+            "mahjong",
+        ],
+    ),
+    (
+        "Combat & Danger",
+        &["bomb", "sword", "axe", "radioactive", "biohazard"],
+    ),
+    (
+        "Arrows & Shapes",
+        &[
+            "arrow-up",
+            "arrow-down",
+            "arrow-left",
+            "arrow-right",
+            "arrows-rotate",
+            "cycle",
+            "plus",
+            "minus",
+            "multiply",
+            "divide",
+        ],
+    ),
+    (
+        "Colored Shapes",
+        &[
+            "red-circle",
+            "orange-circle",
+            "yellow-circle",
+            "green-circle",
+            "blue-circle",
+            "purple-circle",
+            "white-circle",
+            "black-circle",
+            "red-square",
+            "green-square",
+            "blue-square",
+        ],
+    ),
+    ("Money & Finance", &["currency", "moneybag", "credit-card"]),
+    (
+        "Flags",
+        &["flag", "white-flag", "checkered-flag", "triangular-flag"],
+    ),
+    ("Peace & Philosophy", &["peace", "yin-yang"]),
+];
 
 // Searchable emoji data: (primary_name, [all_aliases])
 const EMOJI_DATA: &[(&str, &[&str])] = &[
@@ -600,6 +1057,42 @@ mod tests {
         assert!(is_known_emoji("done"));
         assert!(!is_known_emoji("nonexistent"));
         assert!(!is_known_emoji(""));
+    }
+
+    #[test]
+    fn test_emoji_categories_cover_full_list() {
+        let mut total = 0;
+        for (_, names) in EMOJI_CATEGORIES {
+            for name in *names {
+                assert!(
+                    emoji_lookup(name).is_some(),
+                    "missing emoji lookup for {name}"
+                );
+                total += 1;
+            }
+        }
+
+        assert!(
+            total > 250,
+            "emoji list should not collapse to a short sample"
+        );
+        assert!(EMOJI_CATEGORIES
+            .iter()
+            .any(|(_, names)| names.contains(&"point-right")));
+        assert!(EMOJI_CATEGORIES
+            .iter()
+            .any(|(_, names)| names.contains(&"yin-yang")));
+    }
+
+    #[test]
+    fn test_emoji_search_matches_full_list() {
+        assert!(emoji_search_matches("yin-yang", &[], "yin"));
+        assert!(emoji_search_matches("point-right", &[], "point"));
+        assert!(emoji_search_matches(
+            "hammer-wrench",
+            emoji_aliases("hammer-wrench").unwrap(),
+            "tools"
+        ));
     }
 
     #[test]

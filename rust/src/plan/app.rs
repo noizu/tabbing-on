@@ -34,6 +34,7 @@ enum InputResult {
 // Public entry point
 // ---------------------------------------------------------------------------
 
+// ⟦𓎆𓋦𓏌𓇛⟧ run :: auto-generated pointer for public function run
 pub fn run(config: AppConfig) -> Result<(), Box<dyn std::error::Error>> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -124,7 +125,7 @@ pub fn run(config: AppConfig) -> Result<(), Box<dyn std::error::Error>> {
 
 fn ui(f: &mut Frame, state: &AppState, focus_field: usize, config: &AppConfig) {
     let chunks = Layout::vertical([
-        Constraint::Length(3),  // header
+        Constraint::Length(3), // header
         Constraint::Min(5),    // content
         Constraint::Length(1), // action bar
         Constraint::Length(1), // status line
@@ -138,10 +139,7 @@ fn ui(f: &mut Frame, state: &AppState, focus_field: usize, config: &AppConfig) {
 }
 
 fn draw_header(f: &mut Frame, area: Rect, state: &AppState, config: &AppConfig) {
-    let project = config
-        .project
-        .as_deref()
-        .unwrap_or("no project");
+    let project = config.project.as_deref().unwrap_or("no project");
     let phase_label = match &state.phase {
         AppPhase::Idle => "Idle",
         AppPhase::Recording => "Recording",
@@ -199,8 +197,8 @@ fn draw_content(f: &mut Frame, area: Rect, state: &AppState, focus_field: usize)
                 )));
             }
 
-            let para = Paragraph::new(lines)
-                .block(Block::default().padding(Padding::new(2, 2, 1, 0)));
+            let para =
+                Paragraph::new(lines).block(Block::default().padding(Padding::new(2, 2, 1, 0)));
             f.render_widget(para, area);
         }
 
@@ -306,15 +304,9 @@ fn draw_ticket_preview(f: &mut Frame, area: Rect, state: &AppState, focus_field:
 
     let selector = Line::from(vec![
         Span::raw("  Type: "),
-        Span::styled(
-            format!("◂ {} ▸", meta.issue_type),
-            type_style,
-        ),
+        Span::styled(format!("◂ {} ▸", meta.issue_type), type_style),
         Span::raw("    Priority: "),
-        Span::styled(
-            format!("◂ {} ▸", meta.priority),
-            prio_style,
-        ),
+        Span::styled(format!("◂ {} ▸", meta.priority), prio_style),
     ]);
     f.render_widget(Paragraph::new(selector), chunks[1]);
 }
@@ -359,7 +351,9 @@ fn handle_input(
 ) -> InputResult {
     // Global quit on Ctrl-C
     if key.code == KeyCode::Char('c')
-        && key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL)
+        && key
+            .modifiers
+            .contains(crossterm::event::KeyModifiers::CONTROL)
     {
         return InputResult::Quit;
     }
@@ -490,11 +484,7 @@ fn reset_for_new_recording(state: &mut AppState) {
 // Background task spawners
 // ---------------------------------------------------------------------------
 
-fn spawn_transcription(
-    config: &AppConfig,
-    audio_data: &[u8],
-    tx: &mpsc::Sender<BackgroundResult>,
-) {
+fn spawn_transcription(config: &AppConfig, audio_data: &[u8], tx: &mpsc::Sender<BackgroundResult>) {
     let api_url = config.api_url.clone();
     let api_key = config.api_key.clone();
     let model = config.whisper_model.clone();
@@ -508,11 +498,7 @@ fn spawn_transcription(
     });
 }
 
-fn spawn_generation(
-    config: &AppConfig,
-    transcript: &str,
-    tx: &mpsc::Sender<BackgroundResult>,
-) {
+fn spawn_generation(config: &AppConfig, transcript: &str, tx: &mpsc::Sender<BackgroundResult>) {
     let api_url = config.api_url.clone();
     let api_key = config.api_key.clone();
     let model = config.model.clone();
@@ -527,11 +513,7 @@ fn spawn_generation(
     });
 }
 
-fn spawn_save(
-    config: &AppConfig,
-    ticket: &Ticket,
-    tx: &mpsc::Sender<BackgroundResult>,
-) {
+fn spawn_save(config: &AppConfig, ticket: &Ticket, tx: &mpsc::Sender<BackgroundResult>) {
     let ticket = ticket.clone();
     let output_dir = config.output_dir.clone();
     let tx = tx.clone();

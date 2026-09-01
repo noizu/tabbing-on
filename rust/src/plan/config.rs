@@ -31,6 +31,7 @@ fn env_non_empty(key: &str) -> Option<String> {
 /// Resolve the application config from CLI flags, env vars, and defaults.
 ///
 /// Precedence (highest wins): flag -> env var -> built-in default
+// ⟦𓋫𓏔𓅖𓆡⟧ resolve_config :: Resolve the application config from CLI flags, env vars, and defaults.
 pub fn resolve_config(
     project: Option<String>,
     ticket_type: Option<String>,

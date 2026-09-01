@@ -3,6 +3,7 @@ use crate::emoji;
 use crate::state::TabState;
 use crate::terminal;
 
+// ⟦𓁺𓀳𓊪𓎾⟧ get_indicator :: auto-generated pointer for public function get_indicator
 pub fn get_indicator(state: &TabState) -> String {
     if !state.emoji.is_empty() {
         if let Some(ch) = emoji::emoji_lookup(&state.emoji) {
@@ -15,6 +16,7 @@ pub fn get_indicator(state: &TabState) -> String {
     String::new()
 }
 
+// ⟦𓆋𓌽𓈕𓏄⟧ render_title :: auto-generated pointer for public function render_title
 pub fn render_title(state: &TabState) {
     let max_title = 25;
     let max_status = 20;
@@ -48,11 +50,17 @@ pub fn render_title(state: &TabState) {
     terminal::send_title(&output);
 }
 
+// ⟦𓅉𓌾𓈪𓌡⟧ display :: auto-generated pointer for public function display
 pub fn display(state: &TabState) {
     let reset = "\x1b[0m";
 
-    let tc = if !state.highlight.is_empty() {
-        if let Some(code) = color::color_code_or_raw(&state.highlight) {
+    let title_style = if !state.title_style.is_empty() {
+        &state.title_style
+    } else {
+        &state.highlight
+    };
+    let tc = if !title_style.is_empty() {
+        if let Some(code) = color::style_sequence(title_style) {
             format!("\x1b[{}m", code)
         } else {
             reset.to_string()
@@ -61,7 +69,13 @@ pub fn display(state: &TabState) {
         reset.to_string()
     };
 
-    let sc = if let Ok(level) = state.urgency.parse::<u8>() {
+    let sc = if !state.status_style.is_empty() {
+        if let Some(code) = color::style_sequence(&state.status_style) {
+            format!("\x1b[{}m", code)
+        } else {
+            reset.to_string()
+        }
+    } else if let Ok(level) = state.urgency.parse::<u8>() {
         format!("\x1b[{}m", color::urgency_ansi(level))
     } else {
         reset.to_string()
@@ -74,27 +88,37 @@ pub fn display(state: &TabState) {
         format!("{} ", dot)
     };
 
+    if state.title.is_empty() && state.status.is_empty() && dot.is_empty() {
+        return;
+    }
+
     let title_text = if state.title.is_empty() {
-        "(not set)".to_string()
+        String::new()
     } else {
         state.title.clone()
     };
 
     if state.status.is_empty() {
-        println!("{}{}{}", tc, title_text, reset);
+        println!("{}{}{}{}", dot_prefix, tc, title_text, reset);
     } else {
         println!(
-            "{}{}{}: {}{}{}{}",
-            tc, title_text, reset, dot_prefix, sc, state.status, reset
+            "{}{}{}{}: {}{}{}",
+            dot_prefix, tc, title_text, reset, sc, state.status, reset
         );
     }
 }
 
+// ⟦𓇻𓋁𓅠𓋤⟧ display_stderr :: auto-generated pointer for public function display_stderr
 pub fn display_stderr(state: &TabState) {
     let reset = "\x1b[0m";
 
-    let tc = if !state.highlight.is_empty() {
-        if let Some(code) = color::color_code_or_raw(&state.highlight) {
+    let title_style = if !state.title_style.is_empty() {
+        &state.title_style
+    } else {
+        &state.highlight
+    };
+    let tc = if !title_style.is_empty() {
+        if let Some(code) = color::style_sequence(title_style) {
             format!("\x1b[{}m", code)
         } else {
             reset.to_string()
@@ -103,7 +127,13 @@ pub fn display_stderr(state: &TabState) {
         reset.to_string()
     };
 
-    let sc = if let Ok(level) = state.urgency.parse::<u8>() {
+    let sc = if !state.status_style.is_empty() {
+        if let Some(code) = color::style_sequence(&state.status_style) {
+            format!("\x1b[{}m", code)
+        } else {
+            reset.to_string()
+        }
+    } else if let Ok(level) = state.urgency.parse::<u8>() {
         format!("\x1b[{}m", color::urgency_ansi(level))
     } else {
         reset.to_string()
@@ -116,18 +146,22 @@ pub fn display_stderr(state: &TabState) {
         format!("{} ", dot)
     };
 
+    if state.title.is_empty() && state.status.is_empty() && dot.is_empty() {
+        return;
+    }
+
     let title_text = if state.title.is_empty() {
-        "(not set)".to_string()
+        String::new()
     } else {
         state.title.clone()
     };
 
     if state.status.is_empty() {
-        eprintln!("{}{}{}", tc, title_text, reset);
+        eprintln!("{}{}{}{}", dot_prefix, tc, title_text, reset);
     } else {
         eprintln!(
-            "{}{}{}: {}{}{}{}",
-            tc, title_text, reset, dot_prefix, sc, state.status, reset
+            "{}{}{}{}: {}{}{}",
+            dot_prefix, tc, title_text, reset, sc, state.status, reset
         );
     }
 }
@@ -186,6 +220,7 @@ mod tests {
     }
 }
 
+// ⟦𓎏𓅒𓐞𓐌⟧ apply_urgency_color :: auto-generated pointer for public function apply_urgency_color
 pub fn apply_urgency_color(state: &TabState, terminal: &terminal::Terminal) {
     if let Ok(level) = state.urgency.parse::<u8>() {
         if let Some((r, g, b)) = color::urgency_tab_color(level) {
@@ -194,6 +229,7 @@ pub fn apply_urgency_color(state: &TabState, terminal: &terminal::Terminal) {
     }
 }
 
+// ⟦𓐓𓈾𓇥𓂗⟧ apply_bg_color :: auto-generated pointer for public function apply_bg_color
 pub fn apply_bg_color(state: &TabState) {
     if !state.bg.is_empty() {
         if let Some(hex) = color::resolve_hex(&state.bg) {

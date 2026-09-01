@@ -20,7 +20,48 @@ else
 fi
 
 source "${_tabbing_root}/lib/render.sh"
+source "${_tabbing_root}/lib/theme-data.sh"
 source "${_tabbing_root}/lib/dc.sh"
+export TABBING_ROOT="${_tabbing_root}"
+
+# PS1 is only touched when a theme actually defines a prompt. The pre-theme
+# value is saved at override time and restored when the override goes away
+# (theme without ps1, --no-theme, tabbing-off). A theme with no ps1/ps1_layout
+# never alters the prompt beyond undoing a previous theme's override.
+_tabbing_save_prior_ps1() {
+  if [[ -z "${_TABBING_PRIOR_PS1+x}" ]]; then
+    _TABBING_PRIOR_PS1="${PS1:-}"
+  fi
+}
+
+_tabbing_restore_prior_ps1() {
+  if [[ -n "${_TABBING_PRIOR_PS1+x}" ]]; then
+    PS1="$_TABBING_PRIOR_PS1"
+    unset _TABBING_PRIOR_PS1
+  fi
+}
+
+_tabbing_set_prompt_layout() {
+  local layout="${1:-}" custom="${2:-}"
+  if [[ -n "$custom" ]]; then
+    _tabbing_save_prior_ps1
+    PS1="$custom"
+    return
+  fi
+  case "$layout" in
+    ""|default|custom) _tabbing_restore_prior_ps1; return ;;
+  esac
+  _tabbing_save_prior_ps1
+  case "$layout" in
+    minimal) PS1='\W \$ ' ;;
+    compact) PS1='\u@\h \W \$ ' ;;
+    full) PS1='\u@\h:\w \$ ' ;;
+    two-line) PS1='\u@\h \w\n\$ ' ;;
+    git) PS1='\W$(git branch --show-current 2>/dev/null | sed "s/^/  /") \$ ' ;;
+    tab-status) PS1='$(_tabbing_get_indicator) ${TAB_TITLE:-tab}${TAB_STATUS:+: $TAB_STATUS}  \W \$ ' ;;
+    *) _tabbing_restore_prior_ps1 ;;
+  esac
+}
 
 # Capture the interactive shell's TTY early so the dc daemon can use it
 if [[ -z "${TABBING_TTY:-}" ]]; then
@@ -61,8 +102,53 @@ fi
 export TAB_TERMINAL
 
 # ---------------------------------------------------------------------------
-# Inline: generate session fingerprint (runs once at init)
+# Inline: install ssh TERM shim when the terminal needs a portable TERM
 # ---------------------------------------------------------------------------
+_tabbing_install_ssh_shim() {
+  local _tabbing_ssh_exports
+  if command -v tabbing-ssh-shim >/dev/null 2>&1; then
+    _tabbing_ssh_exports="$(command tabbing-ssh-shim bash 2>/dev/null)"
+    if [[ -n "$_tabbing_ssh_exports" ]]; then
+      eval "$_tabbing_ssh_exports"
+    fi
+  fi
+}
+_tabbing_install_ssh_shim
+unset -f _tabbing_install_ssh_shim 2>/dev/null
+
+# ---------------------------------------------------------------------------
+# Inline: session identity + inherited-state hygiene (runs once at init)
+#
+# TAB_SESSION (session-file key) and TABBING_DC_UUID (dc keyspace) are both
+# EXPORTED, so any child process inherits them — including a new interactive
+# shell: a terminal tab spawned from within a shell, a nested `bash`, or a
+# cloned zellij/tmux pane. If a new interactive shell reused an inherited
+# identity it would read the PREVIOUS tab's session file / dc keyspace and
+# re-apply that tab's theme. That is the cross-session theme leak.
+#
+# We stamp the owning interactive shell's PID ($$) next to the identity in
+# _TABBING_OWNER_PID. When the inherited owner PID does not match this shell's
+# $$ (a different shell process), this is a fresh session: we drop the
+# inherited appearance vars so the previous tab's theme/title/bg are out of
+# scope, and force TAB_SESSION / TABBING_DC_UUID to regenerate below. A
+# deliberate `exec bash` keeps the same PID, so it preserves the tab's scope.
+#
+# Non-interactive bin/ wrappers (tabbing-status, ...) do NOT source this file,
+# so they still inherit and share the parent tab's identity, as intended.
+# ---------------------------------------------------------------------------
+if [ "${_TABBING_OWNER_PID:-}" != "$$" ]; then
+  unset TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE \
+        TAB_URGENCY TAB_EMOJI TAB_BG TAB_THEME TAB_THEME_DATA TAB_PS1_LAYOUT TAB_PS1_CUSTOM TAB_ID TAB_MARQUEE \
+        _TABBING_WAS_ACTIVE 2>/dev/null
+  unset DC_TAB_NS 2>/dev/null
+  TAB_SESSION=""
+  TABBING_DC_UUID=""
+  _TABBING_DC_ZELLIJ_PANE="${ZELLIJ_PANE_ID:-}"
+  _TABBING_OWNER_PID="$$"
+  export _TABBING_OWNER_PID
+fi
+
+# Generate a session fingerprint if we don't have one for this session yet.
 if [ -z "${TAB_SESSION:-}" ]; then
   if [ -r /dev/urandom ]; then
     TAB_SESSION="$(od -An -tx1 -N4 /dev/urandom 2>/dev/null | tr -d ' \n')"
@@ -73,12 +159,9 @@ if [ -z "${TAB_SESSION:-}" ]; then
   export TAB_SESSION
 fi
 
-# ---------------------------------------------------------------------------
-# Inline: generate dc UUID once per terminal session
-# Scopes dc keys to this tab/pane so daemons don't cross-read state from
-# other tabs. Regenerated in new Zellij panes (ZELLIJ_PANE_ID changes)
-# to avoid cloned UUIDs from pane splits.
-# ---------------------------------------------------------------------------
+# Generate the dc keyspace UUID once per session (dc mode only). The owner-PID
+# guard above already blanks it for a fresh session; the ZELLIJ_PANE_ID check
+# is a secondary safety for pane clones that somehow keep the same PID.
 if _tabbing_dc_enabled; then
   _tabbing_need_uuid=0
   if [ -z "${TABBING_DC_UUID:-}" ]; then
@@ -91,6 +174,10 @@ if _tabbing_dc_enabled; then
     _TABBING_DC_ZELLIJ_PANE="${ZELLIJ_PANE_ID:-}"
   fi
   unset _tabbing_need_uuid
+  # Mirror the session-scoped dc namespace into DC_TAB_NS every init (the UUID
+  # may have been inherited without regeneration) so the direnv dc-init bridge
+  # reads this tab's config, not the shared global `tab`.
+  _tabbing_dc_export_ns
 fi
 
 # Known color names for -color shorthand matching (bash array)
@@ -312,11 +399,11 @@ tabbing-on() {
       _tabbing_color_to_hex "$opt_bg"
       return 1
     fi
-    export TAB_BG="$opt_bg"
+    _tabbing_set bg "$opt_bg"
   fi
   if [[ $no_bg -eq 1 ]]; then
     _tabbing_clear_bg_color
-    unset TAB_BG
+    _tabbing_set bg ""
   fi
 
   if [[ $has_theme -eq 1 ]]; then
@@ -326,10 +413,13 @@ tabbing-on() {
       return 1
     fi
     _tabbing_set theme "$opt_theme"
+    [[ $has_bg -eq 0 ]] && _tabbing_set bg ""
   fi
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
     _tabbing_set theme ""
+    _tabbing_set title_style ""
+    _tabbing_set status_style ""
   fi
 
   if [[ $has_marquee -eq 1 ]]; then
@@ -488,11 +578,11 @@ tabbing-status() {
       _tabbing_color_to_hex "$opt_bg"
       return 1
     fi
-    export TAB_BG="$opt_bg"
+    _tabbing_set bg "$opt_bg"
   fi
   if [[ $no_bg -eq 1 ]]; then
     _tabbing_clear_bg_color
-    unset TAB_BG
+    _tabbing_set bg ""
   fi
 
   if [[ $has_theme -eq 1 ]]; then
@@ -502,10 +592,13 @@ tabbing-status() {
       return 1
     fi
     _tabbing_set theme "$opt_theme"
+    [[ $has_bg -eq 0 ]] && _tabbing_set bg ""
   fi
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
     _tabbing_set theme ""
+    _tabbing_set title_style ""
+    _tabbing_set status_style ""
   fi
 
   if [[ $has_marquee -eq 1 ]]; then
@@ -571,7 +664,7 @@ tabbing-todo() {
 
     # Get pending list from bin/ script
     local pending
-    pending="$("$_root/bin/tabbing-todo" --list-pending)"
+    pending="$(command tabbing-todo --list-pending)"
     if [[ -z "$pending" ]]; then
       _tabbing_out -v 0 -e 'tabbing: no pending todos to switch to\n'
       return 1
@@ -603,7 +696,7 @@ tabbing-todo() {
 
     # Get export statements from bin/ script and eval them
     local _exports
-    _exports="$("$_root/bin/tabbing-todo" --export-switch "$choice")"
+    _exports="$(command tabbing-todo --export-switch "$choice")"
     if [[ -n "$_exports" ]]; then
       eval "$_exports"
       _tabbing_render
@@ -624,8 +717,10 @@ tabbing-todo() {
     return
   fi
 
-  # All other todo operations delegate entirely to bin/ script
-  "$_root/bin/tabbing-todo" "${orig_args[@]}"
+  # All other todo operations delegate entirely to the tabbing-todo worker.
+  # `command` bypasses this shell function (avoids recursion) and hits the
+  # installed rust applet (or the source bin/ script when it is first on PATH).
+  command tabbing-todo "${orig_args[@]}"
 }
 
 # ---------------------------------------------------------------------------
@@ -657,6 +752,26 @@ tabbing-doctor() {
 
 tabbing-theme() {
   command tabbing-theme "$@"
+  local rc=$?
+  [[ $rc -eq 0 ]] || return $rc
+  case "${1:-pick}" in
+    pick|select|apply|reset|clear|"") ;;
+    list|ls|layouts|preview|clone|copy|edit|delete|rm|export|save|envrc|help|--help|-h|get|set|emit|gen-ramp|x11) return 0 ;;
+    *) ;;
+  esac
+  local _sf="${XDG_STATE_HOME:-$HOME/.local/state}/tabbing/sessions/${TAB_SESSION:-}.env"
+  local _theme=""
+  [[ -f "$_sf" ]] && _theme="$(sed -n 's/^TAB_THEME=//p' "$_sf" | tail -n 1)"
+  _theme="${_theme#\'}"; _theme="${_theme%\'}"
+  _theme="${_theme#\"}"; _theme="${_theme%\"}"
+  TAB_THEME="$_theme"
+  export TAB_THEME
+  if [[ -n "$TAB_THEME" ]]; then
+    _tabbing_apply_named_theme "$TAB_THEME" 2>/dev/null
+  else
+    _tabbing_apply_theme_prompt ""
+  fi
+  return 0
 }
 
 # ---------------------------------------------------------------------------
@@ -744,6 +859,8 @@ tabbing-style() {
   # No flags at all — show current settings
   if [[ $has_highlight -eq 0 && $has_urgency -eq 0 && $has_emoji -eq 0 && $no_emoji -eq 0 && $has_bg -eq 0 && $no_bg -eq 0 && $has_theme -eq 0 && $no_theme -eq 0 && $has_marquee -eq 0 && $no_marquee -eq 0 ]]; then
     printf 'highlight: %s\n' "${TAB_HIGHLIGHT:-(none)}"
+    printf 'title_style: %s\n' "${TAB_TITLE_STYLE:-(none)}"
+    printf 'status_style: %s\n' "${TAB_STATUS_STYLE:-(none)}"
     printf 'urgency:   %s\n' "${TAB_URGENCY:-(none)}"
     printf 'emoji:     %s\n' "${TAB_EMOJI:-(none)}"
     printf 'bg:        %s\n' "${TAB_BG:-(none)}"
@@ -785,11 +902,11 @@ tabbing-style() {
       _tabbing_color_to_hex "$opt_bg"
       return 1
     fi
-    export TAB_BG="$opt_bg"
+    _tabbing_set bg "$opt_bg"
   fi
   if [[ $no_bg -eq 1 ]]; then
     _tabbing_clear_bg_color
-    unset TAB_BG
+    _tabbing_set bg ""
   fi
 
   if [[ $has_theme -eq 1 ]]; then
@@ -799,10 +916,13 @@ tabbing-style() {
       return 1
     fi
     _tabbing_set theme "$opt_theme"
+    [[ $has_bg -eq 0 ]] && _tabbing_set bg ""
   fi
   if [[ $no_theme -eq 1 ]]; then
     _tabbing_clear_theme
     _tabbing_set theme ""
+    _tabbing_set title_style ""
+    _tabbing_set status_style ""
   fi
 
   if [[ $has_marquee -eq 1 ]]; then
@@ -851,8 +971,8 @@ tabbing-off() {
   if [[ -n "${TAB_SESSION:-}" ]]; then
     rm -f "${XDG_STATE_HOME:-$HOME/.local/state}/tabbing/sessions/${TAB_SESSION}.env"
   fi
-  unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_BG TAB_THEME TAB_ID TAB_RECORDING
-  unset TABBING_DC_UUID TABBING_DC_DAEMON_PID _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE
+  unset TAB_TITLE TAB_STATUS TAB_EMOJI TAB_URGENCY TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_BG TAB_THEME TAB_THEME_DATA TAB_PS1_LAYOUT TAB_PS1_CUSTOM TAB_MARQUEE TAB_ID TAB_RECORDING
+  unset TABBING_DC_UUID DC_TAB_NS TABBING_DC_DAEMON_PID _TABBING_OWNER_PID _TABBING_WAS_ACTIVE CLAUDE_CODE_DISABLE_TERMINAL_TITLE
   _tabbing_out 'tabbing: off\n'
 }
 
@@ -870,7 +990,7 @@ _tabbing_precmd() {
     local _sf="${XDG_STATE_HOME:-$HOME/.local/state}/tabbing/sessions/${TAB_SESSION}.env"
     if [[ -f "$_sf" ]]; then
       . "$_sf"
-      export TAB_ID TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_THEME TAB_TERMINAL TABBING_DC_UUID
+      export TAB_ID TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_URGENCY TAB_EMOJI TAB_BG TAB_THEME TAB_TERMINAL TABBING_DC_UUID
       if [[ -n "${TAB_THEME:-}" ]]; then
         _tabbing_apply_named_theme "$TAB_THEME" 2>/dev/null
       fi
@@ -884,6 +1004,10 @@ _tabbing_precmd() {
     _tabbing_clear_title
     unset _TABBING_WAS_ACTIVE
   fi
+
+  # Re-assert the terminal palette so Ghostty/Kitty resets get stomped back,
+  # the same way the title is re-set above. No-op unless a theme is active.
+  _tabbing_persist_theme
 }
 
 # Register hook — append so we run LAST,

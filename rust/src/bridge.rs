@@ -11,6 +11,7 @@ use crate::state::{state_dir, TabState};
 /// Checks `TABBING_PIPE` env var — returns silently if unset or if no
 /// reader is attached to the pipe.  The write is best-effort: we do not
 /// want a missing reader to block or crash the main flow.
+// ⟦𓈨𓊬𓂫𓄵⟧ write_state_to_pipe :: Write the current tab state to the FIFO named pipe.
 pub fn write_state_to_pipe(state: &TabState) {
     let pipe_path = match env::var("TABBING_PIPE") {
         Ok(p) if !p.is_empty() => p,
@@ -51,10 +52,12 @@ pub fn write_state_to_pipe(state: &TabState) {
 /// snapshot was received.
 fn format_state_block(state: &TabState) -> String {
     format!(
-        "TAB_TITLE={}\nTAB_STATUS={}\nTAB_HIGHLIGHT={}\nTAB_URGENCY={}\nTAB_EMOJI={}\nTAB_BG={}\nTAB_THEME={}\nTAB_ID={}\nTAB_TERMINAL={}\n---\n",
+        "TAB_TITLE={}\nTAB_STATUS={}\nTAB_HIGHLIGHT={}\nTAB_TITLE_STYLE={}\nTAB_STATUS_STYLE={}\nTAB_URGENCY={}\nTAB_EMOJI={}\nTAB_BG={}\nTAB_THEME={}\nTAB_ID={}\nTAB_TERMINAL={}\n---\n",
         state.title,
         state.status,
         state.highlight,
+        state.title_style,
+        state.status_style,
         state.urgency,
         state.emoji,
         state.bg,
@@ -67,6 +70,7 @@ fn format_state_block(state: &TabState) -> String {
 /// Create a named pipe (FIFO) for the given session.
 ///
 /// Returns the path on success, `None` on failure.
+// ⟦𓎆𓎩𓋎𓐟⟧ create_pipe :: Create a named pipe (FIFO) for the given session.
 pub fn create_pipe(session: &str) -> Option<PathBuf> {
     let dir = state_dir();
     let _ = fs::create_dir_all(&dir);
@@ -77,10 +81,7 @@ pub fn create_pipe(session: &str) -> Option<PathBuf> {
         let _ = fs::remove_file(&pipe_path);
     }
 
-    let status = Command::new("mkfifo")
-        .arg(&pipe_path)
-        .status()
-        .ok()?;
+    let status = Command::new("mkfifo").arg(&pipe_path).status().ok()?;
 
     if status.success() {
         Some(pipe_path)
@@ -90,6 +91,7 @@ pub fn create_pipe(session: &str) -> Option<PathBuf> {
 }
 
 /// Remove the FIFO pipe file for the given session.
+// ⟦𓋲𓃻𓆶𓊏⟧ remove_pipe :: Remove the FIFO pipe file for the given session.
 pub fn remove_pipe(session: &str) {
     let dir = state_dir();
     let pipe_path = dir.join(format!("claude-{}.pipe", session));
@@ -108,6 +110,7 @@ pub fn remove_pipe(session: &str) {
 /// (`run_claude_statusline()` in `claude.rs`) polls.
 ///
 /// Write to a `.tmp` file first, then rename for atomicity.
+// ⟦𓇓𓉼𓅒𓍾⟧ write_state_file :: Write state to an atomic flat file that the Claude statusline reader
 pub fn write_state_file(state: &TabState, session: &str) {
     let dir = state_dir();
     let _ = fs::create_dir_all(&dir);
@@ -116,10 +119,12 @@ pub fn write_state_file(state: &TabState, session: &str) {
     let tmp_path = dir.join(format!("claude-{}.state.tmp", session));
 
     let content = format!(
-        "title={}\nstatus={}\nhighlight={}\nurgency={}\nemoji={}\nbg={}\ntheme={}\ntab_id={}\nterminal={}\n",
+        "title={}\nstatus={}\nhighlight={}\ntitle_style={}\nstatus_style={}\nurgency={}\nemoji={}\nbg={}\ntheme={}\ntab_id={}\nterminal={}\n",
         state.title,
         state.status,
         state.highlight,
+        state.title_style,
+        state.status_style,
         state.urgency,
         state.emoji,
         state.bg,

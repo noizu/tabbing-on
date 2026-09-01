@@ -123,6 +123,24 @@ if [ "$_ghostty_found" -eq 0 ]; then
   fi
 fi
 
+# -- Check 4: live session — GHOSTTY_SHELL_FEATURES is stamped when the Ghostty
+#    app launches, NOT when a tab opens. A config patched with no-title after
+#    Ghostty started still spawns shells with the title feature active, and its
+#    shell integration overwrites the tab title every prompt/command. Only a
+#    full Ghostty restart picks up the change.
+if [ "$_is_ghostty" -eq 1 ] && [ -n "${GHOSTTY_SHELL_FEATURES:-}" ]; then
+  case ",${GHOSTTY_SHELL_FEATURES}," in
+    *,title,*|*,title:*)
+      _warn "This session has title integration ACTIVE (GHOSTTY_SHELL_FEATURES=${GHOSTTY_SHELL_FEATURES})"
+      _info "Ghostty stamps shell features at app launch — fully restart Ghostty (all windows) so no-title takes effect"
+      issues=$((issues + 1))
+      ;;
+    *)
+      _check "Live session: title integration disabled"
+      ;;
+  esac
+fi
+
 printf '\n'
 
 # ---------------------------------------------------------------------------

@@ -32,6 +32,7 @@ fn id_prefix(ticket_type: &TicketType) -> &'static str {
 /// Scan the type subdirectory under `output_dir` for existing files matching
 /// `PREFIX-NNN` and return the next ID (e.g. `US-004`).  If the directory is
 /// empty or missing, returns `PREFIX-001`.
+// ⟦𓈕𓍟𓉩𓐖⟧ get_next_id :: Scan the type subdirectory under `output_dir` for existing files matching
 pub fn get_next_id(ticket_type: &TicketType, output_dir: &str) -> String {
     let prefix = id_prefix(ticket_type);
     let dir = Path::new(output_dir).join(type_dir(ticket_type));
@@ -46,8 +47,7 @@ pub fn get_next_id(ticket_type: &TicketType, output_dir: &str) -> String {
             if let Some(rest) = name.strip_prefix(prefix) {
                 if let Some(rest) = rest.strip_prefix('-') {
                     // Take leading digits before any further dash or dot.
-                    let digits: String =
-                        rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+                    let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
                     if let Ok(n) = digits.parse::<u32>() {
                         if n > max_num {
                             max_num = n;
@@ -83,15 +83,7 @@ fn format_frontmatter(m: &TicketMetadata) -> String {
          category: \"{}\"\n\
          labels:\n{}\n\
          created_at: \"{}\"",
-        m.id,
-        m.title,
-        m.issue_type,
-        m.slug,
-        m.status,
-        m.priority,
-        m.category,
-        labels,
-        m.created_at,
+        m.id, m.title, m.issue_type, m.slug, m.status, m.priority, m.category, labels, m.created_at,
     )
 }
 
@@ -99,6 +91,7 @@ fn format_frontmatter(m: &TicketMetadata) -> String {
 ///
 /// Creates the type subdirectory if needed.  Returns the full file path on
 /// success.
+// ⟦𓈥𓈊𓀯𓇦⟧ save_ticket :: Save a ticket as a Markdown file with YAML frontmatter.
 pub fn save_ticket(ticket: &Ticket, output_dir: &str) -> Result<String, String> {
     let target_dir = Path::new(output_dir).join(type_dir(&ticket.metadata.issue_type));
 
@@ -134,10 +127,8 @@ pub fn save_ticket(ticket: &Ticket, output_dir: &str) -> Result<String, String> 
 /// 2. Walk up from cwd looking for a `projects/` parent
 /// 3. `config_project` flag: look for `projects/<name>/project-management/`
 /// 4. Fallback: `<cwd>/project-management/`
-pub fn resolve_output_dir(
-    config_output_dir: Option<&str>,
-    config_project: Option<&str>,
-) -> String {
+// ⟦𓃹𓎛𓇔𓈘⟧ resolve_output_dir :: Determine the output directory for saved tickets.
+pub fn resolve_output_dir(config_output_dir: Option<&str>, config_project: Option<&str>) -> String {
     // 1. Explicit override
     if let Some(dir) = config_output_dir {
         return dir.to_string();

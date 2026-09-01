@@ -59,6 +59,8 @@ fn state_from_dc(client: &DcClient, ns: &str) -> TabState {
         title: get("title"),
         status: get("status"),
         highlight: get("highlight"),
+        title_style: get("title_style"),
+        status_style: get("status_style"),
         urgency: get("urgency"),
         emoji: get("emoji"),
         bg: get("bg"),
@@ -183,13 +185,7 @@ fn render_static(state: &TabState, max_title: usize, tty: &str) {
     write_title_to_tty(&output, tty);
 }
 
-fn render_marquee(
-    state: &TabState,
-    offset: usize,
-    max_title: usize,
-    width: usize,
-    tty: &str,
-) {
+fn render_marquee(state: &TabState, offset: usize, max_title: usize, width: usize, tty: &str) {
     let t_title = truncate_title(&state.title, max_title);
     let dot = render::get_indicator(state);
     let prefix = if dot.is_empty() {
@@ -257,7 +253,10 @@ fn cmd_start(session: &str) {
     // Simpler approach: use the real binary path and pass a hidden
     // flag so main.rs can route it. But the task spec says to use
     // argv0 dispatch. Let's find the tabbing-daemon symlink.
-    let daemon_link = exe.parent().unwrap_or(std::path::Path::new(".")).join("tabbing-daemon");
+    let daemon_link = exe
+        .parent()
+        .unwrap_or(std::path::Path::new("."))
+        .join("tabbing-daemon");
     let spawn_exe = if daemon_link.exists() {
         daemon_link
     } else {
@@ -346,6 +345,7 @@ fn cmd_run() {
 
 // ── Public entry point ─────────────────────────────────────────────
 
+// ⟦𓂲𓆔𓂑𓅵⟧ run_daemon :: auto-generated pointer for public function run_daemon
 pub fn run_daemon(args: &[String]) {
     let session = env::var("TAB_SESSION").unwrap_or_default();
     if session.is_empty() {

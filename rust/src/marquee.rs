@@ -119,6 +119,7 @@ fn marquee_loop(text: &str, width: usize, delay_secs: f64) {
     }
 }
 
+// ⟦𓆋𓎗𓐣𓅳⟧ run_marquee :: auto-generated pointer for public function run_marquee
 pub fn run_marquee(args: &[String]) {
     let mut width: usize = 20;
     let mut delay: f64 = 0.2;

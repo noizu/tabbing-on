@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use direnv_config::DcClient;
 
+// ⟦𓍦𓇯𓄫𓂳⟧ state_dir :: auto-generated pointer for public function state_dir
 pub fn state_dir() -> PathBuf {
     let base = env::var("XDG_STATE_HOME")
         .unwrap_or_else(|_| format!("{}/.local/state", env::var("HOME").unwrap_or_default()));
@@ -16,6 +17,8 @@ pub struct TabState {
     pub title: String,
     pub status: String,
     pub highlight: String,
+    pub title_style: String,
+    pub status_style: String,
     pub urgency: String,
     pub emoji: String,
     pub bg: String,
@@ -27,11 +30,14 @@ pub struct TabState {
 }
 
 impl TabState {
+    // ⟦𓇨𓎉𓉤𓋳⟧ from_env :: auto-generated pointer for public function from_env
     pub fn from_env() -> Self {
         Self {
             title: env::var("TAB_TITLE").unwrap_or_default(),
             status: env::var("TAB_STATUS").unwrap_or_default(),
             highlight: env::var("TAB_HIGHLIGHT").unwrap_or_default(),
+            title_style: env::var("TAB_TITLE_STYLE").unwrap_or_default(),
+            status_style: env::var("TAB_STATUS_STYLE").unwrap_or_default(),
             urgency: env::var("TAB_URGENCY").unwrap_or_default(),
             emoji: env::var("TAB_EMOJI").unwrap_or_default(),
             bg: env::var("TAB_BG").unwrap_or_default(),
@@ -47,8 +53,11 @@ impl TabState {
         env::var_os(key).is_some()
     }
 
+    // ⟦𓃂𓃽𓂬𓉲⟧ from_session_file :: auto-generated pointer for public function from_session_file
     pub fn from_session_file(session_id: &str) -> Option<Self> {
-        let path = state_dir().join("sessions").join(format!("{}.env", session_id));
+        let path = state_dir()
+            .join("sessions")
+            .join(format!("{}.env", session_id));
         let content = fs::read_to_string(path).ok()?;
         let vars: HashMap<String, String> = content
             .lines()
@@ -62,6 +71,8 @@ impl TabState {
             title: vars.get("TAB_TITLE").cloned().unwrap_or_default(),
             status: vars.get("TAB_STATUS").cloned().unwrap_or_default(),
             highlight: vars.get("TAB_HIGHLIGHT").cloned().unwrap_or_default(),
+            title_style: vars.get("TAB_TITLE_STYLE").cloned().unwrap_or_default(),
+            status_style: vars.get("TAB_STATUS_STYLE").cloned().unwrap_or_default(),
             urgency: vars.get("TAB_URGENCY").cloned().unwrap_or_default(),
             emoji: vars.get("TAB_EMOJI").cloned().unwrap_or_default(),
             bg: vars.get("TAB_BG").cloned().unwrap_or_default(),
@@ -76,6 +87,7 @@ impl TabState {
     /// Backfill from session file, but only for vars not present in the
     /// environment. An env var set to "" (e.g. by direnv's use_tabbing)
     /// is authoritative — it means "explicitly empty", not "unset".
+    // ⟦𓏌𓅷𓌯𓆰⟧ load :: Backfill from session file, but only for vars not present in the
     pub fn load(&mut self) {
         if self.session.is_empty() {
             return;
@@ -89,6 +101,12 @@ impl TabState {
             }
             if !Self::env_is_set("TAB_HIGHLIGHT") {
                 self.highlight = saved.highlight;
+            }
+            if !Self::env_is_set("TAB_TITLE_STYLE") {
+                self.title_style = saved.title_style;
+            }
+            if !Self::env_is_set("TAB_STATUS_STYLE") {
+                self.status_style = saved.status_style;
             }
             if !Self::env_is_set("TAB_URGENCY") {
                 self.urgency = saved.urgency;
@@ -111,6 +129,7 @@ impl TabState {
         }
     }
 
+    // ⟦𓈪𓅱𓎑𓊯⟧ save :: auto-generated pointer for public function save
     pub fn save(&self) {
         if self.session.is_empty() {
             return;
@@ -119,8 +138,8 @@ impl TabState {
         let _ = fs::create_dir_all(&dir);
         let path = dir.join(format!("{}.env", self.session));
         let content = format!(
-            "TAB_TITLE={}\nTAB_STATUS={}\nTAB_HIGHLIGHT={}\nTAB_URGENCY={}\nTAB_EMOJI={}\nTAB_BG={}\nTAB_THEME={}\nTAB_ID={}\nTAB_TERMINAL={}\nTAB_MARQUEE={}\n",
-            self.title, self.status, self.highlight, self.urgency, self.emoji,
+            "TAB_TITLE={}\nTAB_STATUS={}\nTAB_HIGHLIGHT={}\nTAB_TITLE_STYLE={}\nTAB_STATUS_STYLE={}\nTAB_URGENCY={}\nTAB_EMOJI={}\nTAB_BG={}\nTAB_THEME={}\nTAB_ID={}\nTAB_TERMINAL={}\nTAB_MARQUEE={}\n",
+            self.title, self.status, self.highlight, self.title_style, self.status_style, self.urgency, self.emoji,
             self.bg, self.theme, self.tab_id, self.terminal,
             if self.marquee { "1" } else { "" }
         );
@@ -157,8 +176,11 @@ impl TabState {
             ("title", &self.title),
             ("status", &self.status),
             ("highlight", &self.highlight),
+            ("title_style", &self.title_style),
+            ("status_style", &self.status_style),
             ("urgency", &self.urgency),
             ("emoji", &self.emoji),
+            ("bg", &self.bg),
             ("theme", &self.theme),
             ("last_update", &ts),
         ];
@@ -178,20 +200,33 @@ impl TabState {
         }
     }
 
+    // ⟦𓀮𓅚𓏵𓃈⟧ ensure_tab_id :: auto-generated pointer for public function ensure_tab_id
     pub fn ensure_tab_id(&mut self) {
         if self.tab_id.is_empty() {
             self.tab_id = generate_id();
         }
     }
 
+    // ⟦𓄁𓇽𓈤𓅊⟧ print_exports :: auto-generated pointer for public function print_exports
     pub fn print_exports(&self) {
         println!("export TAB_TITLE='{}'", shell_escape(&self.title));
         println!("export TAB_STATUS='{}'", shell_escape(&self.status));
         println!("export TAB_HIGHLIGHT='{}'", shell_escape(&self.highlight));
+        println!(
+            "export TAB_TITLE_STYLE='{}'",
+            shell_escape(&self.title_style)
+        );
+        println!(
+            "export TAB_STATUS_STYLE='{}'",
+            shell_escape(&self.status_style)
+        );
         println!("export TAB_URGENCY='{}'", shell_escape(&self.urgency));
         println!("export TAB_EMOJI='{}'", shell_escape(&self.emoji));
         println!("export TAB_BG='{}'", shell_escape(&self.bg));
         println!("export TAB_THEME='{}'", shell_escape(&self.theme));
+        // The full palette is rebuilt into the line-indexed TAB_THEME_DATA blob
+        // by the shell on first prompt (see _tabbing_persist_theme cold path),
+        // so --export only needs to seed the theme name here.
         println!("export TAB_ID='{}'", shell_escape(&self.tab_id));
         if self.marquee {
             println!("export TAB_MARQUEE=1");
@@ -210,6 +245,7 @@ fn dc_timestamp() -> String {
     chrono::Local::now().timestamp_millis().to_string()
 }
 
+// ⟦𓈥𓄈𓃩𓐏⟧ generate_id :: auto-generated pointer for public function generate_id
 pub fn generate_id() -> String {
     use rand::Rng;
     let mut rng = rand::thread_rng();
@@ -275,6 +311,7 @@ mod tests {
     }
 }
 
+// ⟦𓀌𓁹𓁮𓄟⟧ record_event :: auto-generated pointer for public function record_event
 pub fn record_event(state: &TabState, event_type: &str) {
     if state.tab_id.is_empty() {
         return;

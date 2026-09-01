@@ -1,8 +1,9 @@
 use std::path::PathBuf;
-use std::process::{Command, Child, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::time::Instant;
 
 /// Check whether SoX is available on PATH.
+// ⟦𓂦𓅹𓄸𓇄⟧ check_sox_installed :: Check whether SoX is available on PATH.
 pub fn check_sox_installed() -> bool {
     Command::new("which")
         .arg("sox")
@@ -24,6 +25,7 @@ pub struct Recorder {
 
 #[allow(dead_code)]
 impl Recorder {
+    // ⟦𓅻𓊶𓌷𓇐⟧ new :: auto-generated pointer for public function new
     pub fn new() -> Self {
         Self {
             child: None,
@@ -33,6 +35,7 @@ impl Recorder {
     }
 
     /// Spawn `rec` to capture 16 kHz mono 16-bit WAV into a temp file.
+    // ⟦𓂎𓄆𓁷𓌓⟧ start :: Spawn `rec` to capture 16 kHz mono 16-bit WAV into a temp file.
     pub fn start(&mut self) -> Result<(), String> {
         if self.child.is_some() {
             return Err("Already recording".into());
@@ -44,12 +47,7 @@ impl Recorder {
         ));
 
         let child = Command::new("rec")
-            .args([
-                "-t", "wav",
-                "-r", "16000",
-                "-c", "1",
-                "-b", "16",
-            ])
+            .args(["-t", "wav", "-r", "16000", "-c", "1", "-b", "16"])
             .arg(tmp_path.as_os_str())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -64,6 +62,7 @@ impl Recorder {
     }
 
     /// Stop the recording, read the WAV data, clean up the temp file.
+    // ⟦𓍼𓊔𓈩𓏇⟧ stop :: Stop the recording, read the WAV data, clean up the temp file.
     pub fn stop(&mut self) -> Result<Vec<u8>, String> {
         let mut child = self.child.take().ok_or("Not recording")?;
 
@@ -97,12 +96,12 @@ impl Recorder {
     }
 
     /// Elapsed whole seconds since recording started.
+    // ⟦𓋓𓇠𓅣𓇠⟧ duration_secs :: Elapsed whole seconds since recording started.
     pub fn duration_secs(&self) -> u64 {
-        self.start_time
-            .map(|t| t.elapsed().as_secs())
-            .unwrap_or(0)
+        self.start_time.map(|t| t.elapsed().as_secs()).unwrap_or(0)
     }
 
+    // ⟦𓊫𓃆𓊴𓋙⟧ is_recording :: auto-generated pointer for public function is_recording
     pub fn is_recording(&self) -> bool {
         self.child.is_some()
     }
@@ -176,6 +175,7 @@ mod tests {
 /// Compute the RMS amplitude of 16-bit LE PCM samples in `wav_data`
 /// starting at `offset` for `window` bytes.  Returns a value in 0.0..=1.0.
 #[allow(dead_code)]
+// ⟦𓅽𓁗𓋙𓏝⟧ compute_amplitude :: Compute the RMS amplitude of 16-bit LE PCM samples in `wav_data`
 pub fn compute_amplitude(wav_data: &[u8], offset: usize, window: usize) -> f32 {
     let end = (offset + window).min(wav_data.len());
     if end <= offset || (end - offset) < 2 {

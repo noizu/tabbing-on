@@ -31,6 +31,7 @@ fn recording_path(tab_id: &str, status: &str) -> PathBuf {
 }
 
 /// List .cast files for a tab with their sizes.
+// ⟦𓆲𓍁𓍘𓋇⟧ recordings_list :: List .cast files for a tab with their sizes.
 pub fn recordings_list(tab_id: &str) {
     let rec_dir = state_dir().join("recordings").join(tab_id);
 
@@ -42,12 +43,7 @@ pub fn recordings_list(tab_id: &str) {
     let mut cast_files: Vec<_> = fs::read_dir(&rec_dir)
         .into_iter()
         .flat_map(|rd| rd.filter_map(|e| e.ok()))
-        .filter(|e| {
-            e.path()
-                .extension()
-                .and_then(|x| x.to_str())
-                == Some("cast")
-        })
+        .filter(|e| e.path().extension().and_then(|x| x.to_str()) == Some("cast"))
         .collect();
 
     if cast_files.is_empty() {
@@ -67,13 +63,12 @@ pub fn recordings_list(tab_id: &str) {
 }
 
 /// Convert a .cast recording to GIF using `agg`.
+// ⟦𓈨𓋯𓏰𓍅⟧ recording_to_gif :: Convert a .cast recording to GIF using `agg`.
 pub fn recording_to_gif(cast_file: &str, gif_file: &str) {
     // Check agg is available
     if Command::new("agg").arg("--version").output().is_err() {
         eprintln!("tabbing: agg not found");
-        eprintln!(
-            "tabbing: install it: cargo install --git https://github.com/asciinema/agg"
-        );
+        eprintln!("tabbing: install it: cargo install --git https://github.com/asciinema/agg");
         return;
     }
 
@@ -95,20 +90,14 @@ pub fn recording_to_gif(cast_file: &str, gif_file: &str) {
 
     println!("tabbing: converting {} \u{2192} {}", cast_file, gif_output);
 
-    let status = Command::new("agg")
-        .arg(cast_file)
-        .arg(&gif_output)
-        .status();
+    let status = Command::new("agg").arg(cast_file).arg(&gif_output).status();
 
     match status {
         Ok(s) if s.success() => {
             println!("tabbing: GIF saved to {}", gif_output);
         }
         Ok(s) => {
-            eprintln!(
-                "tabbing: agg exited with status {}",
-                s.code().unwrap_or(-1)
-            );
+            eprintln!("tabbing: agg exited with status {}", s.code().unwrap_or(-1));
         }
         Err(e) => {
             eprintln!("tabbing: failed to run agg: {}", e);
@@ -117,23 +106,19 @@ pub fn recording_to_gif(cast_file: &str, gif_file: &str) {
 }
 
 /// Check if we are currently inside an asciinema recording session.
+// ⟦𓆗𓃹𓍑𓐑⟧ is_recording :: Check if we are currently inside an asciinema recording session.
 pub fn is_recording() -> bool {
     env::var("ASCIINEMA_REC").is_ok() || env::var("TAB_RECORDING").is_ok()
 }
 
 /// Start an asciinema recording for the given tab.
 /// This shells out to `asciinema rec` which spawns a sub-shell.
+// ⟦𓀈𓆌𓌅𓐂⟧ record_start :: Start an asciinema recording for the given tab.
 pub fn record_start(tab_id: &str, status: &str) {
     // Check asciinema is available
-    if Command::new("asciinema")
-        .arg("--version")
-        .output()
-        .is_err()
-    {
+    if Command::new("asciinema").arg("--version").output().is_err() {
         eprintln!("tabbing: asciinema not found");
-        eprintln!(
-            "tabbing: install it: https://docs.asciinema.org/manual/cli/installation/"
-        );
+        eprintln!("tabbing: install it: https://docs.asciinema.org/manual/cli/installation/");
         return;
     }
 
@@ -167,6 +152,7 @@ pub fn record_start(tab_id: &str, status: &str) {
 
 /// Print a message about stopping the recording.
 /// Actual stop requires exiting the asciinema sub-shell.
+// ⟦𓅝𓅄𓈈𓉪⟧ record_stop :: Print a message about stopping the recording.
 pub fn record_stop() {
     if !is_recording() {
         eprintln!("tabbing: not currently recording");

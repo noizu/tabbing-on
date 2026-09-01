@@ -47,6 +47,7 @@ fn parse_state_file(path: &std::path::Path) -> HashMap<String, String> {
     map
 }
 
+// ⟦𓁑𓆋𓍄𓂬⟧ run_claude_statusline :: auto-generated pointer for public function run_claude_statusline
 pub fn run_claude_statusline() {
     // Consume stdin (Claude Code pipes JSON; we don't use it)
     let mut buf = Vec::new();

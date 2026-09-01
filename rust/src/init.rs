@@ -20,10 +20,15 @@ fn resolve_tabbing_root() -> PathBuf {
 }
 
 fn emit_purge() {
-    println!("unset TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_URGENCY TAB_EMOJI TAB_THEME");
+    // A fresh interactive shell must not inherit ANY appearance state from a
+    // previous session — otherwise the prompt hook re-applies the last tab's
+    // theme. TAB_THEME_DATA (the 383-line palette blob), TAB_BG, and the
+    // _TABBING_WAS_ACTIVE / TAB_MARQUEE flags are just as load-bearing as
+    // TAB_THEME here, so purge them too.
+    println!("unset TAB_TITLE TAB_STATUS TAB_HIGHLIGHT TAB_TITLE_STYLE TAB_STATUS_STYLE TAB_URGENCY TAB_EMOJI TAB_THEME TAB_THEME_DATA TAB_BG TAB_MARQUEE");
     println!("unset TAB_TERMINAL TAB_SESSION TAB_ID TAB_COLOR_SUPPORT");
     println!("unset TABBING_TTY TABBING_DC_DAEMON_PID");
-    println!("unset TABBING_PIPE TABBING_RUN_WITH_PIPE TABBING_DC_UUID");
+    println!("unset TABBING_PIPE TABBING_RUN_WITH_PIPE TABBING_DC_UUID DC_TAB_NS _TABBING_OWNER_PID _TABBING_WAS_ACTIVE");
     println!("unset CLAUDE_CODE_DISABLE_TERMINAL_TITLE");
 }
 
@@ -64,6 +69,10 @@ fn emit_checks(shell: &str) {
     println!(r#"      fi"#);
     println!(r#"      ;;"#);
     println!(r#"    xterm-ghostty)"#);
+    // GHOSTTY_SHELL_FEATURES is the ground truth: Ghostty stamps it at app
+    // launch, so it reflects what the running instance actually enabled — a
+    // config patched with no-title after launch is not in effect yet.
+    println!(r#"      _tabbing_init_confpatched=0"#);
     println!(r#"      for _tabbing_init_conf in \"#);
     println!(r#"        "$HOME/Library/Application Support/com.mitchellh.ghostty/config" \"#);
     println!(r#"        "${{XDG_CONFIG_HOME:-$HOME/.config}}/ghostty/config"; do"#);
@@ -71,27 +80,48 @@ fn emit_checks(shell: &str) {
     println!(
         r#"          if grep -v '^ *#' "$_tabbing_init_conf" | grep -q 'no-title' 2>/dev/null; then"#
     );
-    println!(r#"            _tabbing_init_notitle=1"#);
+    println!(r#"            _tabbing_init_confpatched=1"#);
     println!(r#"          fi"#);
     println!(r#"        fi"#);
     println!(r#"      done"#);
+    println!(r#"      if [ -n "${{GHOSTTY_SHELL_FEATURES:-}}" ]; then"#);
+    println!(r#"        case ",${{GHOSTTY_SHELL_FEATURES}}," in"#);
+    println!(r#"          *,title,*|*,title:*) _tabbing_init_notitle=0 ;;"#);
+    println!(r#"          *) _tabbing_init_notitle=1 ;;"#);
+    println!(r#"        esac"#);
+    println!(r#"      else"#);
+    println!(r#"        _tabbing_init_notitle="$_tabbing_init_confpatched""#);
+    println!(r#"      fi"#);
     println!(r#"      if [ "$_tabbing_init_notitle" -eq 0 ]; then"#);
+    println!(r#"        if [ "$_tabbing_init_confpatched" -eq 1 ]; then"#);
     println!(
-        r#"        _tabbing_init_warn "Ghostty shell-integration-features missing 'no-title' — tab titles will be overwritten""#
+        r#"          _tabbing_init_warn "Ghostty title integration still ACTIVE in this session — config has no-title but was read at app launch""#
     );
     println!(
-        r#"        _tabbing_init_warn "Fix: add 'shell-integration-features = no-title' to ghostty config, or run: tabbing-doctor""#
+        r#"          _tabbing_init_warn "Fix: fully restart Ghostty (all windows) to apply shell-integration-features = no-title""#
     );
+    println!(r#"        else"#);
+    println!(
+        r#"          _tabbing_init_warn "Ghostty shell-integration-features missing 'no-title' — tab titles will be overwritten""#
+    );
+    println!(
+        r#"          _tabbing_init_warn "Fix: add 'shell-integration-features = no-title' to ghostty config, or run: tabbing-doctor""#
+    );
+    println!(r#"        fi"#);
     println!(
         r#"        _tabbing_init_warn "Suppress: export TABBING_NO_WARN=1 in {} before tabbing-init""#,
         rcfile
     );
     println!(r#"      fi"#);
+    println!(r#"      unset _tabbing_init_confpatched"#);
     println!(r#"      ;;"#);
     println!(r#"  esac"#);
     println!(r#"  case "${{TERM:-}}" in"#);
     println!(r#"    xterm-kitty|xterm-ghostty)"#);
     println!(r#"      if [ -n "${{TERM_FOR_SSHD:-}}" ]; then"#);
+    println!(r#"        if [ -n "${{TABBING_SSH_SHIM:-}}" ]; then"#);
+    println!(r#"          :"#);
+    println!(r#"        else"#);
     println!(
         r#"        if [ -f "$HOME/{rcfile}" ] && ! grep -v '^ *#' "$HOME/{rcfile}" | grep -qE '(ssh\s*\(\)|function ssh)' 2>/dev/null; then"#,
         rcfile = rcfile
@@ -102,12 +132,40 @@ fn emit_checks(shell: &str) {
         rcfile
     );
     println!(r#"        fi"#);
+    println!(r#"        fi"#);
     println!(r#"      fi"#);
     println!(r#"      ;;"#);
     println!(r#"  esac"#);
     println!(r#"  unset _tabbing_init_conf _tabbing_init_notitle"#);
     println!(r#"  unset -f _tabbing_init_warn 2>/dev/null"#);
     println!(r#"fi"#);
+}
+
+fn emit_ssh_shim(shell: &str) {
+    println!("# tabbing-on: ssh TERM shim");
+    println!("_tabbing_ssh_shim_needed=0");
+    println!("case \"${{TERM:-}}\" in");
+    println!("  xterm-ghostty|xterm-kitty) _tabbing_ssh_shim_needed=1 ;;");
+    println!("esac");
+    println!("if [ -n \"${{TERM_FOR_SSHD:-}}\" ]; then");
+    println!("  _tabbing_ssh_shim_needed=1");
+    println!("fi");
+    println!("if [ \"$_tabbing_ssh_shim_needed\" -eq 1 ]; then");
+    println!("  if [ -z \"${{TERM_FOR_SSHD:-}}\" ]; then");
+    println!("    case \"${{TERM:-}}\" in");
+    println!("      xterm-ghostty|xterm-kitty) export TERM_FOR_SSHD=\"xterm-256color\" ;;");
+    println!("      *) export TERM_FOR_SSHD=\"${{TERM:-xterm-256color}}\" ;;");
+    println!("    esac");
+    println!("  fi");
+    match shell {
+        "zsh" => println!("  if ! (( $+functions[ssh] || $+aliases[ssh] )); then"),
+        _ => println!("  if ! declare -F ssh >/dev/null 2>&1 && ! alias ssh >/dev/null 2>&1; then"),
+    }
+    println!("    ssh() {{ TERM=\"$TERM_FOR_SSHD\" command ssh \"$@\"; }}");
+    println!("    export TABBING_SSH_SHIM=1");
+    println!("  fi");
+    println!("fi");
+    println!("unset _tabbing_ssh_shim_needed");
 }
 
 fn emit_dc_init(tabbing_root: &str) {
@@ -145,6 +203,26 @@ fn print_help(tabbing_root: &str) {
     println!("  tabbing-recordings List/manage terminal recordings");
 }
 
+// ⟦𓍽𓅼𓍭𓁠⟧ run_ssh_shim :: auto-generated pointer for public function run_ssh_shim
+pub fn run_ssh_shim(args: &[String]) {
+    let shell = args.first().map(|s| s.as_str()).unwrap_or("sh");
+    match shell {
+        "bash" | "zsh" => emit_ssh_shim(shell),
+        "--help" | "-h" | "help" => {
+            println!("tabbing-ssh-shim — emit shell code for ssh TERM override");
+            println!();
+            println!("Usage:");
+            println!("  eval \"$(tabbing-ssh-shim bash)\"");
+            println!("  eval \"$(tabbing-ssh-shim zsh)\"");
+        }
+        _ => {
+            eprintln!("tabbing-ssh-shim: specify shell: bash or zsh");
+            std::process::exit(1);
+        }
+    }
+}
+
+// ⟦𓂁𓃭𓅔𓇚⟧ run_init :: auto-generated pointer for public function run_init
 pub fn run_init(args: &[String]) {
     let tabbing_root = resolve_tabbing_root();
     let root_str = tabbing_root.to_string_lossy();
