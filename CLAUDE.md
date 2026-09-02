@@ -186,3 +186,9 @@ Remind yourself of the central tenets of "On Bullshit" as in the 1986 essay and 
     Neither alone is complete.
 
 OH (@#$: if half through your response you realize you've good, stop. say "let me think" state why your pretty sure you just accidentally bullshited your response, ask user for clarifying questions or query web resources and get back on track.
+
+## Monorepo context (tabbing-on — trl-infra)
+
+Tab/session helper for zellij workflows. Installed to `~/.local/bin` via trl-infra root `make install-utilities`.
+
+REQUIRED monorepo rules: Trinity Protocol (substantive responses run Orientation → Friction → Response; full text trl-infra `protocols/the-trinity-protocol.md`); no shell in the main thread — delegate to tasker subagents; all work on worktrees with `epic.<group>` consolidation branches off `develop`, PR + squash flow into epics (one epic PR per group). Monorepo ops: `../../../../CLAUDE.md`.
