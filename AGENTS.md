@@ -1,6 +1,12 @@
-# AGENTS.md
+# AGENTS.md — tabbing-on
 
-This file provides guidance to coding agents (Grok, Codex, Claude, Cursor) when working with code in this repository.
+Guidance for **Codex**, **Grok**, **Cursor**, and other `AGENTS.md` / `AGENT.md` tools.
+
+Claude Code loads [CLAUDE.md](./CLAUDE.md). Same policy; this file is the harness-shaped sibling (numbered MUST first, markdown headings). If both this file and a parent `AGENTS.md` load, **this file wins on conflict**.
+
+## MUST (every turn)
+
+1. **PRs target `develop`.** Never merge or push `main` (CI/CD-only release path).
 
 ## Decision Records
 
@@ -192,3 +198,9 @@ OH (@#$: if half through your response you realize you've good, stop. say "let m
 Tab/session helper for zellij workflows. Installed to `~/.local/bin` via trl-infra root `make install-utilities`.
 
 REQUIRED monorepo rules: Trinity Protocol (substantive responses run Orientation → Friction → Response; full text trl-infra `protocols/the-trinity-protocol.md`); no shell in the main thread — delegate to tasker subagents; all work on worktrees with `epic.<group>` consolidation branches off `develop`, PR + squash flow into epics (one epic PR per group). Monorepo ops: `../../../../CLAUDE.md`.
+
+## Branch & PR Policy
+
+- Submodules sit on **`develop`** — keep your checkout on `develop`.
+- All PRs target **`develop`** (feature/bug/task branches fork from `develop`).
+- **`main` is CI/CD-only**: CI/CD automation performs all merges into `main` (release path). Never merge to or push `main` by hand.
