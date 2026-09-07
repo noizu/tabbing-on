@@ -2,7 +2,7 @@
 
 ## Overview
 
-Terminal tab title/status/todo/theme/recording manager with two parallel implementations: primary Rust multi-call binary (rust/, v0.2.0, argv0 applet dispatch) and the original pure-shell tree (shell-impl/, POSIX libs + Bash/Zsh adapters), plus a retained Ink/React prototype of tabbing-plan (ink-plan/). Integrates with Claude Code IDE statusline, Toggl Track, and Whisper/LLM (voice memo → PM ticket). Two runtime modes: env mode (TAB_* shell variables) and dc mode (direnv-config store + background daemon rendering titles).
+Terminal tab title/status/todo/theme/recording manager with two parallel implementations: primary Rust multi-call binary (rust/, v0.2.0, argv0 applet dispatch) and the original pure-shell tree (shell-impl/, POSIX libs + Bash/Zsh adapters). Integrates with Claude Code IDE statusline, Toggl Track, and Whisper/LLM (voice memo → PM ticket). Two runtime modes: env mode (TAB_* shell variables) and dc mode (direnv-config store + background daemon rendering titles).
 
 ## Components
 
@@ -12,7 +12,6 @@ Terminal tab title/status/todo/theme/recording manager with two parallel impleme
 - **shell-impl/lib/*.sh** — POSIX libraries (_tabbing_* prefix): render, core, terminal, history, session, todo, theme, theme-data, dc, claude, toggl, recording
 - **shell-impl/shell/tabbing.{bash,zsh}** — in-shell adapters (env exports persist; precmd/PROMPT_COMMAND hooks)
 - **shell-impl/bin/** — CLI wrappers, _tabbing-commit (real script, not symlink), tabbing-daemon (dc-mode poller/marquee, shell-only), demo-runner
-- **ink-plan/** — Ink/React (Node >= 20) tabbing-plan prototype; needs SoX + LiteLLM/Whisper
 
 ## Dual Implementation
 
@@ -42,4 +41,4 @@ Lives at utilities/shell/tabbing-on in the Noizu Infra monorepo; a SUBDIR of uti
 - YAML via sed/awk, no hard external deps (dc, asciinema optional)
 - Per-tab isolation (TAB_ID) and per-session scoping (TAB_SESSION)
 - Claude bridge via FIFO decouples render pipeline from IDE statusline
-- tabbing-plan prototyped in Ink/React before Rust port; prototype retained
+- tabbing-plan prototyped in Ink/React before the Rust port; prototype retired once rust/src/plan/ covered it

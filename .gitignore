@@ -11,3 +11,6 @@ rust/target/
 ink-plan/node_modules/
 ink-plan/dist/
 ink-plan/package-lock.json
+
+# Canonical worktree placement
+.claude/worktrees/

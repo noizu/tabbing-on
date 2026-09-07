@@ -1,6 +1,12 @@
-# CLAUDE.md
+# AGENT.md — tabbing-on
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for **Codex**, **Grok**, **Cursor**, and other `AGENTS.md` / `AGENT.md` tools.
+
+Claude Code loads [CLAUDE.md](./CLAUDE.md). Same policy; this file is the harness-shaped sibling (numbered MUST first, markdown headings). If both this file and a parent `AGENTS.md` load, **this file wins on conflict**.
+
+## MUST (every turn)
+
+1. **PRs target `develop`.** Never merge or push `main` (CI/CD-only release path).
 
 ## Decision Records
 
