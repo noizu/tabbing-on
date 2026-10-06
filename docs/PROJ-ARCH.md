@@ -12,8 +12,8 @@ The project carries **two parallel implementations**:
 
 1. **Rust** (`rust/`, v0.2.0) — the primary implementation. A single multi-call
    binary (`tabbing-on`) that dispatches on argv0; installed applet symlinks
-   (`tabbing-status`, `tabbing-theme`, `tabbing-plan`, `task-memo`, ...) select
-   the subcommand, BusyBox-style.
+   (`tabbing-status`, `tabbing-style`, `tabbing-theme`, `tabbing-plan`,
+   `task-memo`, ...) select the subcommand, BusyBox-style.
 2. **Pure shell** (`shell-impl/`) — the original implementation. POSIX libraries
    under Bash/Zsh adapters. Still authoritative for the pieces that must run *in*
    the interactive shell (adapters, `_tabbing-commit`, `tabbing-daemon`) and
@@ -92,7 +92,7 @@ graph TB
 | Toggl | `rust/src/toggl.rs`, `shell-impl/lib/toggl.sh` | Toggl Track time-entry lifecycle |
 | Plan | `rust/src/plan/` | `tabbing-plan`/`task-memo`: mic capture → Whisper transcription → LLM classification → PM ticket files |
 | Shell adapters | `shell-impl/shell/tabbing.{bash,zsh}` | In-shell user functions so `TAB_*` exports persist; precmd/PROMPT_COMMAND hooks |
-| Daemon | `shell-impl/bin/tabbing-daemon` | dc-mode background renderer + status marquee (shell-only; Rust symlink exists) |
+| Daemon | `rust/src/daemon.rs`, `shell-impl/bin/tabbing-daemon` | dc-mode background renderer + status marquee (native Rust daemon; shell original kept for the legacy install) |
 | Bootstrap | `rust/src/init.rs`, `shell-impl/bin/tabbing-init` | Emits shell-appropriate `source`/setup code for `eval` |
 
 ## Dual Implementation & Parity
@@ -153,14 +153,16 @@ WezTerm > Apple Terminal > Windows Terminal > Alacritty > Konsole > GNOME
 Terminal > tmux > xterm) feeds capability-gated output: OSC 0 titles
 (universal), iTerm2 OSC 6 tab color and OSC 1337 badges, Kitty remote control,
 and OSC 4/10/11/12 full-palette theme recoloring. `tabbing-doctor` patches
-Kitty/Ghostty configs that would otherwise clobber titles.
+Kitty/Ghostty configs that would otherwise clobber titles. `tabbing-ssh-shim`
+wraps `ssh` to keep the local tab state intact across remote sessions
+(TERM override — see [howto/ssh-term-override.md](howto/ssh-term-override.md)).
 
 ## Installation & Ecosystem Fit
 
-tabbing-on lives at `utilities/shell/tabbing-on/` in the Noizu Infra monorepo
-and is a SUBDIR of `utilities/shell/Makefile`, so the repo-root
-`make install-utilities` recurses into its own `Makefile`. Unlike the sibling
-DevOps utilities it does **not** source `share/k8-lib/` and has no
+tabbing-on lives at `Portfolio/Utilities/source/tabbing-on/` in the Noizu
+Infra monorepo and is a SUBDIR of `Portfolio/Utilities/Makefile`, so the
+monorepo-root `make install-utilities` recurses into its own `Makefile`. Unlike
+the sibling DevOps utilities it does **not** source `share/k8-lib/` and has no
 `.infra-config.yaml` build/deploy footprint — it is a purely local terminal
 tool, but it targets the same `~/.local/bin` install convention.
 

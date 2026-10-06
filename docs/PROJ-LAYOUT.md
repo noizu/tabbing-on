@@ -9,7 +9,7 @@ Feature parity between shell and Rust is tracked in [FEATURE-PARITY.md](FEATURE-
 ```
 tabbing-on/
 ├── rust/                       # Primary implementation → [layout/rust.md](layout/rust.md)
-│   ├── Cargo.toml              #   Crate manifest (bin `tabbing`, v0.2.0)
+│   ├── Cargo.toml              #   Crate manifest (bin `tabbing-on`, v0.2.0)
 │   └── src/                    #   Multi-call binary: one module per subcommand
 │       └── plan/               #   tabbing-plan: voice memo → PM ticket pipeline
 ├── shell-impl/                 # Pure-shell implementation → [layout/shell-impl.md](layout/shell-impl.md)
@@ -27,6 +27,8 @@ tabbing-on/
 │   ├── PROJ-HOWTO.summary.md   #   How-to quick-reference
 │   ├── PROJ-FAQ.md             #   Frequently asked questions
 │   ├── PROJ-FAQ.summary.md     #   FAQ quick-reference
+│   ├── THREAT-MODEL.md         #   Threat model: attack surface + vuln register
+│   ├── THREAT-MODEL.summary.md #   Threat-model quick-reference
 │   ├── FEATURE-PARITY.md       #   Shell vs Rust feature matrix
 │   ├── theme-data-format.md    #   TAB_THEME_DATA 383-line blob format spec
 │   ├── howto/                  #   Per-task guides (first-hour, theme-picker, dc-mode, ...)
@@ -38,6 +40,7 @@ tabbing-on/
 ├── .gitignore                  # Ignores .claude, .tmp, .envrc, rust/target (plus vestigial ink-plan entries)
 ├── Makefile                    # make install: cargo build + applet symlinks + shell libs
 ├── CHANGELOG.md                # Milestone-tagged change history
+├── AGENT.md / AGENTS.md        # Multi-agent build rules (kept aligned; mirror CLAUDE.md)
 ├── CLAUDE.md                   # Claude Code project instructions
 ├── LICENSE                     # MIT (Copyright 2026 Keith Brings)
 ├── README.md                   # Project entry point
@@ -51,13 +54,14 @@ tabbing-on/
 
 ## Installation (root Makefile)
 
-`make install` compiles the Rust binary and installs it as `tabbing` with
-argv0-dispatch symlinks, alongside shell-impl support files:
+`make install` compiles the Rust binary and installs it as `tabbing-on` with
+argv0-dispatch symlinks, alongside shell-impl support files
+(`make install-shell` installs the legacy pure-shell version instead):
 
 | Source | Installed |
 |--------|-----------|
-| `rust/` build → `tabbing` binary | `~/.local/bin/tabbing` |
-| Applet symlinks (`tabbing-on`, `tabbing-status`, `tabbing-todo`, `tabbing-theme`, `tabbing-plan`, `task-memo`, ...) | `~/.local/bin/` → `tabbing` |
+| `rust/` build → `tabbing-on` binary | `~/.local/bin/tabbing-on` |
+| Applet symlinks (19): `tabbing-status`, `tabbing-info`, `tabbing-clear`, `tabbing-off`, `tabbing-todo`, `tabbing-report`, `tabbing-history`, `tabbing-recordings`, `tabbing-doctor`, `tabbing-marquee`, `tabbing-init`, `tabbing-theme`, `tabbing-style`, `tabbing-claude-statusline`, `tabbing-ssh-shim`, `tabbing-plan`, `task-memo`, `demo-runner`, `tabbing-daemon` | `~/.local/bin/` → `tabbing-on` |
 | `shell-impl/bin/_tabbing-commit` | `~/.local/bin/` (real script, not symlink) |
 | `shell-impl/lib/*.sh` | `~/.local/share/tabbing-on/lib/` |
 | `shell-impl/shell/tabbing.{bash,zsh}` | `~/.local/share/tabbing-on/shell/` |
