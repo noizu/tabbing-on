@@ -129,7 +129,7 @@ mod tests {
     }
 }
 
-// ⟦𓆾𓐦𓎽𓅚⟧ run_doctor :: auto-generated pointer for public function run_doctor
+// <REMOVED UUID HERE> run_doctor :: auto-generated pointer for public function run_doctor
 pub fn run_doctor() {
     let home = env::var("HOME").unwrap_or_default();
     let term = env::var("TERM").unwrap_or_default();

@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use direnv_config::DcClient;
 
-// ⟦𓍦𓇯𓄫𓂳⟧ state_dir :: auto-generated pointer for public function state_dir
+// <REMOVED UUID HERE> state_dir :: auto-generated pointer for public function state_dir
 pub fn state_dir() -> PathBuf {
     let base = env::var("XDG_STATE_HOME")
         .unwrap_or_else(|_| format!("{}/.local/state", env::var("HOME").unwrap_or_default()));
@@ -30,7 +30,7 @@ pub struct TabState {
 }
 
 impl TabState {
-    // ⟦𓇨𓎉𓉤𓋳⟧ from_env :: auto-generated pointer for public function from_env
+    // <REMOVED UUID HERE> from_env :: auto-generated pointer for public function from_env
     pub fn from_env() -> Self {
         Self {
             title: env::var("TAB_TITLE").unwrap_or_default(),
@@ -53,7 +53,7 @@ impl TabState {
         env::var_os(key).is_some()
     }
 
-    // ⟦𓃂𓃽𓂬𓉲⟧ from_session_file :: auto-generated pointer for public function from_session_file
+    // <REMOVED UUID HERE> from_session_file :: auto-generated pointer for public function from_session_file
     pub fn from_session_file(session_id: &str) -> Option<Self> {
         let path = state_dir()
             .join("sessions")
@@ -87,7 +87,7 @@ impl TabState {
     /// Backfill from session file, but only for vars not present in the
     /// environment. An env var set to "" (e.g. by direnv's use_tabbing)
     /// is authoritative — it means "explicitly empty", not "unset".
-    // ⟦𓏌𓅷𓌯𓆰⟧ load :: Backfill from session file, but only for vars not present in the
+    // <REMOVED UUID HERE> load :: Backfill from session file, but only for vars not present in the
     pub fn load(&mut self) {
         if self.session.is_empty() {
             return;
@@ -129,7 +129,7 @@ impl TabState {
         }
     }
 
-    // ⟦𓈪𓅱𓎑𓊯⟧ save :: auto-generated pointer for public function save
+    // <REMOVED UUID HERE> save :: auto-generated pointer for public function save
     pub fn save(&self) {
         if self.session.is_empty() {
             return;
@@ -200,14 +200,14 @@ impl TabState {
         }
     }
 
-    // ⟦𓀮𓅚𓏵𓃈⟧ ensure_tab_id :: auto-generated pointer for public function ensure_tab_id
+    // <REMOVED UUID HERE> ensure_tab_id :: auto-generated pointer for public function ensure_tab_id
     pub fn ensure_tab_id(&mut self) {
         if self.tab_id.is_empty() {
             self.tab_id = generate_id();
         }
     }
 
-    // ⟦𓄁𓇽𓈤𓅊⟧ print_exports :: auto-generated pointer for public function print_exports
+    // <REMOVED UUID HERE> print_exports :: auto-generated pointer for public function print_exports
     pub fn print_exports(&self) {
         println!("export TAB_TITLE='{}'", shell_escape(&self.title));
         println!("export TAB_STATUS='{}'", shell_escape(&self.status));
@@ -245,7 +245,7 @@ fn dc_timestamp() -> String {
     chrono::Local::now().timestamp_millis().to_string()
 }
 
-// ⟦𓈥𓄈𓃩𓐏⟧ generate_id :: auto-generated pointer for public function generate_id
+// <REMOVED UUID HERE> generate_id :: auto-generated pointer for public function generate_id
 pub fn generate_id() -> String {
     use rand::Rng;
     let mut rng = rand::thread_rng();
@@ -311,7 +311,7 @@ mod tests {
     }
 }
 
-// ⟦𓀌𓁹𓁮𓄟⟧ record_event :: auto-generated pointer for public function record_event
+// <REMOVED UUID HERE> record_event :: auto-generated pointer for public function record_event
 pub fn record_event(state: &TabState, event_type: &str) {
     if state.tab_id.is_empty() {
         return;
