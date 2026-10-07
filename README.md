@@ -1,9 +1,28 @@
 # tabbing-on
 
-![title bar](docs/assets/title-bar.png)
+**Repo:** https://github.com/noizu/tabbing-on
 
 A pure-shell terminal tab title, status & task manager with theme support.
 Works with iTerm2, Ghostty, Kitty, WezTerm, Alacritty, and more.
+
+## What
+
+`tabbing-on` sets tab titles, status text, highlight colors, urgency levels, emojis, background colors, and full terminal themes from the shell — plus per-tab todos, time-in-state reports, history search, and asciinema session recording. Pure POSIX shell + bash/zsh adapters; no build system, no external dependencies (a small Rust helper lives in `rust/`). Supports Bash 4.0+ and Zsh 5.0+.
+
+## Why
+
+Long-lived terminal tabs carry context that plain titles lose: what's running, how urgent it is, which task it belongs to. tabbing-on makes that context machine-settable from scripts and agents (including Claude Code sessions), so a glance at the tab strip tells you the state of every job — and the per-tab todo/history/report commands turn it into a lightweight task log.
+
+## Getting Started
+
+```bash
+cd tabbing-on
+make install
+```
+
+This copies commands to `~/.local/bin/` and libraries to `~/.local/share/tabbing-on/`. (`make uninstall` reverses it; `make test` runs the test target.)
+
+Then add to your shell rc:
 
 > **[`demo-runner`](#demo-runner)** — a typewriter-style demo player is included. Run `bin/demo-runner` for a guided walkthrough.
 
@@ -21,16 +40,15 @@ https://github.com/user-attachments/assets/b454eecc-3542-472e-a563-99415ce6fbed
 
 > [View the full asciinema recording](demo/showcase.cast)
 
+## How It Works
+
+Architecture (details under [Architecture](#architecture) below): POSIX libraries in `lib/`, shell adapters in `shell/` that run in the current shell so `TAB_*` env vars persist, thin CLI wrappers in `bin/`, a `tabbing-init` bootstrap, and a background daemon for dc-mode polling/marquee.
+
+## Docs
+
+`docs/` carries PROJ-ARCH / PROJ-HOWTO / PROJ-LAYOUT / PROJ-SCHEMA / PROJ-FAQ digests, `FEATURE-PARITY.md`, and `theme-data-format.md`. MIT licensed.
+
 ## Install
-
-```bash
-cd tabbing-on
-make install
-```
-
-This copies commands to `~/.local/bin/` and libraries to `~/.local/share/tabbing-on/`.
-
-Then add to your shell rc:
 
 ```bash
 # Zsh — add to .zshrc

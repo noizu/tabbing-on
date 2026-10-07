@@ -21,6 +21,8 @@ the canonical input to every render/emit path.
 | `TAB_SESSION` | string | Per-terminal-session key (keys the `.env` state file) |
 | `TAB_TITLE` | string | Current tab title text |
 | `TAB_STATUS` | string | Status text shown with the title |
+| `TAB_TITLE_STYLE` | style | Title text style (`bold`, `dim`, `italic`, ...) — set via `tabbing-style` / `--title-style` |
+| `TAB_STATUS_STYLE` | style | Status text style — set via `tabbing-style` / `--status-style` |
 | `TAB_HIGHLIGHT` | color | Highlight color (name, `#RRGGBB`, or X11 name) |
 | `TAB_BG` | color | Status background color |
 | `TAB_EMOJI` | name | Named emoji shown in the title |
@@ -49,6 +51,13 @@ Precedence throughout: **CLI flag → env var → built-in default**.
 | `TAB_TOGGL_PREFIX` | no | `TABO-{repo}` | Entry description prefix |
 | `TAB_TOGGL_CREATED_WITH` | no | `TABO` | `created_with` field |
 | `TAB_TOGGL_ENTRY_ID` | runtime | — | Current time-entry ID |
+| `TAB_TOGGL_ENTRY_START` | runtime | — | Epoch start of the current entry |
+| `TAB_TOGGL_MONITOR_PID` | runtime | — | Idle-monitor process PID |
+| `TAB_TOGGL_LAST_ACTIVE` | runtime | — | Last-activity timestamp (idle checks) |
+| `TAB_TOGGL_DESCRIPTION` | no | title | Time-entry description |
+| `TAB_TOGGL_TAGS` | no | — | Comma-separated entry tags |
+| `TAB_TOGGL_GIT_REPO` / `TAB_TOGGL_GIT_BRANCH` | no | auto | Git context attached to entries |
+| `TAB_TOGGL_DISABLED` | no | `0` | `1` disables tracking for the session |
 
 ### Voice-memo pipeline (`tabbing-plan` / `task-memo`, `rust/src/plan/`)
 
@@ -63,12 +72,16 @@ Precedence throughout: **CLI flag → env var → built-in default**.
 
 | Variable | Description |
 |----------|-------------|
-| `TABBING_THEME_BIN` | Override path to the `tabbing` binary used for `tabbing-theme emit` |
+| `TABBING_THEME_BIN` | Override path to the `tabbing-on` binary used for `tabbing-theme emit` |
 | `TABBING_THEME_PERSIST` | `1` re-enables per-prompt theme re-emit (disabled by default) |
-| `DC_TAB_NS` | direnv-config tab namespace (default `tab`) |
+| `DC_TAB_NS` | direnv-config tab namespace (default `tab`); mirrored by `lib/dc.sh` for the `dc-init` precmd bridge |
+| `TABBING_DC_UUID` / `TABBING_DC_DAEMON_PID` | dc-mode session identity + daemon PID (unset by `tabbing-init`) |
+| `TABBING_PIPE` / `TABBING_RUN_WITH_PIPE` | Claude Code bridge pipe plumbing (unset by `tabbing-init`) |
+| `TAB_VERBOSITY` | Render verbosity level (default `1`) |
+| `TAB_NO_COLOR` | Set to disable color output (`lib/toggl.sh`) |
 | `XDG_STATE_HOME` | Base for state tree (default `~/.local/state`) |
 | `XDG_CONFIG_HOME` | Base for user themes (default `~/.config`) |
-| `XDG_RUNTIME_DIR` | Base for daemon pid files (default `$TMPDIR`) |
+| `XDG_RUNTIME_DIR` | Base for the shell daemon pid file (default `$TMPDIR`) |
 
 ## 3. On-disk state tree
 
@@ -82,7 +95,8 @@ Root: `${XDG_STATE_HOME:-~/.local/state}/tabbing/`
 | `recordings/{TAB_ID}/*.cast` | asciicast v2 | `lib/recording.sh` | asciinema terminal recordings |
 | `claude-{SESSION}.state` | shell vars | `lib/claude.sh` | Claude Code IDE bridge state |
 | `claude-{SESSION}.pipe` | FIFO | `lib/claude.sh` | Named pipe for Claude Code IPC |
-| `tabbing-daemon.{TAB_SESSION}.pid` | pid file | `lib/dc.sh` | Background daemon lifecycle |
+| `daemon-{TAB_SESSION}.pid` | pid file | `daemon.rs` | Rust daemon lifecycle (state-tree root) |
+| `${XDG_RUNTIME_DIR}/tabbing-daemon.{TAB_SESSION}.pid` | pid file | `lib/dc.sh` | Shell daemon lifecycle (Rust and shell use separate pidfile paths) |
 
 ### Entity relationships (file-level)
 
@@ -164,6 +178,11 @@ Values: `#RRGGBB`, named ANSI color, X11 symbolic name (resolved via
 
 ```sh
 tabbing-on "Title" [-color FG [-bg BG]] [-status TEXT] [-emoji NAME] [-urgency LVL]
+tabbing-style [--theme=NAME] [--bg=COLOR] [--title-style S] [--status-style S]
+              [-COLOR] [-EMOJI] [-priN] [-m|--marquee] [--no-marquee]
+              [--no-theme] [--themes] [--colors]
+tabbing-off                     # clear title/status, reset tab
+tabbing-ssh-shim ssh-args...    # ssh wrapper (TERM override — see howto/ssh-term-override.md)
 tabbing-theme get <handle> [name] | set <handle> <value> [name]
 tabbing-theme gen-standard [name] | gen-ramp <from> <to> <steps>
 tabbing-theme emit [--all | --clear | --clear-bg | --bg COLOR]

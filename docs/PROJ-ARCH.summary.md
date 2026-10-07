@@ -7,11 +7,11 @@ Terminal tab title/status/todo/theme/recording manager with two parallel impleme
 ## Components
 
 - **rust/src/main.rs** — argv0 multi-call dispatch to subcommand modules
-- **rust/src/** modules — render, state (dc write-through), terminal, theme + ratatui theme picker, history, todo, recording, doctor, claude/bridge, toggl, marquee, init, demo
+- **rust/src/** modules — render, state (dc write-through), terminal, theme + ratatui theme picker, history, todo, recording, doctor, claude/bridge, toggl, marquee, init, demo, daemon (native Rust dc-mode renderer), style/off/ssh-shim applets
 - **rust/src/plan/** — tabbing-plan / task-memo: mic capture → Whisper transcription → LLM classification → ticket files
 - **shell-impl/lib/*.sh** — POSIX libraries (_tabbing_* prefix): render, core, terminal, history, session, todo, theme, theme-data, dc, claude, toggl, recording
 - **shell-impl/shell/tabbing.{bash,zsh}** — in-shell adapters (env exports persist; precmd/PROMPT_COMMAND hooks)
-- **shell-impl/bin/** — CLI wrappers, _tabbing-commit (real script, not symlink), tabbing-daemon (dc-mode poller/marquee, shell-only), demo-runner
+- **shell-impl/bin/** — CLI wrappers, _tabbing-commit (real script, not symlink), tabbing-daemon (dc-mode poller/marquee, shell original; Rust has its own daemon), demo-runner
 
 ## Dual Implementation
 
@@ -29,7 +29,7 @@ Env-var detection (iTerm2 > Ghostty > Kitty > WezTerm > ... > xterm); OSC 0 titl
 
 ## Installation & Ecosystem
 
-Lives at utilities/shell/tabbing-on in the Noizu Infra monorepo; a SUBDIR of utilities/shell/Makefile, so repo-root `make install-utilities` recurses into its Makefile. No share/k8-lib or .infra-config.yaml footprint — purely local tool sharing the ~/.local/bin convention. `make install`: cargo build → ~/.local/bin/tabbing-on + ~19 applet symlinks + shell libs to ~/.local/share/tabbing-on/ + direnv use_tabbing helper. `make install-shell` = legacy pure-shell install. Activate via `eval "$(tabbing-init bash|zsh)"`. dc mode depends on sibling direnv-config utility.
+Lives at Portfolio/Utilities/source/tabbing-on in the Noizu Infra monorepo; a SUBDIR of Portfolio/Utilities/Makefile, so monorepo-root `make install-utilities` recurses into its Makefile. No share/k8-lib or .infra-config.yaml footprint — purely local tool sharing the ~/.local/bin convention. `make install`: cargo build → ~/.local/bin/tabbing-on + ~19 applet symlinks + shell libs to ~/.local/share/tabbing-on/ + direnv use_tabbing helper. `make install-shell` = legacy pure-shell install. Activate via `eval "$(tabbing-init bash|zsh)"`. dc mode depends on sibling direnv-config utility.
 
 ## Key Decisions
 

@@ -15,12 +15,13 @@ tabbing-on/
 │   ├── examples/themes/        #   User theme templates
 │   ├── demo/                   #   Demo scripts & recordings
 │   └── terminal-utils.zshrc    #   Legacy shim
-├── docs/                       # PROJ-ARCH/HOWTO/FAQ/LAYOUT (+ summaries), FEATURE-PARITY,
-│                               #   theme-data-format, howto/, layout/, assets/
+├── docs/                       # PROJ-ARCH/HOWTO/FAQ/LAYOUT (+ summaries), THREAT-MODEL,
+│                               #   FEATURE-PARITY, theme-data-format, howto/, layout/, assets/
 ├── tmp-xdg/                    # Scratch XDG config tree for testing
 ├── .envrc                      # direnv (gitignored) — TAB_THEME, NPL_PROJECT
 ├── Makefile                    # make install: cargo build + symlinks + shell libs
 ├── CHANGELOG.md                # Milestone-tagged change history
+├── AGENT.md / AGENTS.md        # Multi-agent build rules (mirror CLAUDE.md)
 ├── CLAUDE.md                   # Claude Code instructions
 ├── LICENSE                     # MIT
 ├── README.md                   # Project entry point

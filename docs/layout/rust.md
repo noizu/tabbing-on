@@ -1,8 +1,9 @@
 # Layout: rust/
 
-Primary Rust implementation (v0.2.0). Single multi-call binary `tabbing` that
-dispatches on argv0 — installed applet symlinks (`tabbing-on`, `tabbing-status`,
-`tabbing-theme`, `tabbing-plan`, `task-memo`, ...) select the subcommand.
+Primary Rust implementation (v0.2.0). Single multi-call binary `tabbing-on`
+that dispatches on argv0 — installed applet symlinks (`tabbing-status`,
+`tabbing-theme`, `tabbing-style`, `tabbing-off`, `tabbing-plan`, `task-memo`,
+`tabbing-ssh-shim`, ...) select the subcommand.
 Feature coverage vs shell-impl: [../FEATURE-PARITY.md](../FEATURE-PARITY.md).
 
 ```
