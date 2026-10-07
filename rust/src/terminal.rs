@@ -19,7 +19,7 @@ pub enum Terminal {
 }
 
 impl Terminal {
-    // ⟦𓃦𓐬𓃗𓂙⟧ as_str :: auto-generated pointer for public function as_str
+    // <REMOVED UUID HERE> as_str :: auto-generated pointer for public function as_str
     pub fn as_str(&self) -> &'static str {
         match self {
             Terminal::ITerm2 => "iterm2",
@@ -39,7 +39,7 @@ impl Terminal {
     }
 }
 
-// ⟦𓇝𓂛𓎧𓀍⟧ detect :: auto-generated pointer for public function detect
+// <REMOVED UUID HERE> detect :: auto-generated pointer for public function detect
 pub fn detect() -> Terminal {
     if env::var("TAB_TERMINAL").is_ok() {
         return match env::var("TAB_TERMINAL").unwrap().as_str() {
@@ -93,7 +93,7 @@ pub fn detect() -> Terminal {
     }
 }
 
-// ⟦𓈤𓃈𓌂𓃨⟧ send_title :: auto-generated pointer for public function send_title
+// <REMOVED UUID HERE> send_title :: auto-generated pointer for public function send_title
 pub fn send_title(title: &str) {
     let tty = std::fs::OpenOptions::new().write(true).open("/dev/tty");
 
@@ -113,7 +113,7 @@ pub fn send_title(title: &str) {
     }
 }
 
-// ⟦𓁅𓇭𓍮𓋚⟧ clear_title :: auto-generated pointer for public function clear_title
+// <REMOVED UUID HERE> clear_title :: auto-generated pointer for public function clear_title
 pub fn clear_title() {
     let tty = std::fs::OpenOptions::new().write(true).open("/dev/tty");
     if let Ok(mut tty) = tty {
@@ -124,7 +124,7 @@ pub fn clear_title() {
     }
 }
 
-// ⟦𓊘𓊲𓎕𓅙⟧ send_tab_color :: auto-generated pointer for public function send_tab_color
+// <REMOVED UUID HERE> send_tab_color :: auto-generated pointer for public function send_tab_color
 pub fn send_tab_color(terminal: &Terminal, r: u8, g: u8, b: u8) {
     let tty = std::fs::OpenOptions::new().write(true).open("/dev/tty");
     match terminal {
@@ -147,7 +147,7 @@ pub fn send_tab_color(terminal: &Terminal, r: u8, g: u8, b: u8) {
     }
 }
 
-// ⟦𓂺𓄌𓋲𓎫⟧ send_bg_color :: auto-generated pointer for public function send_bg_color
+// <REMOVED UUID HERE> send_bg_color :: auto-generated pointer for public function send_bg_color
 pub fn send_bg_color(hex: &str) {
     let tty = std::fs::OpenOptions::new().write(true).open("/dev/tty");
     if let Ok(mut tty) = tty {
@@ -158,7 +158,7 @@ pub fn send_bg_color(hex: &str) {
     }
 }
 
-// ⟦𓋎𓋶𓈛𓅁⟧ clear_bg_color :: auto-generated pointer for public function clear_bg_color
+// <REMOVED UUID HERE> clear_bg_color :: auto-generated pointer for public function clear_bg_color
 pub fn clear_bg_color() {
     let tty = std::fs::OpenOptions::new().write(true).open("/dev/tty");
     if let Ok(mut tty) = tty {
@@ -169,7 +169,7 @@ pub fn clear_bg_color() {
     }
 }
 
-// ⟦𓆪𓃰𓆵𓏁⟧ clear_tab_color :: auto-generated pointer for public function clear_tab_color
+// <REMOVED UUID HERE> clear_tab_color :: auto-generated pointer for public function clear_tab_color
 pub fn clear_tab_color() {
     let terminal = detect();
     match terminal {
@@ -190,7 +190,7 @@ pub fn clear_tab_color() {
     }
 }
 
-// ⟦𓆙𓃢𓎰𓃉⟧ clear_badge :: auto-generated pointer for public function clear_badge
+// <REMOVED UUID HERE> clear_badge :: auto-generated pointer for public function clear_badge
 pub fn clear_badge() {
     let terminal = detect();
     match terminal {
@@ -243,7 +243,7 @@ mod tests {
     }
 }
 
-// ⟦𓃒𓎂𓉕𓏾⟧ terminal_info :: auto-generated pointer for public function terminal_info
+// <REMOVED UUID HERE> terminal_info :: auto-generated pointer for public function terminal_info
 pub fn terminal_info(terminal: &Terminal) {
     println!("Terminal: {}", terminal.as_str());
     if env::var("ZELLIJ").is_ok() {

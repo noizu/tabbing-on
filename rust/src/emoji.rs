@@ -1,4 +1,4 @@
-// ⟦𓎘𓍷𓍸𓐍⟧ emoji_lookup :: auto-generated pointer for public function emoji_lookup
+// <REMOVED UUID HERE> emoji_lookup :: auto-generated pointer for public function emoji_lookup
 pub fn emoji_lookup(name: &str) -> Option<&'static str> {
     match name {
         // Build & Deploy
@@ -436,12 +436,12 @@ pub fn emoji_lookup(name: &str) -> Option<&'static str> {
     }
 }
 
-// ⟦𓌕𓂆𓁧𓐕⟧ is_known_emoji :: auto-generated pointer for public function is_known_emoji
+// <REMOVED UUID HERE> is_known_emoji :: auto-generated pointer for public function is_known_emoji
 pub fn is_known_emoji(name: &str) -> bool {
     emoji_lookup(name).is_some()
 }
 
-// ⟦𓆊𓈋𓋤𓋵⟧ emoji_search :: auto-generated pointer for public function emoji_search
+// <REMOVED UUID HERE> emoji_search :: auto-generated pointer for public function emoji_search
 pub fn emoji_search(filter: &str) {
     let lc = filter.to_lowercase();
     println!("Emojis matching \"{}\":\n", filter);
@@ -478,7 +478,7 @@ fn emoji_search_matches(primary: &str, aliases: &[&str], filter: &str) -> bool {
     primary.contains(filter) || aliases.iter().any(|a| a.contains(filter))
 }
 
-// ⟦𓈄𓁅𓂝𓊓⟧ emoji_list :: auto-generated pointer for public function emoji_list
+// <REMOVED UUID HERE> emoji_list :: auto-generated pointer for public function emoji_list
 pub fn emoji_list() {
     println!("Available emojis (use -emoji:FILTER to search):\n");
 

@@ -345,7 +345,7 @@ fn cmd_run() {
 
 // ── Public entry point ─────────────────────────────────────────────
 
-// ⟦𓂲𓆔𓂑𓅵⟧ run_daemon :: auto-generated pointer for public function run_daemon
+// <REMOVED UUID HERE> run_daemon :: auto-generated pointer for public function run_daemon
 pub fn run_daemon(args: &[String]) {
     let session = env::var("TAB_SESSION").unwrap_or_default();
     if session.is_empty() {
